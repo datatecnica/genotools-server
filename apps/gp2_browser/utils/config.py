@@ -1,13 +1,12 @@
 from typing import Dict, List
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+# bucket_flag = "gcs"
 class AppConfig(BaseSettings):
     """
     Centralized configuration using Pydantic for validation and defaults.
     """
-
-    GCP_PROJECT: str = "gp2-release-terra"
-    FRONTEND_BUCKET_NAME: str = "gt_app_utils"
+    # GCP_PROJECT: str = "gp2-code-test-env" #"gp2-release-terra"
+    FRONTEND_BUCKET_NAME: str = "data/gt_app_utils"
 
     SEX_MAP: Dict[int, str] = {
         1: "Male",

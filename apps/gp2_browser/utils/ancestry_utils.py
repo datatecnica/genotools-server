@@ -217,15 +217,15 @@ def render_tab_admix(pca_folder, gp2_data_bucket):
     the reference panel admixture table and plots.
     """
     frontend_bucket_name = 'gt_app_utils'
-    frontend_bucket = get_gcloud_bucket(frontend_bucket_name)
+    frontend_bucket = config.FRONTEND_BUCKET_NAME+"/" #get_gcloud_bucket(frontend_bucket_name)
 
     st.markdown('## **Reference Panel Admixture Populations**')
     with st.expander("Description"):
         st.write(config.DESCRIPTIONS['admixture'])
 
     ref_admix = blob_as_csv(frontend_bucket, 'ref_panel_admixture.txt')
-    admix_plot_blob = frontend_bucket.get_blob('refpanel_admix.png')
-    admix_plot = admix_plot_blob.download_as_bytes()
+    admix_plot_blob = frontend_bucket+'refpanel_admix.png' #.get_blob('refpanel_admix.png')
+    admix_plot = admix_plot_blob #admix_plot_blob.download_as_bytes()
     st.image(admix_plot)
 
     proj_labels = blob_as_csv(

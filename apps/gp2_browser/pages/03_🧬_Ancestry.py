@@ -25,7 +25,7 @@ def main():
     config_page('Ancestry')
     release_select()
 
-    gp2_data_bucket = get_gcloud_bucket('gt_app_utils') # used to be gp2tier2
+    gp2_data_bucket = config.FRONTEND_BUCKET_NAME+"/" #get_gcloud_bucket('gt_app_utils') # used to be gp2tier2
     plot_folder = f"qc_metrics/release{st.session_state['release_choice']}"
 
     tab_pca, tab_pred_stats, tab_pie, tab_admix, tab_methods = st.tabs([

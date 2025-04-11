@@ -19,7 +19,7 @@ def main():
     with st.expander("Description"):
         st.markdown(config.DESCRIPTIONS['snp_metrics'])
 
-    snp_metrics_bucket = get_gcloud_bucket("gt_app_utils")
+    snp_metrics_bucket = config.FRONTEND_BUCKET_NAME+"/" #get_gcloud_bucket("gt_app_utils")
     chr_ancestry_select()
     chr_choice = st.session_state['chr_choice']
     ancestry_choice = st.session_state['ancestry_choice']
