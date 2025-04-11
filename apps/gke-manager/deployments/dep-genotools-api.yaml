@@ -4,7 +4,7 @@ metadata:
   name: gt-api-sec
   namespace: gke-ns-gtserver-eu-west4
 data:
-  api-key: M2hIQXgyRkc5VTVXUzB5ampIYnE2TU1sTUhjOUxJUW5RZkxIWDBlZHdHdmlkQS13dFY=
+  api-key: <API-Key>
 ---
 apiVersion: apps/v1
 kind: Deployment
