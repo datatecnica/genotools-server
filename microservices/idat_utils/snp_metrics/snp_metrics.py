@@ -173,7 +173,8 @@ def convert_idat_to_gtc(iaap, bpm, egt, barcode_out_path, idat_path, debug=False
 def gtc_to_vcf(gtc_directory, vcf_directory, bpm, bpm_csv, egt, ref_fasta, out_tmp, bcftools_plugins_path, threads=8, memory="4G"):
     """Convert all GTC files in a directory to multiple VCF files (one per sample)."""
     
-    ram_tmp = "/dev/shm/vcf_tmp" if os.path.exists("/dev/shm") else out_tmp
+    # ram_tmp = "/dev/shm/vcf_tmp" if os.path.exists("/dev/shm") else out_tmp
+    ram_tmp = out_tmp
     os.makedirs(ram_tmp, exist_ok=True)
     os.makedirs(vcf_directory, exist_ok=True)
     
