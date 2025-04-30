@@ -7,28 +7,37 @@ from utils.config import AppConfig
 config = AppConfig()
 
 def blob_as_csv(bucket, path, sep=r"\s+", header="infer"):
-    blob = bucket.get_blob(path)
-    blob_bytes = blob.download_as_bytes()
-    blob_str = str(blob_bytes, "utf-8")
-    blob_io = StringIO(blob_str)
-    df = pd.read_csv(blob_io, sep=sep, header=header)
+    # blob = bucket.get_blob(path)
+    # blob_bytes = blob.download_as_bytes()
+    # blob_str = str(blob_bytes, "utf-8")
+    # blob_io = StringIO(blob_str)
+    # df = pd.read_csv(blob_io, sep=sep, header=header)
+    df = pd.read_csv(bucket+path, sep=sep, header=header)
     return df
 
 def blob_as_html(bucket, path):
-    blob = bucket.get_blob(path)
-    blob_bytes = blob.download_as_bytes()
-    blob_str = str(blob_bytes, "utf-8")  # Convert bytes to string
+    # blob = bucket.get_blob(path)
+    # blob_bytes = blob.download_as_bytes()
+    blob_str = str(bucket+path, "utf-8")  # Convert bytes to string
     return blob_str 
 
-def get_gcloud_bucket(bucket_name):
-    storage_client = storage.Client(project=config.GCP_PROJECT)
-    bucket = storage_client.bucket(bucket_name, user_project=config.GCP_PROJECT)
-    return bucket
+def get_gcloud_bucket():
+    # if bucket_flag=="local":
+    return config.FRONTEND_BUCKET_NAME
+    # else:
+    #     storage_client = storage.Client(project=config.GCP_PROJECT)
+    #     bucket = storage_client.bucket(bucket_name, user_project=config.GCP_PROJECT)
+    #     return bucket
+    # return bucket
 
-def get_master_key(bucket):
+def get_master_key():
+    # if bucket_flag=="local":
+    # master_key = config.FRONTEND_BUCKET_NAME+"/release_keys/nba_app_key.csv"
     release_choice = st.session_state["release_choice"]
-    master_key_path = f"release_keys/nba_app_key.csv"
-    master_key = blob_as_csv(bucket, master_key_path, sep=",")
+    # else:
+    #     release_choice = st.session_state["release_choice"]
+    master_key_path = f"/release_keys/nba_app_key.csv"
+    master_key = blob_as_csv(config.FRONTEND_BUCKET_NAME, master_key_path, sep=",")
     latest_rel = max(master_key.release)
     if release_choice == latest_rel:
         return master_key
@@ -60,9 +69,12 @@ def config_page(title):
             layout="wide",
         )
     else:
-        frontend_bucket = get_gcloud_bucket(config.FRONTEND_BUCKET_NAME)
-        gp2_bg_blob = frontend_bucket.get_blob("gp2_2.jpg")
-        gp2_bg = gp2_bg_blob.download_as_bytes()
+        # if bucket_flag=="local":
+        gp2_bg = config.FRONTEND_BUCKET_NAME+"/gp2_2.jpg" 
+        # else:
+        #     frontend_bucket = get_gcloud_bucket(config.FRONTEND_BUCKET_NAME, bucket_flag)
+        #     gp2_bg_blob = frontend_bucket.get_blob("gp2_2.jpg")
+        #     gp2_bg = gp2_bg_blob.download_as_bytes()
         st.session_state["gp2_bg"] = gp2_bg
         st.set_page_config(
             page_title=title,
@@ -77,13 +89,19 @@ def place_logos():
         sidebar2.image(st.session_state.gp2_removebg, use_container_width=True)
         st.sidebar.image(st.session_state.redlat, use_container_width=True)
     else:
-        frontend_bucket = get_gcloud_bucket(config.FRONTEND_BUCKET_NAME)
-        card_removebg_blob = frontend_bucket.get_blob("card-removebg.png")
-        card_removebg = card_removebg_blob.download_as_bytes()
-        gp2_removebg_blob = frontend_bucket.get_blob("gp2_2-removebg.png")
-        gp2_removebg = gp2_removebg_blob.download_as_bytes()
+        # if bucket_flag=="local":
+        card_removebg = config.FRONTEND_BUCKET_NAME+"/card-removebg.png"
+        gp2_removebg = config.FRONTEND_BUCKET_NAME+"/gp2_2-removebg.png"
+        # else:
+        #     frontend_bucket = get_gcloud_bucket(config.FRONTEND_BUCKET_NAME, bucket_flag)
+        #     card_removebg_blob = frontend_bucket.get_blob("card-removebg.png")
+        #     card_removebg = card_removebg_blob.download_as_bytes()
+        #     gp2_removebg_blob = frontend_bucket.get_blob("gp2_2-removebg.png")
+        #     gp2_removebg = gp2_removebg_blob.download_as_bytes()
+
         # redlat_blob = frontend_bucket.get_blob("Redlat.png")
         # redlat = redlat_blob.download_as_bytes()
+
         st.session_state["card_removebg"] = card_removebg
         st.session_state["gp2_removebg"] = gp2_removebg
         # st.session_state["redlat"] = redlat

@@ -4,6 +4,7 @@ import streamlit.components.v1 as components
 from utils.hold_data import place_logos, config_page
 from utils.config import AppConfig
 
+
 config = AppConfig()
 HOME_CONTENT = config.HOME_CONTENT
 

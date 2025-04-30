@@ -3,10 +3,12 @@ from utils.hold_data import (
     blob_as_csv, 
     get_gcloud_bucket
 )
+from utils.config import AppConfig
+config = AppConfig()
 
 def load_rare_variant_data(bucket_name, file_path):
     """Load rare variant data from the specified bucket and file."""
-    bucket = get_gcloud_bucket(bucket_name)
+    bucket = config.FRONTEND_BUCKET_NAME+"/" #get_gcloud_bucket(bucket_name)
     return blob_as_csv(bucket, file_path, sep=',')
 
 def filter_rare_variant_data(rv_data):

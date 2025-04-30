@@ -28,8 +28,10 @@ def main():
     config_page('GP2 Release')
     release_select()
 
-    gp2_data_bucket = get_gcloud_bucket('gt_app_utils')
-    master_key = get_master_key(gp2_data_bucket)
+    gp2_data_bucket = config.FRONTEND_BUCKET_NAME+"/"
+
+    # gp2_data_bucket = get_gcloud_bucket('gt_app_utils')
+    master_key = get_master_key()
     master_key_cohort = filter_by_cohort(master_key)
     
     pruned_key = st.session_state['master_key']
