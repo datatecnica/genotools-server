@@ -1,6 +1,7 @@
 #!/bin/bash
 export ZONE=europe-west4-a
-export GCP_PROJECT=gp2-code-test-env
+export GCP_PROJECT=gp2-release-terra
+# export GCP_PROJECT=gp2-code-test-env 
 export CLUSTER_NAME=gtserver-eu-west4
 export GENOTOOLS_API_NODE_POOL=genotools-api-ancesstory-pool
 export VM=c4-highmem-32

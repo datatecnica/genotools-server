@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.appservices.gp2browserApp.podName }} 
+  name: {{ .Values.appservices.gp2browserApp.podName }} 
+  namespace: {{ .Values.namespace }} 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.appservices.gp2browserApp.podName }} 
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.appservices.gp2browserApp.podName }} 
+      annotations:
+        gke-gcsfuse/volumes: "true" 
+    spec:
+      serviceAccountName: {{ .Values.ksaBucket }} 
+      containers:
+      - image: {{ .Values.appservices.gp2browserApp.image }}
+        name: gp2-browser-container
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: gcs-volume
+          mountPath: {{ .Values.appservices.gp2browserApp.mountPath }} 
+      volumes:
+      - name: gcs-volume
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVOLUMECLAIM }}
+      # Ensure pods are scheduled on nodes with the specified GCP VM type
+      nodeSelector:
+        cloud.google.com/gke-nodepool: {{ .Values.nodePools.appsNodePool }} 
+        iam.gke.io/gke-metadata-server-enabled: "true"        

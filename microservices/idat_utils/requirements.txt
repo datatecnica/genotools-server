@@ -1,7 +1,0 @@
-scikit-learn
-pandas
-numpy
-dask
-configparser
-pyarrow
-distributed

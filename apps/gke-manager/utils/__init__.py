@@ -1,5 +1,6 @@
 ZONE="europe-west4-a"
-GCP_PROJECT="gp2-code-test-env"
+GCP_PROJECT="gp2-release-terra"
+# GCP_PROJECT="gp2-code-test-env"
 CLUSTER_NAME="gtserver-eu-west4"
 K8S_NAMESPACE="gke-ns-gtserver-eu-west4"
 GENOTOOLS_API_POD="genotools-api-pod"

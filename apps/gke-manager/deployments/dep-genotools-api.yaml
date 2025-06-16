@@ -4,7 +4,7 @@ metadata:
   name: gt-api-sec
   namespace: gke-ns-gtserver-eu-west4
 data:
-  api-key: <API-Key>
+  api-key: M2hIQXgyRkc5VTVXUzB5ampIYnE2TU1sTUhjOUxJUW5RZkxIWDBlZHdHdmlkQS13dFY=
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -35,7 +35,7 @@ spec:
         persistentVolumeClaim:
           claimName: gtserver-pvc
       containers:
-      - image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools_api:latest
+      - image: us-east1-docker.pkg.dev/gp2-release-terra/syed-test/genotools_api:latest # us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools_api:latest
         name: genotools-api-container
         ports:
         - containerPort: 8080
@@ -51,7 +51,6 @@ spec:
       # Ensure pods are scheduled on nodes with the specified GCP VM type
       nodeSelector:
         cloud.google.com/gke-nodepool: genotools-api-ancesstory-pool
-
 ---
 apiVersion: v1
 kind: Service
@@ -65,37 +64,37 @@ spec:
   ports:
     - port: 8000
       targetPort: 8080
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: gtserver-ingress
-  namespace: gke-ns-gtserver-eu-west4
-  annotations:
-    kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.allow-http: "true"
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /*
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: gp2-browser-svc-nodeport
-            port: 
-              number: 8000      
-      - path: /api
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: genotools-api-svc-nodeport
-            port: 
-              number: 8000
-      - path: /run-genotools/
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: genotools-api-svc-nodeport
-            port: 
-              number: 8000              
+# ---
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: gtserver-ingress
+#   namespace: gke-ns-gtserver-eu-west4
+#   annotations:
+#     kubernetes.io/ingress.class: "gce"
+#     kubernetes.io/ingress.allow-http: "true"
+# spec:
+#   rules:
+#   - http:
+#       paths:
+#       - path: /*
+#         pathType: ImplementationSpecific
+#         backend:
+#           service:
+#             name: gp2-browser-svc-nodeport
+#             port: 
+#               number: 8000      
+#       - path: /api
+#         pathType: ImplementationSpecific
+#         backend:
+#           service:
+#             name: genotools-api-svc-nodeport
+#             port: 
+#               number: 8000
+#       - path: /run-genotools/
+#         pathType: ImplementationSpecific
+#         backend:
+#           service:
+#             name: genotools-api-svc-nodeport
+#             port: 
+#               number: 8000              
