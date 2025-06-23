@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 from src.core.harmonizer import AlleleHarmonizer
 from src.core.data_repository import DataRepository
 from src.core.genotype_converter import GenotypeConverter
@@ -158,22 +158,67 @@ class CarrierExtractor:
                 result_type='expand'
             )
         
-        # Process and save frequency info
-        var_info_df = traw_final.loc[:, colnames]
-        var_info_df = var_info_df.merge(var_stats, how='left', on='SNP')
-        var_info_df.pos = var_info_df.pos.astype(int)
+        # Create comprehensive variant information file by combining subset_snp metadata with PLINK statistics
+        # 
+        # HARMONIZATION EXPLANATION:
+        # During harmonization, alleles are matched between input reference and genotype data:
+        # - Original input alleles (ref_allele_orig, alt_allele_orig) are from your input SNP list
+        # - PLINK alleles (plink_counted, plink_alt) are from the harmonized genotype data
+        # - These may differ due to strand flips, allele swaps, or reference/alt designation
+        # - PLINK uses "COUNTED" allele for frequency calculations (equivalent to REF)
+        # - Genotype calls in carriers files are relative to the harmonized PLINK alleles
+        comprehensive_var_info = subset_snp_df.copy()
         
-        # Add snp_name to var_info if available
-        if 'snp_name' in snp_list_df.columns:
-            # Merge snp_name based on the subset_snp_df mapping
-            var_info_df = var_info_df.merge(subset_snp_df[['id', 'snp_name']], on='id', how='left')
+        # Add PLINK statistics (frequency and missingness data)
+        if not var_stats.empty and 'SNP' in var_stats.columns:
+            comprehensive_var_info = comprehensive_var_info.merge(var_stats, left_on='id', right_on='SNP', how='left')
+            # Remove redundant SNP column
+            comprehensive_var_info.drop(columns=['SNP'], inplace=True, errors='ignore')
         
-        self.data_repo.write_csv(var_info_df, f"{out_path}_var_info.csv", index=False)
+        # Remove any chromosome columns from comprehensive_var_info before merging to avoid conflicts
+        # Only keep the 'chrom' column from traw data
+        chr_cols_to_remove = ['chrom', 'CHR', '#CHROM']
+        comprehensive_var_info.drop(columns=chr_cols_to_remove, inplace=True, errors='ignore')
         
-        # Save the subset SNP list as an output file
-        subset_snp_output_path = f"{out_path}_subset_snps.csv"
-        self.data_repo.write_csv(subset_snp_df, subset_snp_output_path, index=False)
+        # Add only the chromosome column from traw metadata (the only column we want to keep)
+        if 'CHR' in traw_final.columns:
+            plink_metadata = traw_final[['id', 'CHR']].copy()
+            plink_metadata.rename(columns={'CHR': 'chrom'}, inplace=True)
+            comprehensive_var_info = comprehensive_var_info.merge(plink_metadata, on='id', how='left')
         
+        # Clean up any remaining unwanted columns
+        columns_to_drop = ['variant_id']
+        comprehensive_var_info.drop(columns=columns_to_drop, inplace=True, errors='ignore')
+        
+        # Remove any remaining allele columns that might exist
+        redundant_allele_cols = ['REF', 'ALT', 'PROVISIONAL_REF?']
+        comprehensive_var_info.drop(columns=redundant_allele_cols, inplace=True, errors='ignore')
+            
+        # Ensure pos is integer if it exists
+        if 'pos' in comprehensive_var_info.columns:
+            comprehensive_var_info['pos'] = comprehensive_var_info['pos'].astype(int)
+        
+        # Reorder columns for better readability: id before snp_name_alt, chrom before pos
+        desired_column_order = [
+            'id', 'snp_name', 'snp_name_alt', 'locus', 'rsid', 
+            'hg38', 'hg19', 'chrom', 'pos', 'a1', 'a2', 'COUNTED',
+            'ancestry', 'submitter_email', 'precision_medicine', 'pipeline'
+            ]
+        
+        frequency_columns = ['ALT_FREQS', 'OBS_CT', 'F_MISS']
+        
+        # Build final column order: desired columns first, then frequency columns, then any remaining columns
+        available_desired_cols = [col for col in desired_column_order if col in comprehensive_var_info.columns]
+        available_freq_cols = [col for col in frequency_columns if col in comprehensive_var_info.columns]
+        remaining_cols = [col for col in comprehensive_var_info.columns if col not in available_desired_cols + available_freq_cols]
+        
+        final_column_order = available_desired_cols + available_freq_cols + remaining_cols
+        comprehensive_var_info = comprehensive_var_info[final_column_order]
+        
+        # Save the comprehensive variant information file (replaces both var_info and subset_snps)
+        var_info_output_path = f"{out_path}_var_info.csv"
+        self.data_repo.write_csv(comprehensive_var_info, var_info_output_path, index=False)
+
         # Process and save string format
         carriers_string = traw_out.drop(columns=var_cols).set_index('id').T.reset_index()
         carriers_string.columns.name = None
@@ -182,10 +227,10 @@ class CarrierExtractor:
         carriers_string.rename(columns={'index':'IID'}, inplace=True)
         carriers_string.loc[:,'IID'] = carriers_string.loc[:,'IID'].str.replace('0_', '')
         
-        # Rename variant columns from id to snp_name if available
-        if 'snp_name' in subset_snp_df.columns:
-            id_to_snp_name = subset_snp_df.set_index('id')['snp_name'].to_dict()
-            carriers_string = carriers_string.rename(columns=id_to_snp_name)
+        # Keep original probe IDs as column names (removed renaming to snp_name)
+        # if 'snp_name' in subset_snp_df.columns:
+        #     id_to_snp_name = subset_snp_df.set_index('id')['snp_name'].to_dict()
+        #     carriers_string = carriers_string.rename(columns=id_to_snp_name)
         
         self.data_repo.write_csv(carriers_string, f"{out_path}_carriers_string.csv", index=False)
         
@@ -195,17 +240,16 @@ class CarrierExtractor:
         carriers_int.rename(columns={'index':'IID'}, inplace=True)
         carriers_int.loc[:,'IID'] = carriers_int.loc[:,'IID'].str.replace('0_', '')
         
-        # Rename variant columns from id to snp_name if available
-        if 'snp_name' in subset_snp_df.columns:
-            carriers_int = carriers_int.rename(columns=id_to_snp_name)
+        # Keep original probe IDs as column names (removed renaming to snp_name)
+        # if 'snp_name' in subset_snp_df.columns:
+        #     carriers_int = carriers_int.rename(columns=id_to_snp_name)
         
         self.data_repo.write_csv(carriers_int, f"{out_path}_carriers_int.csv", index=False)
         
         return {
             'var_info': f"{out_path}_var_info.csv",
             'carriers_string': f"{out_path}_carriers_string.csv",
-            'carriers_int': f"{out_path}_carriers_int.csv",
-            'subset_snps': subset_snp_output_path
+            'carriers_int': f"{out_path}_carriers_int.csv"
         }
 
 
@@ -214,175 +258,210 @@ class CarrierCombiner:
         self.data_repo = data_repo
 
     def combine_carrier_files(self, results_by_label: Dict[str, Dict[str, str]], 
-                             key_file: str, out_path: str) -> Dict[str, str]:
+                             key_file: str, out_path: str, track_probe_usage: bool = True) -> Dict[str, str]:
         """
         Combine carrier files from multiple ancestry labels into consolidated output files.
+        Updated to incorporate improved logic from combine_array_data_outputs().
         
         Args:
             results_by_label: Dictionary mapping ancestry labels to their extract_carriers results
-            key_file: Path to key file containing study information
+            key_file: Path to key file containing study information (None if not using study info)
             out_path: Path prefix for output files
+            track_probe_usage: Whether to track which variants were used per population
         
         Returns:
             dict: Paths to generated output files
         """
-        carriers_string_full = pd.DataFrame()
-        carriers_int_full = pd.DataFrame()
+        print(f"\n=== Combining Array Data Outputs ===")
         
-        # Get base variant info from first label and drop frequency columns
-        first_label_results = next(iter(results_by_label.values()))
-        var_info_key = 'var_info_df' if 'var_info_df' in first_label_results else 'var_info'
-        var_info_base = first_label_results[var_info_key]
+        # Initialize combined dataframes
+        combined_carriers_string = pd.DataFrame()
+        combined_carriers_int = pd.DataFrame() 
+        combined_var_info = pd.DataFrame()
         
-        if isinstance(var_info_base, str):
-            var_info_base = self.data_repo.read_csv(var_info_base)
+        # Track which var_info columns we've seen to handle population-specific frequency columns
+        var_info_base = None
+        
+        for i, (label, results) in enumerate(results_by_label.items()):
+            print(f"Processing {label} for combination...")
             
-        freq_cols = ['ALT_FREQS', 'OBS_CT']
-        var_info_base = var_info_base.drop(columns=freq_cols, errors='ignore')
-        var_info_base.drop_duplicates(inplace=True)
-        
-        # Read key file
-        key = self.data_repo.read_csv(key_file)
-        
-        # Process each ancestry label's results
-        for label, results in results_by_label.items():
-            # Read data files
-            label_var_info = self.data_repo.read_csv(results['var_info'])
+            # Read the files
+            var_info = self.data_repo.read_csv(results['var_info'])
             carriers_string = self.data_repo.read_csv(results['carriers_string'])
             carriers_int = self.data_repo.read_csv(results['carriers_int'])
             
-            # Add frequency data for this population
-            var_info_base[f'ALT_FREQS_{label}'] = label_var_info['ALT_FREQS']
-            var_info_base[f'OBS_CT_{label}'] = label_var_info['OBS_CT']
+            # Process var_info (combine frequency information from all populations)
+            if var_info_base is None:
+                # First population - use as base and drop frequency columns
+                var_info_base = var_info.copy()
+                freq_cols = ['ALT_FREQS', 'OBS_CT']
+                if 'F_MISS' in var_info_base.columns:
+                    freq_cols.append('F_MISS')
+                var_info_base = var_info_base.drop(columns=freq_cols, errors='ignore')
+                combined_var_info = var_info_base.copy()
             
+            # Add population-specific frequency columns
+            combined_var_info[f'ALT_FREQS_{label}'] = var_info['ALT_FREQS']
+            combined_var_info[f'OBS_CT_{label}'] = var_info['OBS_CT']
+            if 'F_MISS' in var_info.columns:
+                combined_var_info[f'F_MISS_{label}'] = var_info['F_MISS']
             
-            # Add missingness data if available
-            if 'F_MISS' in label_var_info.columns:
-                var_info_base[f'F_MISS_{label}'] = label_var_info['F_MISS']
+            # Track which variant IDs were used in carriers data for this ancestry
+            if track_probe_usage:
+                # Mark all variants as used (removed F_MISS prioritization)
+                combined_var_info[f'{label}_probe_used'] = True
+                
+                # Add detailed logging
+                used_ids = combined_var_info[combined_var_info[f'{label}_probe_used']]['id'].tolist()
+                unused_ids = combined_var_info[~combined_var_info[f'{label}_probe_used']]['id'].tolist()
+                
+                print(f"{label}: {len(used_ids)} variants used in carriers data, {len(unused_ids)} variants not used")
             
-            # Process string format carriers
+            # Process carriers data (add ancestry column and combine)
+            carriers_string['ancestry'] = label
+            carriers_int['ancestry'] = label
+            
+            # Clean IID column (remove '0_' prefix if present)
             carriers_string['IID'] = carriers_string['IID'].str.replace('0_', '')
-            carriers_string.loc[:,'ancestry'] = label
-            carriers_string_full = pd.concat([carriers_string_full, carriers_string], ignore_index=True)
-            
-            # Process integer format carriers
             carriers_int['IID'] = carriers_int['IID'].str.replace('0_', '')
-            carriers_int.loc[:,'ancestry'] = label
-            carriers_int_full = pd.concat([carriers_int_full, carriers_int], ignore_index=True)
+            
+            # Combine with previous data
+            combined_carriers_string = pd.concat([combined_carriers_string, carriers_string], ignore_index=True)
+            combined_carriers_int = pd.concat([combined_carriers_int, carriers_int], ignore_index=True)
         
-        # Process and combine data
-        variant_columns = [x for x in carriers_string_full.columns if x not in ['IID','ancestry']]
+        # Calculate aggregate statistics for var_info
+        self._calculate_aggregate_statistics(combined_var_info)
         
-        # Process string format output
-        carriers_string_full_out = carriers_string_full[['IID', 'ancestry'] + variant_columns]
-        carriers_string_full_out[variant_columns] = carriers_string_full_out[variant_columns].fillna('./.')
-        carriers_string_full_out_merge = carriers_string_full_out.merge(key[['IID','study']], how='left', on='IID')
-        carriers_string_final = carriers_string_full_out_merge[['IID', 'study', 'ancestry'] + variant_columns]
+        # Clean up unnecessary columns
+        self._cleanup_columns(combined_var_info)
         
-        # Process integer format output
-        carriers_int_full_out = carriers_int_full[['IID', 'ancestry'] + variant_columns]
-        carriers_int_full_out_merge = carriers_int_full_out.merge(key[['IID','study']], how='left', on='IID')
-        carriers_int_final = carriers_int_full_out_merge[['IID', 'study', 'ancestry'] + variant_columns]
+        # Prepare final output format
+        combined_carriers_string_final, combined_carriers_int_final = self._prepare_final_output(
+            combined_carriers_string, combined_carriers_int, key_file)
         
-        # Calculate aggregate statistics
-        self._calculate_aggregate_statistics(var_info_base)
-
-        # Deduplicate variants based on lowest F_MISS
-        var_info_dedup, carriers_string_dedup, carriers_int_dedup = self._deduplicate_variants(
-            var_info_base, carriers_string_final, carriers_int_final
-        )
-        var_info_dedup.drop(columns=['ALT_x', '#CHROM', 'REF', 'ALT_y'], inplace=True)
-
+        # Save combined files
+        return self._save_combined_files(combined_var_info, combined_carriers_string_final, 
+                                       combined_carriers_int_final, out_path)
+    
+    def _calculate_aggregate_statistics(self, var_info: pd.DataFrame) -> None:
+        """Calculate aggregate statistics with improved weighted averages"""
+        print("Calculating aggregate statistics...")
+        
+        # Get frequency and observation columns
+        freq_cols = [col for col in var_info.columns if col.startswith('ALT_FREQS_')]
+        obs_cols = [col for col in var_info.columns if col.startswith('OBS_CT_')]
+        miss_cols = [col for col in var_info.columns if col.startswith('F_MISS_')]
+        
+        # Calculate total observations
+        var_info['OBS_CT'] = var_info[obs_cols].sum(axis=1)
+        
+        # Calculate weighted average allele frequency
+        weighted_sum = pd.Series(0, index=var_info.index)
+        for i, freq_col in enumerate(freq_cols):
+            matching_obs_col = obs_cols[i]
+            weighted_sum += var_info[freq_col] * var_info[matching_obs_col]
+        
+        # Avoid division by zero
+        var_info['ALT_FREQS'] = weighted_sum / var_info['OBS_CT'].replace(0, float('nan'))
+        
+        # Calculate weighted average missingness (improved from original)
+        if miss_cols:
+            miss_weighted_sum = pd.Series(0, index=var_info.index)
+            for i, miss_col in enumerate(miss_cols):
+                matching_obs_col = obs_cols[i]
+                miss_weighted_sum += var_info[miss_col] * var_info[matching_obs_col]
+            
+            # Weighted average missingness
+            var_info['F_MISS'] = miss_weighted_sum / var_info['OBS_CT'].replace(0, float('nan'))
+        
+        # Handle NaN values in frequency columns
+        self._handle_nan_values(var_info, freq_cols, obs_cols, miss_cols)
+    
+    def _handle_nan_values(self, var_info: pd.DataFrame, freq_cols: List[str], 
+                          obs_cols: List[str], miss_cols: List[str]) -> None:
+        """Handle NaN values in frequency columns after calculations"""
+        print("Handling NaN values in frequency columns...")
+        
+        # Set NaN to 0.0 for ALT_FREQS columns when corresponding OBS_CT > 0
+        for i, freq_col in enumerate(freq_cols):
+            matching_obs_col = obs_cols[i]
+            nan_mask = var_info[freq_col].isna()
+            valid_obs_mask = var_info[matching_obs_col] > 0
+            fix_mask = nan_mask & valid_obs_mask
+            
+            if fix_mask.sum() > 0:
+                print(f"Setting {fix_mask.sum()} NaN values to 0.0 in {freq_col} where {matching_obs_col} > 0")
+                var_info.loc[fix_mask, freq_col] = 0.0
+        
+        # Set NaN to 0.0 for F_MISS columns when corresponding OBS_CT > 0
+        for i, miss_col in enumerate(miss_cols):
+            matching_obs_col = obs_cols[i]
+            nan_mask = var_info[miss_col].isna()
+            valid_obs_mask = var_info[matching_obs_col] > 0
+            fix_mask = nan_mask & valid_obs_mask
+            
+            if fix_mask.sum() > 0:
+                print(f"Setting {fix_mask.sum()} NaN values to 0.0 in {miss_col} where {matching_obs_col} > 0")
+                var_info.loc[fix_mask, miss_col] = 0.0
+        
+        # Also handle the aggregate ALT_FREQS and F_MISS columns
+        for col_name in ['ALT_FREQS', 'F_MISS']:
+            if col_name in var_info.columns:
+                nan_mask = var_info[col_name].isna()
+                valid_obs_mask = var_info['OBS_CT'] > 0
+                fix_mask = nan_mask & valid_obs_mask
+                
+                if fix_mask.sum() > 0:
+                    print(f"Setting {fix_mask.sum()} NaN values to 0.0 in aggregate {col_name} where OBS_CT > 0")
+                    var_info.loc[fix_mask, col_name] = 0.0
+    
+    def _cleanup_columns(self, var_info: pd.DataFrame) -> None:
+        """Remove unnecessary columns like F_MISS_SIMPLE_AVG and redundant chromosome/allele columns"""
+        columns_to_remove = ['F_MISS_SIMPLE_AVG', 'chrom.1', 'CHR', '#CHROM', 'REF', 'ALT', 'COUNTED', 'PROVISIONAL_REF?']
+        var_info.drop(columns=columns_to_remove, inplace=True, errors='ignore')
+        print(f"Cleaned up unnecessary columns: {[col for col in columns_to_remove if col in var_info.columns]}")
+    
+    def _prepare_final_output(self, carriers_string: pd.DataFrame, carriers_int: pd.DataFrame, key_file: str) -> tuple:
+        """Prepare final output format for carriers data"""
+        # Reorder carriers dataframes columns 
+        variant_columns = [col for col in carriers_string.columns if col not in ['IID', 'ancestry']]
+        carriers_string_final = carriers_string[['IID', 'ancestry'] + variant_columns].copy()
+        carriers_int_final = carriers_int[['IID', 'ancestry'] + variant_columns].copy()
+        
+        # Fill missing values in carriers data
+        carriers_string_final[variant_columns] = carriers_string_final[variant_columns].fillna('./.')
+        
+        # Add study information if key file is provided
+        if key_file is not None:
+            key = self.data_repo.read_csv(key_file)
+            carriers_string_merge = carriers_string_final.merge(key[['IID','study']], how='left', on='IID')
+            carriers_string_final = carriers_string_merge[['IID', 'study', 'ancestry'] + variant_columns]
+            
+            carriers_int_merge = carriers_int_final.merge(key[['IID','study']], how='left', on='IID')
+            carriers_int_final = carriers_int_merge[['IID', 'study', 'ancestry'] + variant_columns]
+        
+        return carriers_string_final, carriers_int_final
+    
+    def _save_combined_files(self, var_info: pd.DataFrame, carriers_string: pd.DataFrame,
+                           carriers_int: pd.DataFrame, out_path: str) -> Dict[str, str]:
+        """Save combined files and return their paths"""
         # Define output paths
         carriers_string_path = f"{out_path}_string.csv"
         carriers_int_path = f"{out_path}_int.csv"
         var_info_path = f"{out_path}_info.csv"
         
         # Save combined files
-        self.data_repo.write_csv(carriers_string_dedup, carriers_string_path, index=False)
-        self.data_repo.write_csv(carriers_int_dedup, carriers_int_path, index=False)
-        self.data_repo.write_csv(var_info_dedup, var_info_path, index=False)
-
+        print(f"Saving combined files to {out_path}...")
+        self.data_repo.write_csv(var_info, var_info_path, index=False)
+        self.data_repo.write_csv(carriers_string, carriers_string_path, index=False)
+        self.data_repo.write_csv(carriers_int, carriers_int_path, index=False)
+        
+        print(f"✓ Combined var_info: {var_info_path}")
+        print(f"✓ Combined carriers_string: {carriers_string_path}")
+        print(f"✓ Combined carriers_int: {carriers_int_path}")
+        
         return {
+            'var_info': var_info_path,
             'carriers_string': carriers_string_path,
-            'carriers_int': carriers_int_path,
-            'var_info': var_info_path
+            'carriers_int': carriers_int_path
         }
-    
-    def _calculate_aggregate_statistics(self, var_info_base: pd.DataFrame) -> None:
-        """Calculate aggregate statistics across all ancestries"""
-        # Handle frequency calculations
-        freq_cols = [col for col in var_info_base.columns if col.startswith('ALT_FREQS_')]
-        obs_cols = [col for col in var_info_base.columns if col.startswith('OBS_CT_')]
-        
-        # Sum up total observations
-        var_info_base['OBS_CT'] = var_info_base[obs_cols].sum(axis=1)
-        
-        # Calculate weighted average for allele frequencies
-        weighted_sum = pd.Series(0, index=var_info_base.index)
-        for i, freq_col in enumerate(freq_cols):
-            matching_obs_col = obs_cols[i]
-            weighted_sum += var_info_base[freq_col] * var_info_base[matching_obs_col]
-        
-        # Avoid division by zero
-        var_info_base['ALT_FREQS'] = weighted_sum / var_info_base['OBS_CT'].replace(0, float('nan'))
-        
-        # Handle missingness calculations
-        miss_cols = [col for col in var_info_base.columns if col.startswith('F_MISS_')]
-        if miss_cols:
-            # Calculate average missingness rate across all ancestry groups
-            var_info_base['F_MISS'] = var_info_base[miss_cols].mean(axis=1)
-            
-            # Find maximum missingness rate for each variant
-            # var_info_base['F_MISS_MAX'] = var_info_base[miss_cols].max(axis=1)
-
-    def _deduplicate_variants(self, var_info: pd.DataFrame,
-                              carriers_str: pd.DataFrame,
-                              carriers_int: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-        """
-        Select unique variants based on chrom, pos, a1, a2, choosing the one with the lowest F_MISS.
-
-        Args:
-            var_info: DataFrame with variant information including 'id', 'chrom', 'pos', 'a1', 'a2', 'F_MISS'.
-            carriers_str: DataFrame with carrier strings (columns are 'IID', 'study', 'ancestry', variant 'id's).
-            carriers_int: DataFrame with carrier integers (columns are 'IID', 'study', 'ancestry', variant 'id's).
-
-        Returns:
-            Tuple containing the deduplicated var_info, carriers_str, and carriers_int DataFrames.
-        """
-        if 'F_MISS' not in var_info.columns:
-            print("Warning: F_MISS column not found in var_info. Skipping deduplication.")
-            return var_info, carriers_str, carriers_int
-
-        duplicate_key_cols = ['chrom', 'pos', 'a1', 'a2']
-
-        # Ensure key columns exist
-        if not all(col in var_info.columns for col in duplicate_key_cols):
-             print(f"Warning: Missing one or more key columns {duplicate_key_cols} in var_info. Skipping deduplication.")
-             return var_info, carriers_str, carriers_int
-
-        # Sort by positional key and then by F_MISS to prioritize lowest missingness
-        # Handle potential NaN in F_MISS by filling with infinity for sorting (worst missingness)
-        var_info_sorted = var_info.sort_values(
-            by=duplicate_key_cols + ['F_MISS'],
-            ascending=[True] * len(duplicate_key_cols) + [True], # True for F_MISS = lowest first
-            na_position='last' # Place NaNs last in F_MISS sorting
-        )
-
-        # Identify rows to keep (the first occurrence after sorting by F_MISS)
-        ids_to_keep = var_info_sorted.drop_duplicates(subset=duplicate_key_cols, keep='first')['id'].tolist()
-
-        # Filter var_info
-        var_info_dedup = var_info[var_info['id'].isin(ids_to_keep)].reset_index(drop=True)
-
-        # Filter carrier data columns
-        metadata_cols = ['IID', 'study', 'ancestry']
-        variant_cols_to_keep = [col for col in carriers_str.columns if col in ids_to_keep or col in metadata_cols]
-
-        carriers_str_dedup = carriers_str[variant_cols_to_keep]
-        carriers_int_dedup = carriers_int[variant_cols_to_keep] # Assumes int df has same columns
-
-        if len(var_info.index) != len(var_info_dedup.index):
-            print(f"Deduplicated {len(var_info.index) - len(var_info_dedup.index)} variants based on lowest F_MISS.")
-
-        return var_info_dedup, carriers_str_dedup, carriers_int_dedup

@@ -76,8 +76,7 @@ Response:
   "outputs": {
     "var_info": "/path/to/output/prefix_var_info.csv",
     "carriers_string": "/path/to/output/prefix_carriers_string.csv",
-    "carriers_int": "/path/to/output/prefix_carriers_int.csv",
-    "subset_snps": "/path/to/output/prefix_subset_snps.csv"
+    "carriers_int": "/path/to/output/prefix_carriers_int.csv"
   }
 }
 ```
@@ -140,12 +139,15 @@ for label in labels:
 
 ## Output Files
 
-Processing carriers generates four output files:
+Processing carriers generates three output files:
 
-1. `*_var_info.csv` - Variant information including frequencies
+1. `*_var_info.csv` - Comprehensive variant information including:
+   - Original input metadata (snp_name, locus, rsid, hg38, hg19, etc.)
+   - Harmonization results (genotype ID mapping)
+   - PLINK statistics (frequencies, missingness rates)
+   - PLINK metadata (chromosome format, positions, alleles)
 2. `*_carriers_string.csv` - Carriers in string format (e.g., A/G)
 3. `*_carriers_int.csv` - Carriers in integer format
-4. `*_subset_snps.csv` - The subset of SNPs used in the analysis
 
 ## Error Handling
 

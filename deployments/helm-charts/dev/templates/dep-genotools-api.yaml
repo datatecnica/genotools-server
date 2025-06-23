@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.microservices.genotoolsApi.podName }} 
+  name: {{ .Values.microservices.genotoolsApi.podName }} 
+  namespace:  {{ .Values.namespace }} 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.microservices.genotoolsApi.podName }} 
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.microservices.genotoolsApi.podName }} 
+      annotations:
+        gke-gcsfuse/volumes: "true" 
+        #Optional resource configuration for the sidecar container. Allocate more CPU to the sidecar container if your workloads need higher throughput.
+        gke-gcsfuse/cpu-limit: "2"
+        gke-gcsfuse/memory-limit: 8Gi
+        gke-gcsfuse/ephemeral-storage-limit: 8Gi   
+    spec:
+      serviceAccountName: {{ .Values.ksaBucket }} 
+      containers:
+      - image: {{ .Values.microservices.genotoolsApi.image }}
+        name: genotools-api-container
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: gcs-volume
+          mountPath: {{ .Values.microservices.genotoolsApi.mountPath }}  #app/genotools_api/data
+        env:
+          - name: API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.gcpSecretManager.kubernetesSecretName }} #{{ .Values.microservices.genotoolsApi.apiKey.name }}
+                key: {{ .Values.microservices.genotoolsApi.apiKey.key }} #api-key
+          - name: PAT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.gcpSecretManager.kubernetesSecretName }}
+                key: {{ .Values.microservices.genotoolsApi.patKey.key }} 
+
+      volumes:
+      - name: gcs-volume
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVOLUMECLAIM }}  
+      nodeSelector:
+        cloud.google.com/gke-nodepool: {{ .Values.nodePools.genotoolsApiNodePool }}  

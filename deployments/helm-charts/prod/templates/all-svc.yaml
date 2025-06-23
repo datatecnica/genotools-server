@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.appservices.gp2browserApp.svcName }}
+  namespace: {{ .Values.namespace }}
+  #annotations: #for iap
+  #  cloud.google.com/backend-config: '{"default": "{{ .Values.appservices.gp2browserApp.iapBackend }}"}'
+spec:
+  type: NodePort #LoadBalancer
+  selector:
+    app: {{ .Values.appservices.gp2browserApp.podName }}
+  ports:
+    - port: 8000
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.appservices.genotrackerApp.svcName }}
+  namespace: {{ .Values.namespace }}
+  #annotations: #for iap
+  #  cloud.google.com/backend-config: '{"default": "{{ .Values.appservices.genotrackerApp.iapBackend }}"}'
+spec:
+  type: NodePort #LoadBalancer
+  selector:
+    app: {{ .Values.appservices.genotrackerApp.podName }}
+  ports:
+    - port: 8000
+      targetPort: 8080      
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.microservices.genotrackerApi.svcName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  type: NodePort #LoadBalancer
+  selector:
+    app: {{ .Values.microservices.genotrackerApi.podName }}
+  ports:
+    - port: 8000
+      targetPort: 8080            
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.microservices.genotoolsApi.svcName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  type: NodePort #LoadBalancer
+  selector:
+    app: {{ .Values.microservices.genotoolsApi.podName }}
+  ports:
+    - port: 8000
+      targetPort: 8080                  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.microservices.gtPrecheckAPI.svcName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  type: NodePort #LoadBalancer
+  selector:
+    app: {{ .Values.microservices.gtPrecheckAPI.podName }}
+  ports:
+    - port: 8000
+      targetPort: 8080                  

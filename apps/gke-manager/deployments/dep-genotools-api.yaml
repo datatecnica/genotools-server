@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gt-api-sec
+  namespace: gke-ns-gtserver-eu-west4
+data:
+  api-key: M2hIQXgyRkc5VTVXUzB5ampIYnE2TU1sTUhjOUxJUW5RZkxIWDBlZHdHdmlkQS13dFY=
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: genotools-api-pod
+  name: genotools-api-pod
+  namespace: gke-ns-gtserver-eu-west4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: genotools-api-pod
+  template:
+    metadata:
+      labels:
+        app: genotools-api-pod
+      annotations:
+        gke-gcsfuse/volumes: "true" 
+        #Optional resource configuration for the sidecar container. Allocate more CPU to the sidecar container if your workloads need higher throughput.
+        gke-gcsfuse/cpu-limit: "2"
+        gke-gcsfuse/memory-limit: 8Gi
+        gke-gcsfuse/ephemeral-storage-limit: 8Gi   
+    spec:
+      serviceAccountName: ksa
+      volumes:
+      - name: gcs-volume
+        persistentVolumeClaim:
+          claimName: gtserver-pvc
+      containers:
+      - image: us-east1-docker.pkg.dev/gp2-release-terra/syed-test/genotools_api:latest # us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools_api:latest
+        name: genotools-api-container
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: gcs-volume
+          mountPath: /app/genotools_api/data
+        env:
+          - name: API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: gt-api-sec
+                key: api-key
+      # Ensure pods are scheduled on nodes with the specified GCP VM type
+      nodeSelector:
+        cloud.google.com/gke-nodepool: genotools-api-ancesstory-pool
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: genotools-api-svc-nodeport
+  namespace: gke-ns-gtserver-eu-west4
+spec:
+  type: NodePort #LoadBalancer
+  selector:
+    app: genotools-api-pod
+  ports:
+    - port: 8000
+      targetPort: 8080
+# ---
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: gtserver-ingress
+#   namespace: gke-ns-gtserver-eu-west4
+#   annotations:
+#     kubernetes.io/ingress.class: "gce"
+#     kubernetes.io/ingress.allow-http: "true"
+# spec:
+#   rules:
+#   - http:
+#       paths:
+#       - path: /*
+#         pathType: ImplementationSpecific
+#         backend:
+#           service:
+#             name: gp2-browser-svc-nodeport
+#             port: 
+#               number: 8000      
+#       - path: /api
+#         pathType: ImplementationSpecific
+#         backend:
+#           service:
+#             name: genotools-api-svc-nodeport
+#             port: 
+#               number: 8000
+#       - path: /run-genotools/
+#         pathType: ImplementationSpecific
+#         backend:
+#           service:
+#             name: genotools-api-svc-nodeport
+#             port: 
+#               number: 8000              

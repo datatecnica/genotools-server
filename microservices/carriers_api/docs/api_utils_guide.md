@@ -35,7 +35,6 @@ Output Files:
 - var_info: /path/to/output_prefix_var_info.csv
 - carriers_string: /path/to/output_prefix_carriers_string.csv
 - carriers_int: /path/to/output_prefix_carriers_int.csv
-- subset_snps: /path/to/output_prefix_subset_snps.csv
 ```
 
 ### `format_error_response(response_text)`

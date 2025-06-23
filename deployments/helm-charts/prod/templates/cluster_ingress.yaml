@@ -1,0 +1,84 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.ingressName }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.allow-http: "true"
+    kubernetes.io/ingress.global-static-ip-name: {{ .Values.globalIPName }}
+    cert-manager.io/cluster-issuer: {{ .Values.sslRelated.caIssuer }}
+spec:
+  tls:
+    - secretName: {{ .Values.sslRelated.sec }} 
+      hosts:
+        - genotools-api.{{ .Values.dnsName }}
+        - gt-precheck.{{ .Values.dnsName }}
+        - genotracker-app.{{ .Values.dnsName }}
+        - genotracker-api.{{ .Values.dnsName }}
+        - gp2-browser.{{ .Values.dnsName }}
+  rules:  
+  - host: gp2-browser.{{ .Values.dnsName }}
+    http: 
+      paths:
+        - path: /
+          pathType: Prefix
+          backend: 
+           service:
+            name: {{ .Values.appservices.gp2browserApp.svcName }}
+            port:
+             number: 8000  
+  - host: genotracker-app.{{ .Values.dnsName }}
+    http: 
+      paths:
+        - path: /
+          pathType: Prefix
+          backend: 
+           service:
+            name: {{ .Values.appservices.genotrackerApp.svcName }}
+            port:
+             number: 8000  
+  - host: genotracker-api.{{ .Values.dnsName }}
+    http: 
+      paths:
+        - path: /
+          pathType: Prefix
+          backend: 
+           service:
+            name: {{ .Values.microservices.genotrackerApi.svcName }}
+            port:
+             number: 8000  
+  - host: genotools-api.{{ .Values.dnsName }}
+    http: 
+      paths:
+        - path: /
+          pathType: Prefix
+          backend: 
+           service:
+            name: {{ .Values.microservices.genotoolsApi.svcName }}
+            port:
+             number: 8000  
+        - path: /run-genotools/
+          pathType: Prefix
+          backend: 
+           service:
+            name:  {{ .Values.microservices.genotoolsApi.svcName }}
+            port:
+             number: 8000
+  - host: gt-precheck.{{ .Values.dnsName }}
+    http: 
+      paths:
+        - path: /
+          pathType: Prefix
+          backend: 
+           service:
+            name: {{ .Values.microservices.gtPrecheckAPI.svcName }}
+            port:
+             number: 8000  
+        - path: /prechecks/
+          pathType: Prefix
+          backend: 
+           service:
+            name:  {{ .Values.microservices.gtPrecheckAPI.svcName }}
+            port:
+             number: 8000             

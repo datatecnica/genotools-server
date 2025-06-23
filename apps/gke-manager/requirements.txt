@@ -1,0 +1,8 @@
+streamlit
+pyyaml
+google-cloud-secret-manager
+gitpython
+git+https://github.com/hunkim/streamlit-google-oauth
+watchdog
+streamlit-ace
+requests
