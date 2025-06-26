@@ -1,0 +1,26 @@
+# Core data processing
+pandas>=1.5.0
+numpy>=1.21.0
+
+# Data validation and models
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Configuration management
+python-decouple>=3.6
+
+# Logging
+structlog>=22.0.0
+
+# Path handling
+pathlib2>=2.3.0; python_version < "3.4"
+
+# Type hints
+typing_extensions>=4.0.0; python_version < "3.8"
+
+# Development dependencies (optional)
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=22.0.0
+isort>=5.10.0
+mypy>=0.991 
