@@ -64,7 +64,7 @@ microservices:
       name: genotracker-secret
       key: GENOTRACKER_API_KEY
   genotoolsApi:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/genotools-api:5fcb726 #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotools-api:latest
+    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/genotools-api:COMMIT_SHA #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotools-api:latest
     svcName: genotools-api-svc
     podName: genotools-api-pod
     mountPath: /app/genotools_api/data
@@ -76,7 +76,7 @@ microservices:
       key: EMAIL_PAT #genotools-api-key
 
   gtPrecheckAPI:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/gtprecheck-api:COMMIT_SHA #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/gt_precheck:latest
+    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/gtprecheck-api:5fcb726 #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/gt_precheck:latest
     svcName: gt-precheck-api-svc
     podName: gt-precheck-api-pod
     mountPath: /app/data
