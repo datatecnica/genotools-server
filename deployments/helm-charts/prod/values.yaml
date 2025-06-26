@@ -41,7 +41,7 @@ sslRelated:
 
 appservices:
   gp2browserApp:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/gp2-browser-app:5fcb726
+    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/gp2-browser-app:COMMIT_SHA
     svcName: gp2-browser-app-svc
     iapBackend: gp2-browser-iap-backend
     iapSec: gp2-browser-iap-sec
@@ -49,7 +49,7 @@ appservices:
     mountPath: /app/data
 
   genotrackerApp:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/genotracker-app:COMMIT_SHA #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/apps/genotracker-app:latest
+    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/genotracker-app:5fcb726 #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/apps/genotracker-app:latest
     svcName: genotracker-app-svc
     iapBackend: genotracker-app-iap-backend
     iapSec: genotracker-app-iap-sec
