@@ -5,7 +5,9 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:${_IMAGE_TAG_GP2_BROWSER}', '-f', 'apps/gp2-browser/Dockerfile', 'apps/gp2-browser/' ]
   id: 'create docker image for gp2-browser-app'
-_SHORT_SHA_GP2_BROWSER_APP = $SHORT_SHA  
+
+_SHORT_SHA_GP2_BROWSER_APP: $SHORT_SHA  
+
 ### Pushing Docker Image ####
 - name: 'gcr.io/cloud-builders/docker'
   id: 'push docker image for gp2-browser-app'
@@ -21,7 +23,7 @@ _SHORT_SHA_GP2_BROWSER_APP = $SHORT_SHA
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:${_IMAGE_TAG_GTRACKER_APP}', '-f', 'apps/genotracker/Dockerfile', 'apps/genotracker/' ]
   id: 'create docker image for genotracker-app'
 
-_SHORT_SHA_GENOTRACKER_APP = $SHORT_SHA  
+_SHORT_SHA_GENOTRACKER_APP: $SHORT_SHA  
 
 ### Pushing Docker Image ####
 - name: 'gcr.io/cloud-builders/docker'
@@ -38,7 +40,7 @@ _SHORT_SHA_GENOTRACKER_APP = $SHORT_SHA
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:${_IMAGE_TAG_GTRACKER_API}', '-f', 'microservices/genotracker/Dockerfile', 'microservices/genotracker/' ]
   id: 'create docker image for genotracker-api'
 
-_SHORT_SHA_GENOTRACKER_API = $SHORT_SHA  
+_SHORT_SHA_GENOTRACKER_API: $SHORT_SHA  
 
 #### Pushing Docker Image for genotracker-api ####
 - name: 'gcr.io/cloud-builders/docker'
@@ -55,7 +57,7 @@ _SHORT_SHA_GENOTRACKER_API = $SHORT_SHA
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:${_IMAGE_TAG_GTOOLS_API}', '-f', 'microservices/genotools-api/Dockerfile', 'microservices/genotools-api/' ]
   id: 'create docker image for genotools-api'
 
-_SHORT_SHA_GENOTOOLS_API = $SHORT_SHA
+_SHORT_SHA_GENOTOOLS_API: $SHORT_SHA
 
 #### Pushing Docker Image for genotracker-api ####
 - name: 'gcr.io/cloud-builders/docker'
@@ -72,7 +74,7 @@ _SHORT_SHA_GENOTOOLS_API = $SHORT_SHA
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:${_IMAGE_TAG_GTPRECHECK_API}', '-f', 'microservices/gt-precheck/Dockerfile', 'microservices/gt-precheck/' ]
   id: 'create docker image for gtprecheck-api'
 
-_SHORT_SHA_GTPRECHECK_API = $SHORT_SHA
+_SHORT_SHA_GTPRECHECK_API: $SHORT_SHA
 
 
 #### Pushing Docker Image for genotracker-api ####
