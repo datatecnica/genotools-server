@@ -57,7 +57,7 @@ steps:
   args:
     - '-c'
     - |
-      echo "SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA" > /workspace/vars.env'
+      echo "SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA" >> /workspace/vars.env'
 #       export SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA
 #       echo "Saving SHORT_SHA to shared file..."
 #       echo "SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA" >> /workspace/vars.env
