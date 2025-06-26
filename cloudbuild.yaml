@@ -5,9 +5,10 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:${_IMAGE_TAG_GP2_BROWSER}', '-f', 'apps/gp2-browser/Dockerfile', 'apps/gp2-browser/' ]
   id: 'create docker image for gp2-browser-app'
-- name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use 1'
-  args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gp2browser_sha.txt']
+
+# - name: 'gcr.io/cloud-builders/gcloud'
+#   id: 'save SHA for later use 1'
+#   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gp2browser_sha.txt']
 
 
 
@@ -20,30 +21,24 @@ steps:
   - |
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:${_IMAGE_TAG_GP2_BROWSER}
-  # env:
-  #   - 'SHORT_SHA_GP2_BROWSER_APP=$SHORT_SHA'
-# substitutions:
-#     _SHORT_SHA_GP2_BROWSER_APP: $SHORT_SHA
     
-# - name: 'bash'
-#   entrypoint: 'bash'
-#   args:
-#     - '-c'
-#     - |
-#       export SHORT_SHA_GP2_BROWSER_APP=$SHORT_SHA
-#       echo "Saving SHORT_SHA to shared file..."
-#       echo "SHORT_SHA_GP2_BROWSER_APP=$SHORT_SHA" > /workspace/vars.env
+- name: 'bash'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      'echo $SHORT_SHA > /workspace/gp2browser_sha.txt'
       
 ### Building Docker Image for genotracker-app ####
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:${_IMAGE_TAG_GTRACKER_APP}', '-f', 'apps/genotracker/Dockerfile', 'apps/genotracker/' ]
   id: 'create docker image for genotracker-app'
 
-- name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use 2'  
-  args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gtracker-app_sha.txt']
-  # env:
-  #   - 'SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA'
+# - name: 'gcr.io/cloud-builders/gcloud'
+#   id: 'save SHA for later use 2'  
+#   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gtracker-app_sha.txt']
+#   # env:
+#   #   - 'SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA'
 
 
 ### Pushing Docker Image ####
@@ -57,11 +52,12 @@ steps:
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:${_IMAGE_TAG_GTRACKER_APP}
 
   
-# - name: 'bash'
-#   entrypoint: 'bash'
-#   args:
-#     - '-c'
-#     - |
+- name: 'bash'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      'echo $SHORT_SHA > /workspace/gtracker-app_sha.txt'
 #       export SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA
 #       echo "Saving SHORT_SHA to shared file..."
 #       echo "SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA" >> /workspace/vars.env
@@ -72,9 +68,9 @@ steps:
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:${_IMAGE_TAG_GTRACKER_API}', '-f', 'microservices/genotracker/Dockerfile', 'microservices/genotracker/' ]
   id: 'create docker image for genotracker-api'
 
-- name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use 3'  
-  args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gtracker-api_sha.txt']
+# - name: 'gcr.io/cloud-builders/gcloud'
+#   id: 'save SHA for later use 3'  
+#   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gtracker-api_sha.txt']
   # env:
   #   - 'SHORT_SHA_GENOTRACKER_API=$SHORT_SHA'
 
@@ -89,11 +85,12 @@ steps:
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:${_IMAGE_TAG_GTRACKER_API}
 
-# - name: 'bash'
-#   entrypoint: 'bash'
-#   args:
-#     - '-c'
-#     - |
+- name: 'bash'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      'echo $SHORT_SHA > /workspace/gtracker-api_sha.txt'
 #       export SHORT_SHA_GENOTRACKER_API=$SHORT_SHA
 #       echo "Saving SHORT_SHA to shared file..."
 #       echo "SHORT_SHA_GENOTRACKER_API=$SHORT_SHA" >> /workspace/vars.env
@@ -104,9 +101,9 @@ steps:
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:${_IMAGE_TAG_GTOOLS_API}', '-f', 'microservices/genotools-api/Dockerfile', 'microservices/genotools-api/' ]
   id: 'create docker image for genotools-api'
 
-- name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use 4'  
-  args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/genotools-api_sha.txt']
+# - name: 'gcr.io/cloud-builders/gcloud'
+#   id: 'save SHA for later use 4'  
+#   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/genotools-api_sha.txt']
   # env:
   #   - 'SHORT_SHA_GENOTOOLS_API=$SHORT_SHA'
 
@@ -121,11 +118,12 @@ steps:
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:${_IMAGE_TAG_GTOOLS_API}
 
-# - name: 'bash'
-#   entrypoint: 'bash'
-#   args:
-#     - '-c'
-#     - |
+- name: 'bash'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      'echo $SHORT_SHA > /workspace/genotools-api_sha.txt'
 #       export SHORT_SHA_GENOTOOLS_API=$SHORT_SHA
 #       echo "Saving SHORT_SHA to shared file..."
 #       echo "SHORT_SHA_GENOTOOLS_API=$SHORT_SHA" >> /workspace/vars.env
@@ -136,9 +134,9 @@ steps:
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:${_IMAGE_TAG_GTPRECHECK_API}', '-f', 'microservices/gt-precheck/Dockerfile', 'microservices/gt-precheck/' ]
   id: 'create docker image for gtprecheck-api'
 
-- name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use 5'
-  args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gtprecheck-api_sha.txt']
+# - name: 'gcr.io/cloud-builders/gcloud'
+#   id: 'save SHA for later use 5'
+#   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gtprecheck-api_sha.txt']
   # env:
   #   - 'SHORT_SHA_GTPRECHECK_API=$SHORT_SHA'
 
@@ -152,11 +150,12 @@ steps:
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:${_IMAGE_TAG_GTPRECHECK_API}
 
-# - name: 'bash'
-#   entrypoint: 'bash'
-#   args:
-#     - '-c'
-#     - |
+- name: 'bash'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      'echo $SHORT_SHA > /workspace/gtprecheck-api_sha.txt'
 #       export SHORT_SHA_GTPRECHECK_API=$SHORT_SHA
 #       echo "Saving SHORT_SHA to shared file..."
 #       echo "SHORT_SHA_GTPRECHECK_API=$SHORT_SHA" >> /workspace/vars.env
