@@ -17,7 +17,9 @@ steps:
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:${_IMAGE_TAG_GP2_BROWSER}
   
-
+substitutions:
+    _SHORT_SHA_GP2_BROWSER_APP: $SHORT_SHA
+    
 - name: 'bash'
   entrypoint: 'bash'
   args:
@@ -49,7 +51,7 @@ steps:
   args:
     - '-c'
     - |
-      export SHORT_SHA_GP2_BROWSER_APP=$SHORT_SHA
+      export SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA
       echo "Saving SHORT_SHA to shared file..."
       echo "SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA" >> /workspace/vars.env
 
@@ -135,7 +137,7 @@ steps:
   args:
     - '-c'
     - |
-      echo $SHORT_SHA_GENOTOOLS_API
+      echo ${_SHORT_SHA_GP2_BROWSER_APP}
       echo "Reading from shared file..."
       source /workspace/vars.env
       echo "SHA hash: $SHORT_SHA_GTPRECHECK_API"
