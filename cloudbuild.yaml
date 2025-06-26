@@ -11,7 +11,7 @@ steps:
 #   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gp2browser_sha.env']
 
 # Write variables
-echo "ENV1=$SHORT_SHA" > /workspace/vars.env
+  echo "ENV1=$SHORT_SHA" > /workspace/vars.env
 
 
 ### Pushing Docker Image ####
@@ -36,16 +36,16 @@ echo "ENV1=$SHORT_SHA" > /workspace/vars.env
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:${_IMAGE_TAG_GTRACKER_APP}', '-f', 'apps/genotracker/Dockerfile', 'apps/genotracker/' ]
   id: 'create docker image for genotracker-app'
 
-echo "ENV2=SHORT_SHA" >> /workspace/vars.env
+  echo "ENV2=SHORT_SHA" >> /workspace/vars.env
 
-# Load all variables
-set -a
-source /workspace/vars.env
-set +a
-
-# Now you can access any var dynamically
-echo "Loaded ENV1: $ENV1"
-echo "Loaded ENV2: $ENV2"
+  # Load all variables
+  set -a
+  source /workspace/vars.env
+  set +a
+  
+  # Now you can access any var dynamically
+  echo "Loaded ENV1: $ENV1"
+  echo "Loaded ENV2: $ENV2"
 
 
 # - name: 'gcr.io/cloud-builders/gcloud'
