@@ -26,7 +26,7 @@ steps:
     echo "Updating image tag version ..."
     cd genotools-server/deployments/helm-charts/dev
     sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
-    sed "s/COMMIT_SHA/${SHORT_SHA}/g" > values.yaml
+    sed "s/gp2-browser-app:COMMIT_SHA/gp2-browser-app:${SHORT_SHA}/g" > values.yaml
     echo "Pushing changes to k8s manifest repo ..."
     git config --global user.name "syedislamuddin"
     git config --global user.email "islamuddinn@yahoo.com"
