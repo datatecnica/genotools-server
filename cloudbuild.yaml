@@ -34,85 +34,332 @@ steps:
     git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA from commit ${COMMIT_SHA}"
     git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
 
-#### Building Docker Image for genotracker-app ####
-# - name: 'gcr.io/cloud-builders/docker'
-#   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:${_IMAGE_TAG}', '-f', 'apps/genotracker/Dockerfile', 'apps/genotracker/' ]
-#   id: 'create docker image for genotracker-app'
-#### Pushing Docker Image ####
-# - name: 'gcr.io/cloud-builders/docker'
-#   id: 'push docker image for genotracker-app'
-#   entrypoint: /bin/sh
-#   args: 
-#   - -c
-#   - |
-#     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA
-#     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:${_IMAGE_TAG}
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update gp2-browser-app SHA in helm-charts staging'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/staging
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/gp2-browser-app:COMMIT_SHA/gp2-browser-app:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
 
-# #### Building Docker Image for genotracker-api ####
-# - name: 'gcr.io/cloud-builders/docker'
-#   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:${_IMAGE_TAG}', '-f', 'microservices/genotracker/Dockerfile', 'microservices/genotracker/' ]
-#   id: 'create docker image for genotracker-api'
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update gp2-browser-app SHA in helm-charts prod'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/prod
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/gp2-browser-app:COMMIT_SHA/gp2-browser-app:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
 
-# #### Pushing Docker Image for genotracker-api ####
-# - name: 'gcr.io/cloud-builders/docker'
-#   id: 'push docker image for genotracker-api'
-#   entrypoint: /bin/sh
-#   args: 
-#   - -c
-#   - |
-#     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA
-#     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:${_IMAGE_TAG}
+### Building Docker Image for genotracker-app ####
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:${_IMAGE_TAG}', '-f', 'apps/genotracker/Dockerfile', 'apps/genotracker/' ]
+  id: 'create docker image for genotracker-app'
+### Pushing Docker Image ####
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push docker image for genotracker-app'
+  entrypoint: /bin/sh
+  args: 
+  - -c
+  - |
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:${_IMAGE_TAG}
+## update values.yaml
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update genotracker-app SHA in helm-charts dev'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/dev
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/genotracker-app:COMMIT_SHA/genotracker-app:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
 
-# #### Building Docker Image for genotools-api ####
-# - name: 'gcr.io/cloud-builders/docker'
-#   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:${_IMAGE_TAG}', '-f', 'microservices/genotools-api/Dockerfile', 'microservices/genotools-api/' ]
-#   id: 'create docker image for genotools-api'
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update genotracker-app SHA in helm-charts staging'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/staging
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/genotracker-app:COMMIT_SHA/genotracker-app:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
 
-# #### Pushing Docker Image for genotracker-api ####
-# - name: 'gcr.io/cloud-builders/docker'
-#   id: 'push docker image for genotools-api'
-#   entrypoint: /bin/sh
-#   args: 
-#   - -c
-#   - |
-#     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA
-#     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:${_IMAGE_TAG}
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update genotracker-app SHA in helm-charts prod'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/prod
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/genotracker-app:COMMIT_SHA/genotracker-app:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-app:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
 
-# #### Building Docker Image for gtprecheck-api ####
-# - name: 'gcr.io/cloud-builders/docker'
-#   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:${_IMAGE_TAG}', '-f', 'microservices/gt-precheck/Dockerfile', 'microservices/gt-precheck/' ]
-#   id: 'create docker image for gtprecheck-api'
+#### Building Docker Image for genotracker-api ####
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:${_IMAGE_TAG}', '-f', 'microservices/genotracker/Dockerfile', 'microservices/genotracker/' ]
+  id: 'create docker image for genotracker-api'
 
-# #### Pushing Docker Image for genotracker-api ####
-# - name: 'gcr.io/cloud-builders/docker'
-#   id: 'push docker image for gtprecheck-api'
-#   entrypoint: /bin/sh
-#   args: 
-#   - -c
-#   - |
-#     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA
-#     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:${_IMAGE_TAG}
+#### Pushing Docker Image for genotracker-api ####
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push docker image for genotracker-api'
+  entrypoint: /bin/sh
+  args: 
+  - -c
+  - |
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:${_IMAGE_TAG}
+## update values.yaml
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update genotracker-api SHA in helm-charts dev'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/dev
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/genotracker-api:COMMIT_SHA/genotracker-api:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
+
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update genotracker-api SHA in helm-charts staging'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/staging
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/genotracker-api:COMMIT_SHA/genotracker-api:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
+
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update genotracker-api SHA in helm-charts prod'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/prod
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/genotracker-api:COMMIT_SHA/genotracker-api:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotracker-api:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
+
+#### Building Docker Image for genotools-api ####
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:${_IMAGE_TAG}', '-f', 'microservices/genotools-api/Dockerfile', 'microservices/genotools-api/' ]
+  id: 'create docker image for genotools-api'
+
+#### Pushing Docker Image for genotracker-api ####
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push docker image for genotools-api'
+  entrypoint: /bin/sh
+  args: 
+  - -c
+  - |
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:${_IMAGE_TAG}
+## update values.yaml
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update genotools-api SHA in helm-charts dev'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/dev
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/genotools-api:COMMIT_SHA/genotools-api:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
+
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update genotools-api SHA in helm-charts staging'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/staging
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/genotools-api:COMMIT_SHA/genotools-api:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
+
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update genotools-api SHA in helm-charts prod'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/prod
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/genotools-api:COMMIT_SHA/genotools-api:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/genotools-api:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
+
+#### Building Docker Image for gtprecheck-api ####
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:${_IMAGE_TAG}', '-f', 'microservices/gt-precheck/Dockerfile', 'microservices/gt-precheck/' ]
+  id: 'create docker image for gtprecheck-api'
+
+#### Pushing Docker Image for genotracker-api ####
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push docker image for gtprecheck-api'
+  entrypoint: /bin/sh
+  args: 
+  - -c
+  - |
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:${_IMAGE_TAG}
+## update values.yaml
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update gtprecheck-api SHA in helm-charts dev'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/dev
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/gtprecheck-api:COMMIT_SHA/gtprecheck-api:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
+
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update gtprecheck-api SHA in helm-charts staging'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/staging
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/gtprecheck-api:COMMIT_SHA/gtprecheck-api:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
+
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: 'update gtprecheck-api SHA in helm-charts prod'
+  entrypoint: /bin/sh
+  secretEnv: ['GIT_ACCESS_TOKEN']
+  args:
+  - '-c'
+  - |
+    git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
+    echo "Updating image tag version ..."
+    cd genotools-server/deployments/helm-charts/prod
+    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
+    sed "s/gtprecheck-api:COMMIT_SHA/gtprecheck-api:${SHORT_SHA}/g" > values.yaml
+    echo "Pushing changes to k8s manifest repo ..."
+    git config --global user.name "syedislamuddin"
+    git config --global user.email "islamuddinn@yahoo.com"
+    git add -A
+    git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gtprecheck-api:$SHORT_SHA from commit ${COMMIT_SHA}"
+    git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git ${_CD_BRANCH}
 
 
-# This step generates the new manifest
-# - name: 'gcr.io/cloud-builders/gcloud'
-#   entrypoint: /bin/sh
-#   secretEnv: ['GIT_ACCESS_TOKEN']
-#   args:
-#   - '-c'
-#   - |
-#     git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
-#     echo "Updating image tag version ..."
-#     cd genotools-server/deployments/helm-charts/dev
-#     sed "s/gp2-code-test-env/gp2-code-test-env/g" values.yaml | \
-#     sed "s/gtserver-eu-west4/gtserver-eu-west4/g" > values.yaml
-#     echo "Pushing changes to k8s manifest repo ..."
-#     git config --global user.name "syedislamuddin"
-#     git config --global user.email "islamuddinn@yahoo.com"
-#     git add -A
-#     git commit -m "[Cloud Builder] Updated image tag europe-west4.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/sample:$SHORT_SHA from commit ${COMMIT_SHA}"
-#     git push --no-thin https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/syedislamuddin/gtserver-argocd.git ${_CD_BRANCH}
-    
 availableSecrets:
   secretManager:
   - versionName: projects/$PROJECT_NUMBER/secrets/github-access-token/versions/latest
