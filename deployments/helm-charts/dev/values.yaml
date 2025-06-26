@@ -41,7 +41,7 @@ sslRelated:
 
 appservices:
   gp2browserApp:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/gp2-browser-app:c0f7d90
+    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/gp2-browser-app:5fcb726
     svcName: gp2-browser-app-svc
     iapBackend: gp2-browser-iap-backend
     iapSec: gp2-browser-iap-sec
