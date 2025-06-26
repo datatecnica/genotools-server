@@ -27,7 +27,7 @@ steps:
   args:
     - '-c'
     - |
-      'echo $SHORT_SHA > /workspace/gp2browser_sha.env'
+      echo "SHORT_SHA_GP2_BROWSER_APP=$SHORT_SHA"  > /workspace/vars.env
       
 ### Building Docker Image for genotracker-app ####
 - name: 'gcr.io/cloud-builders/docker'
@@ -57,10 +57,21 @@ steps:
   args:
     - '-c'
     - |
-      'echo $SHORT_SHA > /workspace/gtracker-app_sha.env'
+      echo "SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA" > /workspace/vars.env'
 #       export SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA
 #       echo "Saving SHORT_SHA to shared file..."
 #       echo "SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA" >> /workspace/vars.env
+
+# Step 2: Read the saved variables
+- name: 'bash'
+  entrypoint: 'sh'
+  args:
+    - '-c'
+    - |
+      echo "Reading variables from /workspace/vars.env"
+      source /workspace/vars.env
+      echo "SHORT_SHA_GP2_BROWSER_APP is: $SHORT_SHA_GP2_BROWSER_APP"
+      echo "SHORT_SHA_GENOTRACKER_APP is: $SHORT_SHA_GENOTRACKER_APP"
 
 
 # #### Building Docker Image for genotracker-api ####
