@@ -57,14 +57,14 @@ appservices:
     ksaPGSQL: ksa-postgresql
 microservices:
   genotrackerApi:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/genotracker-api:5fcb726 #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotracker-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/api/genotracker-fastapi:latest
+    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/genotracker-api:COMMIT_SHA #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotracker-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/api/genotracker-fastapi:latest
     svcName: genotracker-api-svc
     podName: genotracker-api-pod
     apiKey:
       name: genotracker-secret
       key: GENOTRACKER_API_KEY
   genotoolsApi:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/genotools-api:COMMIT_SHA #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotools-api:latest
+    image: us-east1-docker.pkg.dev/gp2-code-test-env/gt-server/genotools-api:5fcb726 #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotools-api:latest
     svcName: genotools-api-svc
     podName: genotools-api-pod
     mountPath: /app/genotools_api/data
