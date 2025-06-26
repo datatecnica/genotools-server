@@ -1,7 +1,7 @@
 #global resources for Genotools Server
 ZONE: europe-west4-a
 CLUSTER_NAME: gtserver-eu-west4
-PROJECT_ID: gp2-code-test-env
+PROJECT_ID: GOOGLE_CLOUD_PROJECT
 nodePools:
   appsNodePool: apps-node-pool
   genotoolsApiNodePool: genotools-api-node
