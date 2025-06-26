@@ -6,7 +6,7 @@ steps:
   args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:${_IMAGE_TAG_GP2_BROWSER}', '-f', 'apps/gp2-browser/Dockerfile', 'apps/gp2-browser/' ]
   id: 'create docker image for gp2-browser-app'
 - name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use'
+  id: 'save SHA for later use 1'
   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gp2browser_sha.txt']
 
 
@@ -40,7 +40,7 @@ steps:
   id: 'create docker image for genotracker-app'
 
 - name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use'  
+  id: 'save SHA for later use 2'  
   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gtracker-app_sha.txt']
   # env:
   #   - 'SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA'
@@ -73,7 +73,7 @@ steps:
   id: 'create docker image for genotracker-api'
 
 - name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use'  
+  id: 'save SHA for later use 3'  
   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gtracker-api_sha.txt']
   # env:
   #   - 'SHORT_SHA_GENOTRACKER_API=$SHORT_SHA'
@@ -105,7 +105,7 @@ steps:
   id: 'create docker image for genotools-api'
 
 - name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use'  
+  id: 'save SHA for later use 4'  
   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/genotools-api_sha.txt']
   # env:
   #   - 'SHORT_SHA_GENOTOOLS_API=$SHORT_SHA'
@@ -137,7 +137,7 @@ steps:
   id: 'create docker image for gtprecheck-api'
 
 - name: 'gcr.io/cloud-builders/gcloud'
-  id: 'save SHA for later use'
+  id: 'save SHA for later use 5'
   args: ['bash', '-c', 'echo $SHORT_SHA > /workspace/gtprecheck-api_sha.txt']
   # env:
   #   - 'SHORT_SHA_GTPRECHECK_API=$SHORT_SHA'
