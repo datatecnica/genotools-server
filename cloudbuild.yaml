@@ -47,7 +47,7 @@ steps:
     - '-c'
     - |
       echo "Saving SHORT_SHA to shared file..."
-      echo "SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA" > /workspace/vars.env
+      echo "SHORT_SHA_GENOTRACKER_APP=$SHORT_SHA" >> /workspace/vars.env
 
 
 #### Building Docker Image for genotracker-api ####
@@ -72,7 +72,7 @@ steps:
     - '-c'
     - |
       echo "Saving SHORT_SHA to shared file..."
-      echo "SHORT_SHA_GENOTRACKER_API=$SHORT_SHA" > /workspace/vars.env
+      echo "SHORT_SHA_GENOTRACKER_API=$SHORT_SHA" >> /workspace/vars.env
 
 
 #### Building Docker Image for genotools-api ####
@@ -97,7 +97,7 @@ steps:
     - '-c'
     - |
       echo "Saving SHORT_SHA to shared file..."
-      echo "SHORT_SHA_GENOTOOLS_API=$SHORT_SHA" > /workspace/vars.env
+      echo "SHORT_SHA_GENOTOOLS_API=$SHORT_SHA" >> /workspace/vars.env
 
 
 #### Building Docker Image for gtprecheck-api ####
@@ -121,7 +121,7 @@ steps:
     - '-c'
     - |
       echo "Saving SHORT_SHA to shared file..."
-      echo "SHORT_SHA_GTPRECHECK_API=$SHORT_SHA" > /workspace/vars.env
+      echo "SHORT_SHA_GTPRECHECK_API=$SHORT_SHA" >> /workspace/vars.env
 
 - name: 'bash'
   entrypoint: 'bash'
