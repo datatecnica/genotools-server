@@ -100,12 +100,13 @@ steps:
     git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
     echo "Updating image tag version ..."
     cd genotools-server/deployments/helm-charts/dev
-    sed -i "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
-    sed "s/gp2-browser-app:COMMIT_SHA/gp2-browser-app:${SHORT_SHA}/g" \
-    sed "s/genotracker-app:COMMIT_SHA/genotracker-app:${SHORT_SHA}/g" \ 
-    sed "s/genotracker-api:COMMIT_SHA/genotracker-api:${SHORT_SHA}/g" \ 
-    sed "s/genotools-api:COMMIT_SHA/genotools-api:${SHORT_SHA}/g" \ 
-    sed "s/gtprecheck-api:COMMIT_SHA/gtprecheck-api:${SHORT_SHA}/g" > values.yaml
+    sed "s|GOOGLE_CLOUD_PROJECT|${PROJECT_ID}|g; \
+    s|gp2-browser-app:COMMIT_SHA|gp2-browser-app:${SHORT_SHA}|g; 
+    s|genotracker-app:COMMIT_SHA|genotracker-app:${SHORT_SHA}|g; 
+    s|genotracker-api:COMMIT_SHA|genotracker-api:${SHORT_SHA}|g; 
+    s|genotools-api:COMMIT_SHA|genotools-api:${SHORT_SHA}|g; 
+    s|gtprecheck-api:COMMIT_SHA|gtprecheck-api:${SHORT_SHA}|g" \
+    values.yaml.tpl> values.yaml
     echo "Pushing changes to k8s manifest repo ..."
     git config --global user.name "syedislamuddin"
     git config --global user.email "islamuddinn@yahoo.com"
@@ -123,12 +124,13 @@ steps:
     git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
     echo "Updating image tag version ..."
     cd genotools-server/deployments/helm-charts/staging
-    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
-    sed "s/gp2-browser-app:COMMIT_SHA/gp2-browser-app:${SHORT_SHA}/g" \
-    sed "s/genotracker-app:COMMIT_SHA/genotracker-app:${SHORT_SHA}/g"  \ 
-    sed "s/genotracker-api:COMMIT_SHA/genotracker-api:${SHORT_SHA}/g"  \ 
-    sed "s/genotools-api:COMMIT_SHA/genotools-api:${SHORT_SHA}/g"  \ 
-    sed "s/gtprecheck-api:COMMIT_SHA/gtprecheck-api:${SHORT_SHA}/g" > values.yaml
+    sed "s|GOOGLE_CLOUD_PROJECT|${PROJECT_ID}|g; \
+    s|gp2-browser-app:COMMIT_SHA|gp2-browser-app:${SHORT_SHA}|g; 
+    s|genotracker-app:COMMIT_SHA|genotracker-app:${SHORT_SHA}|g; 
+    s|genotracker-api:COMMIT_SHA|genotracker-api:${SHORT_SHA}|g; 
+    s|genotools-api:COMMIT_SHA|genotools-api:${SHORT_SHA}|g; 
+    s|gtprecheck-api:COMMIT_SHA|gtprecheck-api:${SHORT_SHA}|g" \
+    values.yaml.tpl> values.yaml
     echo "Pushing changes to k8s manifest repo ..."
     git config --global user.name "syedislamuddin"
     git config --global user.email "islamuddinn@yahoo.com"
@@ -146,12 +148,13 @@ steps:
     git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
     echo "Updating image tag version ..."
     cd genotools-server/deployments/helm-charts/prod
-    sed "s/GOOGLE_CLOUD_PROJECT/$PROJECT_ID/g" values.yaml.tpl | \
-    sed "s/gp2-browser-app:COMMIT_SHA/gp2-browser-app:${SHORT_SHA}/g"  \
-    sed "s/genotracker-app:COMMIT_SHA/genotracker-app:${SHORT_SHA}/g"  \ 
-    sed "s/genotracker-api:COMMIT_SHA/genotracker-api:${SHORT_SHA}/g"  \ 
-    sed "s/genotools-api:COMMIT_SHA/genotools-api:${SHORT_SHA}/g"  \ 
-    sed "s/gtprecheck-api:COMMIT_SHA/gtprecheck-api:${SHORT_SHA}/g" > values.yaml
+    sed "s|GOOGLE_CLOUD_PROJECT|${PROJECT_ID}|g; \
+    s|gp2-browser-app:COMMIT_SHA|gp2-browser-app:${SHORT_SHA}|g; 
+    s|genotracker-app:COMMIT_SHA|genotracker-app:${SHORT_SHA}|g; 
+    s|genotracker-api:COMMIT_SHA|genotracker-api:${SHORT_SHA}|g; 
+    s|genotools-api:COMMIT_SHA|genotools-api:${SHORT_SHA}|g; 
+    s|gtprecheck-api:COMMIT_SHA|gtprecheck-api:${SHORT_SHA}|g" \
+    values.yaml.tpl> values.yaml    
     echo "Pushing changes to k8s manifest repo ..."
     git config --global user.name "syedislamuddin"
     git config --global user.email "islamuddinn@yahoo.com"
