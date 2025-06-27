@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gt-server-staging
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/datatecnica/genotools-server/  #https://github.com/your-org/your-repo.git 
+    targetRevision: test-branch
+    path: deployments/helm-charts/staging
+  destination:
+    server: https://kubernetes.default.svc 
+    namespace: kns-gtserver
+
+#kubectl apply -f argo-staging.yaml
+#argocd app sync gt-server-staging

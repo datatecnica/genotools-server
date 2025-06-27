@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gt-server-dev
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/datatecnica/genotools-server/  #https://github.com/your-org/your-repo.git 
+    targetRevision: test-branch
+    path: deployments/helm-charts/dev
+  destination:
+    server: https://kubernetes.default.svc 
+    namespace: kns-gtserver
+
+#kubectl apply -f argo-dev.yaml
