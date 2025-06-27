@@ -65,8 +65,10 @@ class ClinicalMetadata(BaseModel):
         else:
             return "None"
     
-    class Config:
-        allow_population_by_field_name = True
+    model_config = {
+        "validate_assignment": True,
+        "extra": "ignore"
+    }
 
 
 class ClinicalFilterCriteria(BaseModel):

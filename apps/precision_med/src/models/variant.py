@@ -36,14 +36,11 @@ class VariantInfo(BaseModel):
     obs_ct: Optional[int] = Field(None, description="Observation count")
     f_miss: Optional[float] = Field(None, description="Missing data frequency")
     
-    class Config:
-        # Allow field name case mapping
-        allow_population_by_field_name = True
-        fields = {
-            "alt_freqs": {"alias": "ALT_FREQS"},
-            "obs_ct": {"alias": "OBS_CT"},
-            "f_miss": {"alias": "F_MISS"}
-        }
+    model_config = {
+        # Allow field name case mapping (Pydantic v2 syntax)
+        "validate_assignment": True,
+        "extra": "ignore"
+    }
 
 
 class FilterCriteria(BaseModel):
