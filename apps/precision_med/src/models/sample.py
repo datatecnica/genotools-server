@@ -1,10 +1,11 @@
 """
 Sample data models for GP2 Precision Medicine Data Browser.
 """
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union, Any
 from pydantic import BaseModel, Field
 from .clinical import ClinicalMetadata
 from .variant import VariantCarrierData
+from enum import Enum
 
 
 class SampleCarrier(BaseModel):
@@ -112,4 +113,69 @@ class SampleCarrierSummary(BaseModel):
     samples_by_ancestry: Dict[str, int] = Field(..., description="Sample counts by ancestry")
     samples_by_study: Dict[str, int] = Field(..., description="Sample counts by study")
     avg_variants_per_sample: float = Field(..., description="Average variants carried per sample")
-    total_carrier_observations: int = Field(..., description="Total carrier observations across all samples") 
+    total_carrier_observations: int = Field(..., description="Total carrier observations across all samples")
+
+
+class CarrierDataFormat(str, Enum):
+    """Enumeration for carrier data format types."""
+    INTEGER = "int"
+    STRING = "string" 
+    BOTH = "both"
+
+
+class CarrierStatus(BaseModel):
+    """Enhanced carrier status model supporting both formats."""
+    sample_id: str = Field(..., description="Sample identifier")
+    variant_id: str = Field(..., description="Variant identifier")
+    
+    # Integer format fields
+    int_value: Optional[float] = Field(None, description="Numeric carrier status (0.0, 1.0, 2.0)")
+    
+    # String format fields  
+    string_value: Optional[str] = Field(None, description="Genotype string (e.g., 'WT/WT', 'A/T')")
+    
+    # Computed properties
+    is_carrier: Optional[bool] = Field(None, description="Whether sample carries the variant")
+    carrier_type: Optional[str] = Field(None, description="Type: 'homozygous', 'heterozygous', 'reference'")
+    
+    @property
+    def display_value(self) -> str:
+        """Get human-readable display value."""
+        if self.string_value and self.string_value != "./.":
+            return self.string_value
+        elif self.int_value is not None:
+            return {0.0: "Reference", 1.0: "Heterozygous", 2.0: "Homozygous"}.get(self.int_value, str(self.int_value))
+        return "Unknown"
+
+
+class CarrierQuery(BaseModel):
+    """Query parameters for carrier data requests."""
+    format: CarrierDataFormat = Field(CarrierDataFormat.INTEGER, description="Data format to retrieve")
+    ancestry: Optional[str] = Field(None, description="Filter by ancestry (e.g., 'EUR', 'AFR')")
+    min_status: Optional[float] = Field(None, description="Minimum carrier status (for int format)")
+    max_status: Optional[float] = Field(None, description="Maximum carrier status (for int format)")
+    genotype_pattern: Optional[str] = Field(None, description="Genotype pattern to match (for string format)")
+    exclude_missing: bool = Field(True, description="Exclude missing data points")
+    limit: int = Field(100, ge=1, le=1000, description="Maximum number of results")
+
+
+class CarrierSummary(BaseModel):
+    """Summary statistics for carrier data."""
+    total_samples: int = Field(..., description="Total number of samples")
+    carrier_count: int = Field(..., description="Number of carriers (status > 0)")
+    reference_count: int = Field(..., description="Number of reference samples")
+    missing_count: int = Field(..., description="Number of samples with missing data")
+    carrier_frequency: float = Field(..., description="Carrier frequency (carriers/non-missing)")
+    
+    # Format-specific summaries
+    int_format_summary: Optional[Dict[str, int]] = Field(None, description="Count by numeric status")
+    string_format_summary: Optional[Dict[str, int]] = Field(None, description="Count by genotype string")
+
+
+class VariantCarrierResponse(BaseModel):
+    """Complete response for variant carrier data requests."""
+    variant_id: str = Field(..., description="Variant identifier")
+    format_requested: CarrierDataFormat = Field(..., description="Format that was requested")
+    summary: CarrierSummary = Field(..., description="Summary statistics")
+    carriers: List[CarrierStatus] = Field(..., description="Individual carrier data")
+    query_params: CarrierQuery = Field(..., description="Query parameters used") 

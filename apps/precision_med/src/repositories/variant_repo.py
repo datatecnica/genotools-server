@@ -296,4 +296,218 @@ class CarrierDataRepository(BaseRepository[VariantCarrierData, None]):
             "total_variants": total_variants,
             "memory_usage_mb": self._data.memory_usage(deep=True).sum() / 1024 / 1024,
             "carrier_counts": carrier_counts
-        } 
+        }
+
+    def get_enhanced_carrier_data_for_variant(self, variant_id: str, query: 'CarrierQuery') -> 'VariantCarrierResponse':
+        """
+        Get enhanced carrier data for a variant with comprehensive filtering and format support.
+        
+        Args:
+            variant_id: Variant ID to query
+            query: CarrierQuery object with filtering parameters
+            
+        Returns:
+            VariantCarrierResponse with carrier data and statistics
+        """
+        from ..models.sample import CarrierStatus, CarrierSummary, VariantCarrierResponse
+        
+        self.load()
+        
+        if variant_id not in self._data.columns:
+            # Return empty response
+            empty_summary = CarrierSummary(
+                total_samples=0, carrier_count=0, reference_count=0,
+                missing_count=0, carrier_frequency=0.0
+            )
+            return VariantCarrierResponse(
+                variant_id=variant_id,
+                format_requested=query.format,
+                summary=empty_summary,
+                carriers=[],
+                query_params=query
+            )
+        
+        # Get raw data for this variant
+        variant_data = self._data[variant_id]
+        
+        # Create CarrierStatus objects
+        carriers = []
+        for sample_id, value in variant_data.items():
+            if pd.isna(value):
+                if not query.exclude_missing:
+                    carriers.append(CarrierStatus(
+                        sample_id=sample_id,
+                        variant_id=variant_id,
+                        int_value=None if not self.use_string_format else None,
+                        string_value=None if self.use_string_format else None
+                    ))
+                continue
+            
+            # Apply filtering based on format
+            if self.use_string_format:
+                # String format filtering
+                string_val = str(value)
+                if query.genotype_pattern and query.genotype_pattern not in string_val:
+                    continue
+                
+                # Determine carrier status from string
+                is_carrier = string_val not in ["WT/WT", "./.", ""]
+                carrier_type = self._classify_string_genotype(string_val)
+                
+                carrier_status = CarrierStatus(
+                    sample_id=sample_id,
+                    variant_id=variant_id,
+                    string_value=string_val,
+                    is_carrier=is_carrier,
+                    carrier_type=carrier_type
+                )
+            else:
+                # Integer format filtering
+                float_val = float(value)
+                if query.min_status is not None and float_val < query.min_status:
+                    continue
+                if query.max_status is not None and float_val > query.max_status:
+                    continue
+                
+                # Determine carrier status from numeric value
+                is_carrier = float_val > 0.0
+                carrier_type = {0.0: "reference", 1.0: "heterozygous", 2.0: "homozygous"}.get(float_val, "unknown")
+                
+                carrier_status = CarrierStatus(
+                    sample_id=sample_id,
+                    variant_id=variant_id,
+                    int_value=float_val,
+                    is_carrier=is_carrier,
+                    carrier_type=carrier_type
+                )
+            
+            carriers.append(carrier_status)
+            
+            # Apply limit
+            if len(carriers) >= query.limit:
+                break
+        
+        # Generate summary statistics
+        total_samples = len(variant_data)
+        carrier_count = sum(1 for c in carriers if c.is_carrier)
+        reference_count = sum(1 for c in carriers if not c.is_carrier)
+        missing_count = variant_data.isnull().sum()
+        
+        carrier_frequency = carrier_count / (total_samples - missing_count) if (total_samples - missing_count) > 0 else 0.0
+        
+        # Format-specific summaries
+        int_summary = None
+        string_summary = None
+        
+        if self.use_string_format:
+            string_summary = {}
+            for carrier in carriers:
+                if carrier.string_value:
+                    string_summary[carrier.string_value] = string_summary.get(carrier.string_value, 0) + 1
+        else:
+            int_summary = {}
+            for carrier in carriers:
+                if carrier.int_value is not None:
+                    key = str(carrier.int_value)
+                    int_summary[key] = int_summary.get(key, 0) + 1
+        
+        summary = CarrierSummary(
+            total_samples=total_samples,
+            carrier_count=carrier_count,
+            reference_count=reference_count,
+            missing_count=missing_count,
+            carrier_frequency=carrier_frequency,
+            int_format_summary=int_summary,
+            string_format_summary=string_summary
+        )
+        
+        return VariantCarrierResponse(
+            variant_id=variant_id,
+            format_requested=query.format,
+            summary=summary,
+            carriers=carriers,
+            query_params=query
+        )
+
+    def _classify_string_genotype(self, genotype: str) -> str:
+        """Classify string genotype into carrier type."""
+        if genotype in ["WT/WT", "./.", ""]:
+            return "reference"
+        
+        # Split genotype and check alleles
+        if "/" in genotype:
+            alleles = genotype.split("/")
+            if len(alleles) == 2:
+                if alleles[0] == alleles[1] and alleles[0] != "WT":
+                    return "homozygous"
+                elif alleles[0] != alleles[1] and "WT" not in alleles:
+                    return "homozygous"  # Both alleles are variant
+                else:
+                    return "heterozygous"
+        
+        return "unknown"
+
+    def compare_formats(self, variant_id: str, sample_limit: int = 10) -> Dict[str, Any]:
+        """
+        Compare data between string and integer formats for a variant.
+        
+        Args:
+            variant_id: Variant ID to compare
+            sample_limit: Number of samples to show in comparison
+            
+        Returns:
+            Dictionary with comparison data
+        """
+        from ..models.sample import CarrierQuery, CarrierDataFormat
+        
+        # Get data from both formats if available
+        string_repo = CarrierDataRepository(self.data_source, use_string_format=True)
+        int_repo = CarrierDataRepository(self.data_source, use_string_format=False)
+        
+        comparison = {
+            "variant_id": variant_id,
+            "data_source": self.data_source,
+            "string_format_available": False,
+            "int_format_available": False,
+            "sample_comparisons": []
+        }
+        
+        # Check string format
+        try:
+            string_query = CarrierQuery(format=CarrierDataFormat.STRING, limit=sample_limit)
+            string_response = string_repo.get_enhanced_carrier_data_for_variant(variant_id, string_query)
+            comparison["string_format_available"] = True
+            comparison["string_summary"] = string_response.summary
+        except Exception as e:
+            comparison["string_error"] = str(e)
+        
+        # Check int format
+        try:
+            int_query = CarrierQuery(format=CarrierDataFormat.INTEGER, limit=sample_limit)
+            int_response = int_repo.get_enhanced_carrier_data_for_variant(variant_id, int_query)
+            comparison["int_format_available"] = True
+            comparison["int_summary"] = int_response.summary
+        except Exception as e:
+            comparison["int_error"] = str(e)
+        
+        # Sample-level comparison if both formats available
+        if comparison["string_format_available"] and comparison["int_format_available"]:
+            string_carriers = {c.sample_id: c for c in string_response.carriers}
+            int_carriers = {c.sample_id: c for c in int_response.carriers}
+            
+            common_samples = set(string_carriers.keys()) & set(int_carriers.keys())
+            
+            for sample_id in list(common_samples)[:sample_limit]:
+                string_carrier = string_carriers[sample_id]
+                int_carrier = int_carriers[sample_id]
+                
+                comparison["sample_comparisons"].append({
+                    "sample_id": sample_id,
+                    "string_value": string_carrier.string_value,
+                    "int_value": int_carrier.int_value,
+                    "string_carrier_type": string_carrier.carrier_type,
+                    "int_carrier_type": int_carrier.carrier_type,
+                    "agreement": string_carrier.is_carrier == int_carrier.is_carrier
+                })
+        
+        return comparison 

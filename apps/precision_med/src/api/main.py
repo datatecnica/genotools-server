@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ..core.config import settings
-from .routes import variants
+from .routes import variants, carriers
 
 # Create FastAPI application
 app = FastAPI(
@@ -32,6 +32,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(variants.router, prefix="/api")
+app.include_router(carriers.router, prefix="/api")
 
 
 @app.get("/")

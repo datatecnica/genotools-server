@@ -6,6 +6,11 @@ numpy>=1.21.0
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 
+# Streamlit frontend
+streamlit>=1.28.0
+plotly>=5.17.0
+altair>=5.0.0
+
 # Data validation and models
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
