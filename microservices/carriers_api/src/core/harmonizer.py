@@ -90,140 +90,206 @@ class AlleleHarmonizer:
             
             return subset_snp_path
     
-    def _find_common_snps(self, pfile: str, reference: str, out: str) -> str:
+    def _find_common_snps(self, pfile: str, reference: str, out: str, chunk_size: int = 500000) -> str:
         """
-        Find SNPs common between the PLINK file and reference.
+        Find SNPs common between the PLINK file and reference using exact allele matching.
+        This preserves functional variants that differ at the same position.
         
         Args:
             pfile: Path to PLINK file prefix
             reference: Path to TSV file with columns chrom, pos, a1, a2
             out: Output path prefix
+            chunk_size: Number of variants to process at once (default 100,000)
             
         Returns:
             str: Path to file containing common SNP IDs
         """
-        # Read files
         pvar_path = f"{pfile}.pvar"
         
-        # Read pvar file - PLINK2 format has header starting with #CHROM
-        try:
-            # Try reading with header first (PLINK2 format)
-            pvar = pd.read_csv(pvar_path, sep='\t', dtype={'#CHROM': str})
-            # Rename columns to standard names
-            pvar.columns = ['chrom', 'pos', 'id', 'a1', 'a2'] + list(pvar.columns[5:])
-        except:
-            # Fall back to headerless format
-            pvar = pd.read_csv(pvar_path, sep='\t', comment='#', header=None, 
-                              names=['chrom', 'pos', 'id', 'a1', 'a2'],
-                              usecols=[0, 1, 2, 3, 4],
-                              dtype={'chrom': str})
-        
-        # Clean pvar data
-        pvar['chrom'] = pvar['chrom'].astype(str).str.strip()
-        pvar['pos'] = pvar['pos'].astype(str).str.strip().str.replace(' ', '')
-        pvar['id'] = pvar['id'].astype(str).str.strip()
-        pvar['a1'] = pvar['a1'].astype(str).str.strip().str.upper()
-        pvar['a2'] = pvar['a2'].astype(str).str.strip().str.upper()
-        
-        # Create unique variant identifier with alleles
-        pvar['variant_id'] = pvar['chrom'] + ':' + pvar['pos'] + ':' + pvar['a1'] + ':' + pvar['a2']
-        # Also create position-only identifier for initial filtering
-        pvar['pos_id'] = pvar['chrom'] + ':' + pvar['pos']
-        
-        # Read and clean reference data
+        # Read and prepare reference data
         ref_df = pd.read_csv(reference, dtype={'chrom': str})
-        
-        # Clean hg38 column - handle potential spaces
         ref_df['hg38'] = ref_df['hg38'].astype(str).str.strip().str.replace(' ', '')
-        
-        # Extract components from hg38 format (e.g., "12:40309225:A:C")
         hg38_parts = ref_df['hg38'].str.split(':')
         ref_df['chrom'] = hg38_parts.str[0]
         ref_df['pos'] = hg38_parts.str[1]
         ref_df['a1'] = hg38_parts.str[2].str.upper()
         ref_df['a2'] = hg38_parts.str[3].str.upper()
         
-        # Create identifiers using hg38
-        ref_df['pos_id'] = ref_df['chrom'] + ':' + ref_df['pos']
-        ref_df['variant_id'] = ref_df['hg38'].str.upper()  # Ensure alleles are uppercase in variant_id
+        # CRITICAL CHANGE: Create exact variant IDs instead of just position IDs
+        ref_df['exact_variant_id'] = (ref_df['chrom'] + ':' + ref_df['pos'] + 
+                                      ':' + ref_df['a1'] + ':' + ref_df['a2'])
+        ref_df['variant_id'] = ref_df['hg38'].str.upper()
         
-        # First, find variants at the same position
-        potential_matches = pvar.merge(ref_df, on='pos_id', suffixes=('_geno', '_ref'))
+        # For efficient lookup, create both exact matches and flip/swap variants
+        ref_exact_variants = set(ref_df['exact_variant_id'].values)
         
-        # Debug: print column names to understand the structure
-        print(f"DEBUG: Columns after merge: {list(potential_matches.columns)}")
-        print(f"DEBUG: Shape after merge: {potential_matches.shape}")
-        
-        # Check if id_geno exists, if not, it means ref_df didn't have an 'id' column
-        if 'id_geno' not in potential_matches.columns and 'id' in potential_matches.columns:
-            # The 'id' column from pvar didn't get renamed because ref_df doesn't have 'id'
-            potential_matches = potential_matches.rename(columns={'id': 'id_geno'})
-        
-        # Check all 4 possible orientations
+        # Also create flipped and swapped versions for matching
         complement = {'A':'T', 'T':'A', 'C':'G', 'G':'C'}
+        ref_variants_all = set()
+        ref_variant_mapping = {}  # Maps genotype variant to reference info
         
-        # Exact match: A1_geno = A1_ref, A2_geno = A2_ref
-        exact_match = (
-            (potential_matches['a1_geno'] == potential_matches['a1_ref']) & 
-            (potential_matches['a2_geno'] == potential_matches['a2_ref'])
-        )
+        for _, row in ref_df.iterrows():
+            exact_id = row['exact_variant_id']
+            ref_variants_all.add(exact_id)
+            ref_variant_mapping[exact_id] = {
+                'variant_id_ref': row['variant_id'],
+                'match_type': 'exact',
+                'ref_row': row
+            }
+            
+            # Add swapped version
+            swap_id = f"{row['chrom']}:{row['pos']}:{row['a2']}:{row['a1']}"
+            ref_variants_all.add(swap_id)
+            ref_variant_mapping[swap_id] = {
+                'variant_id_ref': row['variant_id'],
+                'match_type': 'swap',
+                'ref_row': row
+            }
+            
+            # Add flipped versions
+            a1_flip = complement.get(row['a1'], row['a1'])
+            a2_flip = complement.get(row['a2'], row['a2'])
+            flip_id = f"{row['chrom']}:{row['pos']}:{a1_flip}:{a2_flip}"
+            flip_swap_id = f"{row['chrom']}:{row['pos']}:{a2_flip}:{a1_flip}"
+            
+            ref_variants_all.add(flip_id)
+            ref_variant_mapping[flip_id] = {
+                'variant_id_ref': row['variant_id'],
+                'match_type': 'flip',
+                'ref_row': row
+            }
+            
+            ref_variants_all.add(flip_swap_id)
+            ref_variant_mapping[flip_swap_id] = {
+                'variant_id_ref': row['variant_id'],
+                'match_type': 'flip_swap',
+                'ref_row': row
+            }
         
-        # Swap match: A1_geno = A2_ref, A2_geno = A1_ref
-        swap_match = (
-            (potential_matches['a1_geno'] == potential_matches['a2_ref']) & 
-            (potential_matches['a2_geno'] == potential_matches['a1_ref'])
-        )
+        print(f"Looking for {len(ref_exact_variants)} exact variants (with {len(ref_variants_all)} total including harmonized versions)")
         
-        # Flip match: A1_geno complement = A1_ref, A2_geno complement = A2_ref
-        flip_match = (
-            (potential_matches['a1_geno'].map(lambda x: complement.get(x, x)) == potential_matches['a1_ref']) & 
-            (potential_matches['a2_geno'].map(lambda x: complement.get(x, x)) == potential_matches['a2_ref'])
-        )
+        all_matches = []
         
-        # Flip-swap match: A1_geno complement = A2_ref, A2_geno complement = A1_ref
-        flip_swap_match = (
-            (potential_matches['a1_geno'].map(lambda x: complement.get(x, x)) == potential_matches['a2_ref']) & 
-            (potential_matches['a2_geno'].map(lambda x: complement.get(x, x)) == potential_matches['a1_ref'])
-        )
+        # Process pvar in chunks with improved parsing and performance
+        def get_chunk_reader(pvar_path, chunk_size):
+            """Get appropriate chunk reader for pvar file format"""
+            # First, detect the file format by reading a few lines
+            with open(pvar_path, 'r') as f:
+                first_line = f.readline().strip()
+                second_line = f.readline().strip()
+            
+            if first_line.startswith('#CHROM') or first_line.startswith('CHROM'):
+                # Header format - use standard column names
+                return pd.read_csv(pvar_path, sep='\t', chunksize=chunk_size, dtype={'#CHROM': str})
+            else:
+                # Headerless format - skip comment lines and use only first 5 columns
+                return pd.read_csv(pvar_path, sep='\t', comment='#', header=None,
+                                  names=['chrom', 'pos', 'id', 'a1', 'a2'],
+                                  usecols=[0, 1, 2, 3, 4],
+                                  dtype={'chrom': str}, chunksize=chunk_size)
         
-        # Keep only true matches
-        any_match = exact_match | swap_match | flip_match | flip_swap_match
-        true_matches = potential_matches[any_match].copy()
+        try:
+            chunk_reader = get_chunk_reader(pvar_path, chunk_size)
+            
+            for i, chunk in enumerate(chunk_reader):
+                # Standardize column names if needed
+                if chunk.columns[0] in ['#CHROM', 'CHROM']:
+                    chunk.columns = ['chrom', 'pos', 'id', 'a1', 'a2'] + list(chunk.columns[5:])
+                
+                # PERFORMANCE OPTIMIZATION: Pre-filter chunk by exact variant IDs
+                # This dramatically reduces the number of variants we need to process
+                # Clean and standardize data first
+                chunk['chrom'] = chunk['chrom'].astype(str).str.strip()
+                chunk['pos'] = chunk['pos'].astype(str).str.strip()
+                chunk['id'] = chunk['id'].astype(str).str.strip()
+                chunk['a1'] = chunk['a1'].astype(str).str.strip().str.upper()
+                chunk['a2'] = chunk['a2'].astype(str).str.strip().str.upper()
+                
+                chunk['exact_variant_id'] = (chunk['chrom'] + ':' + chunk['pos'] + ':' + 
+                                            chunk['a1'] + ':' + chunk['a2'])
+                
+                # Only process variants that exist in our reference set
+                chunk_filtered = chunk[chunk['exact_variant_id'].isin(ref_variants_all)]
+                
+                if not chunk_filtered.empty:
+                    # Process only the filtered chunk
+                    chunk_matches = []
+                    for _, row in chunk_filtered.iterrows():
+                        geno_variant_id = row['exact_variant_id']
+                        if geno_variant_id in ref_variant_mapping:
+                            match_info = ref_variant_mapping[geno_variant_id]
+                            match_row = {
+                                'id_geno': row['id'],
+                                'variant_id_ref': match_info['variant_id_ref'],
+                                'match_type': match_info['match_type'],
+                                'a1_ref': match_info['ref_row']['a1'],
+                                'a2_ref': match_info['ref_row']['a2']
+                            }
+                            # Add snp_name_ref if available
+                            if 'snp_name' in match_info['ref_row']:
+                                match_row['snp_name_ref'] = match_info['ref_row']['snp_name']
+                            chunk_matches.append(match_row)
+                    
+                    if chunk_matches:
+                        all_matches.append(pd.DataFrame(chunk_matches))
+                        print(f"Processed chunk {i+1}, found {len(chunk_matches)} matches (filtered {len(chunk)} -> {len(chunk_filtered)} variants)")
+                else:
+                    print(f"Processed chunk {i+1}, no matches found (filtered {len(chunk)} -> 0 variants)")
+                
+        except Exception as e:
+            print(f"Error processing pvar file: {e}")
+            raise
         
-        # Debug: check columns in true_matches
-        print(f"DEBUG: Columns in true_matches: {list(true_matches.columns)}")
+        # Combine all matches
+        if all_matches:
+            true_matches = pd.concat(all_matches, ignore_index=True)
+            # REMOVED: drop_duplicates(subset=['id_geno']) - this was losing functional variants!
+            # Each match represents a distinct functional variant, even if they share genotype IDs
+            print(f"Total variant matches found: {len(true_matches)}")
+        else:
+            true_matches = pd.DataFrame()
+            print("No matches found")
         
         # Ensure id_geno exists in true_matches
-        if 'id_geno' not in true_matches.columns:
+        if not true_matches.empty and 'id_geno' not in true_matches.columns:
             print(f"ERROR: id_geno column not found. Available columns: {list(true_matches.columns)}")
-            # If we have 'id' but not 'id_geno', rename it
             if 'id' in true_matches.columns:
                 true_matches = true_matches.rename(columns={'id': 'id_geno'})
             else:
                 raise ValueError("Cannot find variant ID column in merged data")
         
-        # Add match type for later harmonization
-        true_matches.loc[exact_match[any_match], 'match_type'] = 'exact'
-        true_matches.loc[swap_match[any_match], 'match_type'] = 'swap'
-        true_matches.loc[flip_match[any_match], 'match_type'] = 'flip'
-        true_matches.loc[flip_swap_match[any_match], 'match_type'] = 'flip_swap'
-        
-        # Remove any duplicates (keep first occurrence)
-        true_matches = true_matches.drop_duplicates(subset=['id_geno'])
-        
         # Write common SNP IDs to file
+        # For PLINK extraction, we only need unique genotype variant IDs
         common_snps_path = f"{out}.txt"
-        true_matches['id_geno'].to_csv(common_snps_path, index=False, header=False)
+        if not true_matches.empty:
+            unique_geno_ids = true_matches['id_geno'].drop_duplicates()
+            unique_geno_ids.to_csv(common_snps_path, index=False, header=False)
+            print(f"Writing {len(unique_geno_ids)} unique genotype variant IDs for PLINK extraction")
+        else:
+            # Create empty file if no matches
+            with open(common_snps_path, 'w') as f:
+                pass
         
         # Save match information for harmonization step
-        match_info_cols = ['id_geno', 'variant_id_ref', 'match_type']
-        # Add reference columns that exist
-        for col in ['a1_ref', 'a2_ref', 'snp_name_ref']:
-            if col in true_matches.columns:
-                match_info_cols.append(col)
-        
         match_info_path = f"{out}_match_info.tsv"
-        true_matches[match_info_cols].to_csv(match_info_path, sep='\t', index=False)
+        if not true_matches.empty:
+            # Debug: print available columns
+            print(f"DEBUG: Available columns in true_matches: {list(true_matches.columns)}")
+            
+            match_info_cols = ['id_geno', 'variant_id_ref', 'match_type']
+            # Add reference columns that exist
+            for col in ['a1_ref', 'a2_ref', 'snp_name_ref']:
+                if col in true_matches.columns:
+                    match_info_cols.append(col)
+            
+            # Filter to only include columns that actually exist
+            existing_match_info_cols = [col for col in match_info_cols if col in true_matches.columns]
+            print(f"DEBUG: Using columns for match info: {existing_match_info_cols}")
+            
+            true_matches[existing_match_info_cols].to_csv(match_info_path, sep='\t', index=False)
+        else:
+            # Create empty match info file
+            pd.DataFrame(columns=['id_geno', 'variant_id_ref', 'match_type']).to_csv(match_info_path, sep='\t', index=False)
         
         return common_snps_path
     

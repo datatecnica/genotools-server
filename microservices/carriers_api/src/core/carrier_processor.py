@@ -119,13 +119,18 @@ class CarrierExtractor:
         
         # Read the subset SNP list that contains matched IDs
         subset_snp_df = self.data_repo.read_csv(subset_snp_path)
-        
+        print("=== DEBUGGING subset_snps_df ===")
+        print(f"subset_snps_df shape: {subset_snp_df.shape}")
+        print("Variants containing 'Pro158del':")
+        pro158_variants = subset_snp_df[subset_snp_df['snp_name'].str.contains('Pro158del', na=False)]
+        print(pro158_variants[['id', 'snp_name', 'hg38', 'pos']])
+        print("=== END DEBUG ===")
         # Read and process traw data
         traw = self.data_repo.read_csv(f"{plink_out}.traw", sep='\t')
         
         # Use the subset SNP dataframe for merging instead of the original
         traw_merged = subset_snp_df[['id','chrom','pos','a1','a2']].merge(traw, how='left', left_on='id', right_on='SNP')
-        
+
         # Add snp_name to traw_merged if available in subset_snp_df
         if 'snp_name' in subset_snp_df.columns:
             traw_merged = traw_merged.merge(subset_snp_df[['id', 'snp_name']], on='id', how='left')
@@ -134,7 +139,11 @@ class CarrierExtractor:
         else:
             # Define column sets without snp_name
             colnames = ['id', 'chrom', 'pos', 'a1', 'a2','CHR', 'SNP', '(C)M', 'POS', 'COUNTED', 'ALT']
-            
+        
+        print('#'*30)
+        print(traw_merged.loc[traw_merged['snp_name']=='p.Pro158del'])
+        print('#'*30)
+
         var_cols = [x for x in colnames if x not in ['id']]
         sample_cols = list(traw_merged.drop(columns=colnames).columns)
         
@@ -190,7 +199,7 @@ class CarrierExtractor:
         columns_to_drop = ['variant_id']
         comprehensive_var_info.drop(columns=columns_to_drop, inplace=True, errors='ignore')
         
-        # Remove any remaining allele columns that might exist
+        # Remove any remaining allele columns that might exist (but preserve COUNTED)
         redundant_allele_cols = ['REF', 'ALT', 'PROVISIONAL_REF?']
         comprehensive_var_info.drop(columns=redundant_allele_cols, inplace=True, errors='ignore')
             

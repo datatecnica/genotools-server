@@ -118,15 +118,15 @@ def main():
     # Initialize file manager
     file_manager = FileManager()
     
-    # Process data
-    nba_output_dir = process_population_data(config, file_manager)
+    # Process data - TESTING: Only run WGS for now
+    # nba_output_dir = process_population_data(config, file_manager)
     wgs_output_dir = process_wgs_data(config, file_manager)
-    combined_results = combine_population_data(config, nba_output_dir)
+    # combined_results = combine_population_data(config, nba_output_dir)
     
     print("\n=== All processing complete! ===")
-    print(f"Individual population files saved in: {nba_output_dir}")
+    # print(f"Individual population files saved in: {nba_output_dir}")
     print(f"WGS files saved in: {wgs_output_dir}")
-    print(f"Combined array data files saved in: {combined_results}")
+    # print(f"Combined array data files saved in: {combined_results}")
 
 
 if __name__ == "__main__":
