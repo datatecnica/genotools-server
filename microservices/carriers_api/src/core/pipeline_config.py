@@ -36,4 +36,4 @@ class PipelineConfig:
     
     @property
     def snplist_path(self):
-        return f'{self.summary_dir}/carriers_report_snps_complete_list.csv' 
+        return f'{self.summary_dir}/carriers_snp_list.csv' 
