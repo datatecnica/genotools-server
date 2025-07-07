@@ -118,7 +118,7 @@ def main():
     # Initialize file manager
     file_manager = FileManager()
     
-    # Process data
+    # Process data - TESTING: Only run WGS for now
     nba_output_dir = process_population_data(config, file_manager)
     wgs_output_dir = process_wgs_data(config, file_manager)
     combined_results = combine_population_data(config, nba_output_dir)
