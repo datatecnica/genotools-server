@@ -326,10 +326,7 @@ class CarrierCombiner:
                 
                 print(f"{label}: {len(used_ids)} variants used in carriers data, {len(unused_ids)} variants not used")
             
-            # Process carriers data (add ancestry column and combine)
-            carriers_string['ancestry'] = label
-            carriers_int['ancestry'] = label
-            
+            # Process carriers data (clean IID and combine)
             # Clean IID column (remove '0_' prefix if present)
             carriers_string['IID'] = carriers_string['IID'].str.replace('0_', '')
             carriers_int['IID'] = carriers_int['IID'].str.replace('0_', '')
@@ -433,9 +430,9 @@ class CarrierCombiner:
     def _prepare_final_output(self, carriers_string: pd.DataFrame, carriers_int: pd.DataFrame, key_file: str) -> tuple:
         """Prepare final output format for carriers data"""
         # Reorder carriers dataframes columns 
-        variant_columns = [col for col in carriers_string.columns if col not in ['IID', 'ancestry']]
-        carriers_string_final = carriers_string[['IID', 'ancestry'] + variant_columns].copy()
-        carriers_int_final = carriers_int[['IID', 'ancestry'] + variant_columns].copy()
+        variant_columns = [col for col in carriers_string.columns if col not in ['IID']]
+        carriers_string_final = carriers_string[['IID'] + variant_columns].copy()
+        carriers_int_final = carriers_int[['IID'] + variant_columns].copy()
         
         # Fill missing values in carriers data
         carriers_string_final[variant_columns] = carriers_string_final[variant_columns].fillna('./.')
@@ -444,10 +441,10 @@ class CarrierCombiner:
         if key_file is not None:
             key = self.data_repo.read_csv(key_file)
             carriers_string_merge = carriers_string_final.merge(key[['IID','study']], how='left', on='IID')
-            carriers_string_final = carriers_string_merge[['IID', 'study', 'ancestry'] + variant_columns]
+            carriers_string_final = carriers_string_merge[['IID', 'study'] + variant_columns]
             
             carriers_int_merge = carriers_int_final.merge(key[['IID','study']], how='left', on='IID')
-            carriers_int_final = carriers_int_merge[['IID', 'study', 'ancestry'] + variant_columns]
+            carriers_int_final = carriers_int_merge[['IID', 'study'] + variant_columns]
         
         return carriers_string_final, carriers_int_final
     
