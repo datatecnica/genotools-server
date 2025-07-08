@@ -139,7 +139,6 @@ class NBARepository(BaseRepository):
         return {
             'num_variants': len(info_df),
             'num_samples': len(int_df),
-            'ancestries': sorted(int_df['ancestry'].unique().tolist()),
             'loci': sorted(info_df['locus'].unique().tolist()),
             'release': self.config.release,
             'data_type': 'NBA'
@@ -165,8 +164,8 @@ class NBARepository(BaseRepository):
             # Create new column names, mapping variant IDs to SNP names
             new_columns = []
             for col in current_columns:
-                if col in ['IID', 'ancestry']:
-                    # Keep sample ID and ancestry columns as-is
+                if col == 'IID':
+                    # Keep sample ID column as-is
                     new_columns.append(col)
                 elif col in id_to_snp_mapping:
                     # Map variant ID to SNP name
@@ -272,8 +271,8 @@ class WGSRepository(BaseRepository):
             # Create new column names, mapping variant IDs to SNP names
             new_columns = []
             for col in current_columns:
-                if col in ['IID', 'ancestry']:
-                    # Keep sample ID and ancestry columns as-is
+                if col == 'IID':
+                    # Keep sample ID column as-is
                     new_columns.append(col)
                 elif col in id_to_snp_mapping:
                     # Map variant ID to SNP name
@@ -342,7 +341,6 @@ class WGSRepository(BaseRepository):
         return {
             'num_variants': len(info_df),
             'num_samples': len(int_df),
-            'ancestries': sorted(int_df['ancestry'].unique().tolist()),
             'loci': sorted(info_df['locus'].unique().tolist()),
             'release': self.config.release,
             'data_type': 'WGS'

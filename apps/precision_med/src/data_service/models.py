@@ -90,9 +90,8 @@ class NBAInfoRecord(BaseInfoRecord):
 class BaseIntRecord:
     """Base data model for integer genotype records."""
     
-    # Sample identifiers
+    # Sample identifier - ancestry handled separately via clinical data
     iid: str  # Individual ID
-    ancestry: str
     
     # Genotype data (all variants as integers)
     # 0 = homozygous reference, 1 = heterozygous, 2 = homozygous alternate
@@ -101,8 +100,8 @@ class BaseIntRecord:
     @classmethod
     def from_pandas_row(cls, row: pd.Series) -> 'BaseIntRecord':
         """Create instance from pandas Series (DataFrame row)."""
-        # Extract genotype columns (all except IID and ancestry)
-        genotype_cols = [col for col in row.index if col not in ['IID', 'ancestry']]
+        # Extract genotype columns (all except IID - no more ancestry column)
+        genotype_cols = [col for col in row.index if col != 'IID']
         genotypes = {}
         
         for col in genotype_cols:
@@ -114,7 +113,6 @@ class BaseIntRecord:
         
         return cls(
             iid=row['IID'],
-            ancestry=row['ancestry'],
             genotypes=genotypes
         )
 
@@ -129,9 +127,8 @@ class NBAIntRecord(BaseIntRecord):
 class BaseStringRecord:
     """Base data model for string genotype records."""
     
-    # Sample identifiers  
+    # Sample identifier - ancestry handled separately via clinical data
     iid: str  # Individual ID
-    ancestry: str
     
     # Genotype data (all variants as strings)
     # Typical values: "WT/WT", "WT/MUT", "MUT/MUT", "./."
@@ -140,8 +137,8 @@ class BaseStringRecord:
     @classmethod
     def from_pandas_row(cls, row: pd.Series) -> 'BaseStringRecord':
         """Create instance from pandas Series (DataFrame row)."""
-        # Extract genotype columns (all except IID and ancestry)
-        genotype_cols = [col for col in row.index if col not in ['IID', 'ancestry']]
+        # Extract genotype columns (all except IID - no more ancestry column)
+        genotype_cols = [col for col in row.index if col != 'IID']
         genotypes = {}
         
         for col in genotype_cols:
@@ -153,7 +150,6 @@ class BaseStringRecord:
         
         return cls(
             iid=row['IID'],
-            ancestry=row['ancestry'],
             genotypes=genotypes
         )
 
@@ -212,11 +208,6 @@ class BaseDataset:
     def sample_ids(self) -> List[str]:
         """List of all sample IDs."""
         return [record.iid for record in self.int_data]
-    
-    @property
-    def ancestries(self) -> List[str]:
-        """List of unique ancestries in the dataset."""
-        return list(set(record.ancestry for record in self.int_data))
     
     def get_variant_info(self, variant_id: str) -> Optional[BaseInfoRecord]:
         """Get variant info by ID."""
