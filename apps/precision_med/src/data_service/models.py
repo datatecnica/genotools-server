@@ -1,6 +1,6 @@
 """
-Data models for NBA carriers data.
-Defines dataclasses for the three combined NBA file types.
+Data models for NBA and WGS carriers data.
+Defines dataclasses for the three combined file types.
 """
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
@@ -8,8 +8,8 @@ import pandas as pd
 
 
 @dataclass
-class NBAInfoRecord:
-    """Data model for NBA info file records (variant metadata)."""
+class BaseInfoRecord:
+    """Base data model for variant info records."""
     
     # Core variant identifiers
     id: str
@@ -33,7 +33,6 @@ class NBAInfoRecord:
     pipeline: Optional[str]
     
     # Ancestry-specific frequency and quality metrics
-    # Format: ALT_FREQS_{ANCESTRY}, OBS_CT_{ANCESTRY}, F_MISS_{ANCESTRY}, {ANCESTRY}_probe_used
     ancestry_metrics: Optional[Dict[str, Any]] = None
     
     # Overall metrics
@@ -42,7 +41,7 @@ class NBAInfoRecord:
     f_miss: Optional[float] = None
     
     @classmethod
-    def from_pandas_row(cls, row: pd.Series) -> 'NBAInfoRecord':
+    def from_pandas_row(cls, row: pd.Series) -> 'BaseInfoRecord':
         """Create instance from pandas Series (DataFrame row)."""
         # Extract ancestry-specific metrics
         ancestry_metrics = {}
@@ -80,9 +79,16 @@ class NBAInfoRecord:
         )
 
 
+# NBA specific models
 @dataclass
-class NBAIntRecord:
-    """Data model for NBA int file records (integer genotype data)."""
+class NBAInfoRecord(BaseInfoRecord):
+    """Data model for NBA info file records (variant metadata)."""
+    pass
+
+
+@dataclass
+class BaseIntRecord:
+    """Base data model for integer genotype records."""
     
     # Sample identifiers
     iid: str  # Individual ID
@@ -93,7 +99,7 @@ class NBAIntRecord:
     genotypes: Dict[str, Optional[int]]
     
     @classmethod
-    def from_pandas_row(cls, row: pd.Series) -> 'NBAIntRecord':
+    def from_pandas_row(cls, row: pd.Series) -> 'BaseIntRecord':
         """Create instance from pandas Series (DataFrame row)."""
         # Extract genotype columns (all except IID and ancestry)
         genotype_cols = [col for col in row.index if col not in ['IID', 'ancestry']]
@@ -114,8 +120,14 @@ class NBAIntRecord:
 
 
 @dataclass
-class NBAStringRecord:
-    """Data model for NBA string file records (string genotype data)."""
+class NBAIntRecord(BaseIntRecord):
+    """Data model for NBA int file records (integer genotype data)."""
+    pass
+
+
+@dataclass
+class BaseStringRecord:
+    """Base data model for string genotype records."""
     
     # Sample identifiers  
     iid: str  # Individual ID
@@ -126,7 +138,7 @@ class NBAStringRecord:
     genotypes: Dict[str, Optional[str]]
     
     @classmethod
-    def from_pandas_row(cls, row: pd.Series) -> 'NBAStringRecord':
+    def from_pandas_row(cls, row: pd.Series) -> 'BaseStringRecord':
         """Create instance from pandas Series (DataFrame row)."""
         # Extract genotype columns (all except IID and ancestry)
         genotype_cols = [col for col in row.index if col not in ['IID', 'ancestry']]
@@ -147,13 +159,39 @@ class NBAStringRecord:
 
 
 @dataclass
-class NBADataset:
-    """Container for all three NBA data types."""
+class NBAStringRecord(BaseStringRecord):
+    """Data model for NBA string file records (string genotype data)."""
+    pass
+
+
+# WGS specific models (inherit from base)
+@dataclass
+class WGSInfoRecord(BaseInfoRecord):
+    """Data model for WGS info file records (variant metadata)."""
+    pass
+
+
+@dataclass
+class WGSIntRecord(BaseIntRecord):
+    """Data model for WGS int file records (integer genotype data)."""
+    pass
+
+
+@dataclass
+class WGSStringRecord(BaseStringRecord):
+    """Data model for WGS string file records (string genotype data)."""
+    pass
+
+
+@dataclass
+class BaseDataset:
+    """Base container for all three data types."""
     
-    info_data: List[NBAInfoRecord]
-    int_data: List[NBAIntRecord]
-    string_data: List[NBAStringRecord]
+    info_data: List[BaseInfoRecord]
+    int_data: List[BaseIntRecord]
+    string_data: List[BaseStringRecord]
     release: str
+    data_type: str  # "NBA" or "WGS"
     
     @property
     def num_variants(self) -> int:
@@ -180,26 +218,42 @@ class NBADataset:
         """List of unique ancestries in the dataset."""
         return list(set(record.ancestry for record in self.int_data))
     
-    def get_variant_info(self, variant_id: str) -> Optional[NBAInfoRecord]:
+    def get_variant_info(self, variant_id: str) -> Optional[BaseInfoRecord]:
         """Get variant info by ID."""
         for record in self.info_data:
             if record.id == variant_id:
                 return record
         return None
     
-    def get_sample_data(self, sample_id: str, data_type: str = 'int') -> Optional[dict]:
+    def get_sample_data(self, sample_id: str, data_format: str = 'int') -> Optional[dict]:
         """Get sample genotype data by ID.
         
         Args:
             sample_id: Sample identifier
-            data_type: Either 'int' or 'string'
+            data_format: Either 'int' or 'string'
             
         Returns:
             Sample data record or None if not found
         """
-        data_source = self.int_data if data_type == 'int' else self.string_data
+        data_source = self.int_data if data_format == 'int' else self.string_data
         
         for record in data_source:
             if record.iid == sample_id:
                 return record
         return None
+
+
+@dataclass
+class NBADataset(BaseDataset):
+    """Container for NBA data types."""
+    
+    def __post_init__(self):
+        self.data_type = "NBA"
+
+
+@dataclass
+class WGSDataset(BaseDataset):
+    """Container for WGS data types."""
+    
+    def __post_init__(self):
+        self.data_type = "WGS"

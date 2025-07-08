@@ -43,6 +43,16 @@ class DataConfig:
             "string": self.nba_base / f"nba_{self.release}_combined_string.csv"
         }
         
+        # WGS (Whole Genome Sequencing) paths
+        self.wgs_base = self.carriers_base / "wgs" / self.release
+        
+        # WGS data files
+        self.wgs_files = {
+            "info": self.wgs_base / f"{self.release}_var_info.csv",
+            "int": self.wgs_base / f"{self.release}_carriers_int.csv",
+            "string": self.wgs_base / f"{self.release}_carriers_string.csv"
+        }
+        
         # Validate paths exist
         self._validate_paths()
     
@@ -51,12 +61,21 @@ class DataConfig:
         if not self.carriers_base.exists():
             raise FileNotFoundError(f"Carriers base path not found: {self.carriers_base}")
         
+        # Validate NBA paths
         if not self.nba_base.exists():
             raise FileNotFoundError(f"NBA base path not found: {self.nba_base}")
         
         for file_type, path in self.nba_files.items():
             if not path.exists():
                 raise FileNotFoundError(f"NBA {file_type} file not found: {path}")
+        
+        # Validate WGS paths
+        if not self.wgs_base.exists():
+            raise FileNotFoundError(f"WGS base path not found: {self.wgs_base}")
+        
+        for file_type, path in self.wgs_files.items():
+            if not path.exists():
+                raise FileNotFoundError(f"WGS {file_type} file not found: {path}")
     
     def get_nba_file_path(self, file_type: str) -> Path:
         """Get path for specific NBA file type.
@@ -78,6 +97,27 @@ class DataConfig:
     def get_all_nba_paths(self) -> Dict[str, Path]:
         """Get all NBA file paths as a dictionary."""
         return self.nba_files.copy()
+    
+    def get_wgs_file_path(self, file_type: str) -> Path:
+        """Get path for specific WGS file type.
+        
+        Args:
+            file_type: Type of file ('info', 'int', 'string')
+            
+        Returns:
+            Path to the requested file
+            
+        Raises:
+            ValueError: If file_type is not valid
+        """
+        if file_type not in self.wgs_files:
+            raise ValueError(f"Invalid file type: {file_type}. Available: {list(self.wgs_files.keys())}")
+        
+        return self.wgs_files[file_type]
+    
+    def get_all_wgs_paths(self) -> Dict[str, Path]:
+        """Get all WGS file paths as a dictionary."""
+        return self.wgs_files.copy()
     
     def switch_release(self, new_release: str) -> None:
         """Switch to a different release and update all paths.
