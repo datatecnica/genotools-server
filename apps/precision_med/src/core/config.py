@@ -1,87 +1,101 @@
 """
-Configuration management for GP2 Precision Medicine Data Browser.
+Configuration management for precision medicine data access.
+Provides release-based path configuration for different data types.
 """
-from typing import Optional
+from typing import Dict, List
 from pathlib import Path
-from pydantic import Field
-from pydantic_settings import BaseSettings
 
 
-class Settings(BaseSettings):
-    """Application settings with environment variable support."""
+class DataConfig:
+    """Configuration class for managing data paths across releases."""
     
-    # Data paths
-    data_root: Path = Field(default=Path("./data"), description="Root directory for data files")
+    # Base GCS mount paths
+    GCS_BASE = Path("~/gcs_mounts/genotools_server").expanduser()
     
-    # Clinical data
-    clinical_data_dir: Optional[Path] = Field(default=None, description="Clinical data directory")
-    master_key_file: str = Field(default="master_key_release10_final_vwb.csv", description="Master key filename")
+    # Available releases (starting with release10 as specified)
+    AVAILABLE_RELEASES = ["release10"]
+    DEFAULT_RELEASE = "release10"
     
-    # WGS data
-    wgs_data_dir: Optional[Path] = Field(default=None, description="WGS data directory")
-    wgs_var_info_file: str = Field(default="release10_var_info.csv", description="WGS variant info filename")
-    wgs_carriers_int_file: str = Field(default="release10_carriers_int.csv", description="WGS carriers int filename")
-    wgs_carriers_string_file: str = Field(default="release10_carriers_string.csv", description="WGS carriers string filename")
+    def __init__(self, release: str = DEFAULT_RELEASE):
+        """Initialize configuration for a specific release.
+        
+        Args:
+            release: Release version (e.g., "release10")
+        """
+        if release not in self.AVAILABLE_RELEASES:
+            raise ValueError(f"Release {release} not available. Available: {self.AVAILABLE_RELEASES}")
+        
+        self.release = release
+        self._setup_paths()
     
-    # NBA data
-    nba_data_dir: Optional[Path] = Field(default=None, description="NBA data directory")
-    nba_info_file: str = Field(default="nba_release10_combined_info.csv", description="NBA variant info filename")
-    nba_carriers_int_file: str = Field(default="nba_release10_combined_int.csv", description="NBA carriers int filename")
-    nba_carriers_string_file: str = Field(default="nba_release10_combined_string.csv", description="NBA carriers string filename")
+    def _setup_paths(self) -> None:
+        """Setup all data paths for the current release."""
+        # Base path for carriers data
+        self.carriers_base = self.GCS_BASE / "carriers"
+        
+        # NBA (Next-generation Biomarker Analysis) paths
+        self.nba_base = self.carriers_base / "nba" / self.release / "combined"
+        
+        # NBA combined data files
+        self.nba_files = {
+            "info": self.nba_base / f"nba_{self.release}_combined_info.csv",
+            "int": self.nba_base / f"nba_{self.release}_combined_int.csv", 
+            "string": self.nba_base / f"nba_{self.release}_combined_string.csv"
+        }
+        
+        # Validate paths exist
+        self._validate_paths()
     
-    # Simple settings for small datasets
-    enable_cache: bool = Field(default=True, description="Enable data caching")
+    def _validate_paths(self) -> None:
+        """Validate that configured paths exist."""
+        if not self.carriers_base.exists():
+            raise FileNotFoundError(f"Carriers base path not found: {self.carriers_base}")
+        
+        if not self.nba_base.exists():
+            raise FileNotFoundError(f"NBA base path not found: {self.nba_base}")
+        
+        for file_type, path in self.nba_files.items():
+            if not path.exists():
+                raise FileNotFoundError(f"NBA {file_type} file not found: {path}")
     
-    def model_post_init(self, __context) -> None:
-        """Set default paths if not provided."""
-        if self.clinical_data_dir is None:
-            self.clinical_data_dir = self.data_root / "clinical_data"
-        if self.wgs_data_dir is None:
-            self.wgs_data_dir = self.data_root / "wgs"
-        if self.nba_data_dir is None:
-            self.nba_data_dir = self.data_root / "nba" / "combined"
+    def get_nba_file_path(self, file_type: str) -> Path:
+        """Get path for specific NBA file type.
+        
+        Args:
+            file_type: Type of file ('info', 'int', 'string')
+            
+        Returns:
+            Path to the requested file
+            
+        Raises:
+            ValueError: If file_type is not valid
+        """
+        if file_type not in self.nba_files:
+            raise ValueError(f"Invalid file type: {file_type}. Available: {list(self.nba_files.keys())}")
+        
+        return self.nba_files[file_type]
     
-    @property
-    def clinical_master_key_path(self) -> Path:
-        """Get full path to clinical master key file."""
-        return self.clinical_data_dir / self.master_key_file
+    def get_all_nba_paths(self) -> Dict[str, Path]:
+        """Get all NBA file paths as a dictionary."""
+        return self.nba_files.copy()
     
-    @property
-    def wgs_var_info_path(self) -> Path:
-        """Get full path to WGS variant info file."""
-        return self.wgs_data_dir / self.wgs_var_info_file
+    def switch_release(self, new_release: str) -> None:
+        """Switch to a different release and update all paths.
+        
+        Args:
+            new_release: New release version to switch to
+        """
+        if new_release not in self.AVAILABLE_RELEASES:
+            raise ValueError(f"Release {new_release} not available. Available: {self.AVAILABLE_RELEASES}")
+        
+        self.release = new_release
+        self._setup_paths()
     
-    @property
-    def wgs_carriers_int_path(self) -> Path:
-        """Get full path to WGS carriers int file."""
-        return self.wgs_data_dir / self.wgs_carriers_int_file
-    
-    @property
-    def wgs_carriers_string_path(self) -> Path:
-        """Get full path to WGS carriers string file."""
-        return self.wgs_data_dir / self.wgs_carriers_string_file
-    
-    @property
-    def nba_info_path(self) -> Path:
-        """Get full path to NBA variant info file."""
-        return self.nba_data_dir / self.nba_info_file
-    
-    @property
-    def nba_carriers_int_path(self) -> Path:
-        """Get full path to NBA carriers int file."""
-        return self.nba_data_dir / self.nba_carriers_int_file
-    
-    @property
-    def nba_carriers_string_path(self) -> Path:
-        """Get full path to NBA carriers string file."""
-        return self.nba_data_dir / self.nba_carriers_string_file
-    
-    model_config = {
-        "env_prefix": "GP2_",
-        "case_sensitive": False,
-        "extra": "ignore"
-    }
+    @classmethod
+    def get_available_releases(cls) -> List[str]:
+        """Get list of available releases."""
+        return cls.AVAILABLE_RELEASES.copy()
 
 
-# Global settings instance
-settings = Settings() 
+# Global configuration instance (can be reconfigured)
+config = DataConfig()

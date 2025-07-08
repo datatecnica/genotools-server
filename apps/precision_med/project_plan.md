@@ -1,318 +1,194 @@
-# GP2 Precision Medicine Data Browser - Project Plan
+# Precision Medicine Data Access App - Project Plan
 
 ## Overview
-A FastAPI + Streamlit application for browsing, subsetting, and downloading GP2 genomic and clinical data with proper separation of variant-level and sample-level data layers.
+A streamlit application for accessing, subsetting, and downloading precision medicine data across multiple releases. Built with simplicity and maintainability as core principles.
 
-## Architecture Design Patterns
+## Architecture & Design Patterns
 
-### 1. Data Access Layer (Repository Pattern)
-- Abstract data interfaces for variant and sample data
-- Separate repositories for NBA, WGS, and clinical data
-- Lazy loading and chunked data processing for large files
+### Core Design Principles
+- **Repository Pattern**: Clean separation between data access and business logic
+- **Configuration Pattern**: Centralized configuration management
+- **Factory Pattern**: Dynamic data source creation based on release selection
+- **Minimal Abstraction**: Only abstract what changes, keep everything else concrete
 
-### 2. Service Layer (Business Logic)
-- Data integration services (merge clinical with carrier data)
-- Filtering and subsetting logic
-- Download preparation services
+### Technology Stack
+- **Backend**: Python with pandas for data manipulation
+- **Frontend**: Streamlit for UI
+- **Data Storage**: File-based (CSV/Parquet/etc.)
+- **Configuration**: Python config module
 
-### 3. API Layer (FastAPI)
-- RESTful endpoints for data queries
-- Authentication/authorization middleware
-- Response pagination and streaming
+## Implementation Plan
 
-### 4. Presentation Layer (Streamlit)
-- Interactive data browser interface
-- Real-time filtering and visualization
-- Download interface with format options
+### Phase 1: Core Infrastructure
 
-## Development Phases
+#### Step 1.1: Project Structure Setup
+```
+src/
+├── core/
+│   ├── __init__.py
+│   ├── config.py          # Release-based configuration
+│   └── exceptions.py      # Custom exceptions
+├── data/
+│   ├── __init__.py
+│   ├── models.py          # Data models (dataclasses)
+│   └── repositories.py    # Repository implementations
+├── ui/
+│   ├── __init__.py
+│   └── components.py      # Reusable UI components
+├── utils/
+│   ├── __init__.py
+│   └── helpers.py         # Utility functions
+└── main.py                # Streamlit app entry point
+```
 
-### Phase 1: Foundation & Data Infrastructure
-**Goal:** Set up core data access and basic API structure
+#### Step 1.2: Configuration System (`src/core/config.py`)
+- **Pattern**: Configuration class with release-based path mapping
+- **Features**:
+  - Release dropdown (starting with release10)
+  - Path configuration for different data types
+  - Environment-specific settings
+- **Design**: Single configuration class, no inheritance complexity
 
-#### Deliverables:
-1. **Project Structure Setup**
-   ```
-   precision_med/
-   ├── src/
-   │   ├── core/
-   │   │   ├── __init__.py
-   │   │   ├── config.py
-   │   │   ├── security.py
-   │   │   └── exceptions.py
-   │   ├── api/
-   │   │   ├── __init__.py
-   │   │   ├── main.py
-   │   │   ├── dependencies.py
-   │   │   └── routes/
-   │   │       ├── __init__.py
-   │   │       ├── variants.py
-   │   │       ├── samples.py
-   │   │       └── downloads.py
-   │   ├── models/
-   │   │   ├── __init__.py
-   │   │   ├── variant.py
-   │   │   ├── sample.py
-   │   │   └── clinical.py
-   │   ├── repositories/
-   │   │   ├── __init__.py
-   │   │   ├── base.py
-   │   │   ├── variant_repo.py
-   │   │   ├── sample_repo.py
-   │   │   └── clinical_repo.py
-   │   ├── services/
-   │   │   ├── __init__.py
-   │   │   ├── data_service.py
-   │   │   └── download_service.py
-   │   └── utils/
-   │       ├── __init__.py
-   │       └── data_utils.py
-   ├── streamlit_app/
-   │   ├── main.py
-   │   ├── pages/
-   │   │   ├── variant_browser.py
-   │   │   ├── sample_browser.py
-   │   │   └── downloads.py
-   │   └── components/
-   │       ├── filters.py
-   │       └── tables.py
-   ├── tests/
-   │   ├── __init__.py
-   │   ├── unit/
-   │   ├── integration/
-   │   └── conftest.py
-   ├── requirements.txt
-   ├── pyproject.toml
-   ├── docker-compose.yml
-   └── README.md
-   ```
+#### Step 1.3: Basic Exception Handling (`src/core/exceptions.py`)
+- Custom exceptions for data access errors
+- Keep minimal - only what's needed
 
-2. **Data Models (Pydantic)**
-   - VariantInfo: variant annotation schema
-   - SampleCarrier: sample-level carrier data schema  
-   - ClinicalMetadata: clinical and ancestry data schema
-   - FilterCriteria: query parameter models
+### Phase 2: Data Access Layer
 
-3. **Repository Layer**
-   - BaseRepository with common data operations
-   - VariantRepository for variant info data
-   - SampleRepository for carrier data (NBA/WGS)
-   - ClinicalRepository for master key data
-   - Configuration for data paths (dev vs production)
+#### Step 2.1: Data Models (`src/data/models.py`)
+- **Pattern**: Python dataclasses for type safety
+- **Features**:
+  - One dataclass per data type
+  - Built-in validation
+  - Simple serialization methods
+- **Design**: No complex inheritance, composition over inheritance
 
-4. **Basic FastAPI Setup**
-   - Health check endpoint
-   - Basic variant and sample list endpoints
-   - Environment configuration
-   - Docker containerization
+#### Step 2.2: Repository Layer (`src/data/repositories.py`)
+- **Pattern**: Repository pattern with abstract base
+- **Features**:
+  - Base repository with common operations (load, validate, filter)
+  - Concrete repositories for each data type
+  - Lazy loading for performance
+- **Design**: 
+  ```python
+  class BaseRepository(ABC)
+  class GenomicDataRepository(BaseRepository)
+  class ClinicalDataRepository(BaseRepository)
+  class VariantDataRepository(BaseRepository)
+  ```
 
-#### Acceptance Criteria:
-- [ ] Data can be loaded from CSV files into memory
-- [ ] Basic API endpoints return sample data
-- [ ] Docker container runs successfully
-- [ ] Unit tests for repository layer
+#### Step 2.3: Repository Factory (`src/data/repositories.py`)
+- **Pattern**: Simple factory for repository creation
+- **Features**: Release-aware repository instantiation
+- **Design**: Single factory function, no complex class hierarchy
 
----
+### Phase 3: UI Components
 
-### Phase 2: Core Data Operations (Week 2)
-**Goal:** Implement data filtering, merging, and basic query capabilities
+#### Step 3.1: Core UI Components (`src/ui/components.py`)
+- **Pattern**: Functional components with Streamlit
+- **Features**:
+  - Release selector component
+  - Data type selector component
+  - Filter/subset component
+  - Download component
+- **Design**: Pure functions, no classes unless necessary
 
-#### Deliverables:
-1. **Data Integration Service**
-   - Merge clinical metadata with carrier data by sample ID
-   - Handle NBA vs WGS data source routing
-   - Ancestry label integration (nba_label, wgs_label)
+#### Step 3.2: Main Application (`src/main.py`)
+- **Pattern**: Single-page app with component composition
+- **Features**:
+  - Release selection
+  - Data type selection
+  - Dynamic filtering UI
+  - Download functionality
+- **Design**: Linear flow, minimal state management
 
-2. **Advanced Filtering**
-   - Filter by ancestry groups
-   - Filter by variant carrier status
-   - Filter by gene/locus
-   - Clinical criteria filtering (diagnosis, study, etc.)
-   - Compound filtering logic
+### Phase 4: Subsetting & Filtering
 
-3. **API Endpoints**
-   ```
-   GET /variants/                  # List variants with pagination
-   GET /variants/{variant_id}      # Variant details
-   GET /samples/                   # List samples with filters
-   GET /samples/{sample_id}        # Sample details
-   POST /query/carriers            # Query carriers by criteria
-   GET /metadata/ancestry-labels   # Available ancestry groups
-   GET /metadata/genes            # Available genes
-   ```
+#### Step 4.1: Filter Engine (`src/utils/helpers.py`)
+- **Pattern**: Strategy pattern for different filter types
+- **Features**:
+  - Column-based filtering
+  - Value range filtering
+  - Multi-column filtering with AND/OR logic
+- **Design**: Simple filter functions, no complex class hierarchy
 
-4. **Performance Optimization**
-   - Indexed data structures for fast filtering
-   - Chunked data processing
-   - Response caching for common queries
+#### Step 4.2: Data Integration (`src/data/repositories.py`)
+- **Features**:
+  - Common column identification
+  - Cross-dataframe filtering
+  - Subset validation
+- **Design**: Extend existing repositories, no new abstractions
 
-#### Acceptance Criteria:
-- [ ] Can filter samples by ancestry with <1s response time
-- [ ] Can query carriers for specific variants
-- [ ] API handles 1000+ sample queries efficiently
-- [ ] Integration tests for data merging logic
+### Phase 5: Download & Export
 
----
+#### Step 5.1: Export Functionality (`src/utils/helpers.py`)
+- **Features**:
+  - Multiple format support (CSV, Excel, Parquet)
+  - Subset metadata inclusion
+  - Progress indicators
+- **Design**: Simple export functions
 
-### Phase 3: Streamlit Frontend (Week 3)
-**Goal:** Build intuitive data browsing interface
+#### Step 5.2: UI Integration (`src/main.py`)
+- **Features**:
+  - Download buttons for filtered data
+  - Format selection
+  - Progress feedback
+- **Design**: Integrate with existing UI flow
 
-#### Deliverables:
-1. **Main Dashboard**
-   - Data overview statistics
-   - Sample counts by ancestry
-   - Variant summary by gene
-   - Quick navigation to browsing tools
+## Technical Debt Prevention Strategies
 
-2. **Variant Browser Page**
-   - Searchable/filterable variant table
-   - Variant details panel
-   - Gene-based grouping
-   - Export variant list functionality
+### Code Quality
+- **Type Hints**: Use throughout for better IDE support and documentation
+- **Docstrings**: Document public interfaces, not implementation details
+- **Unit Tests**: Focus on repository layer and filter logic
+- **Linting**: Use black, flake8, and mypy
 
-3. **Sample Browser Page**
-   - Multi-criteria filtering sidebar:
-     - Ancestry selection (checkboxes)
-     - Study/diagnosis filters
-     - Carrier status filters
-   - Interactive sample table with clinical metadata
-   - Sample details view with carrier profile
+### Architecture
+- **Single Responsibility**: Each module has one clear purpose
+- **Dependency Injection**: Pass repositories to UI components
+- **Configuration**: Centralized and environment-aware
+- **Error Handling**: Explicit error types and user-friendly messages
 
-4. **Interactive Components**
-   - Real-time filtering (no page refresh)
-   - Sortable data tables
-   - Downloadable filtered results
-   - Progress indicators for large queries
+### Performance
+- **Lazy Loading**: Load data only when needed
+- **Caching**: Use Streamlit's caching for expensive operations
+- **Memory Management**: Clear DataFrames when not needed
+- **Chunked Processing**: For large datasets
 
-#### Acceptance Criteria:
-- [ ] Streamlit app loads and displays data
-- [ ] Filtering updates tables in real-time
-- [ ] Users can easily subset data by ancestry
-- [ ] Interface is responsive and intuitive
+## Success Criteria
 
----
+### Functional Requirements
+- ✅ Release selection updates all data paths
+- ✅ Data loads correctly from repositories
+- ✅ Filtering works across common columns
+- ✅ Downloads work in multiple formats
+- ✅ UI is responsive and intuitive
 
-### Phase 4: Advanced Features & Download System (Week 4)
-**Goal:** Complete download functionality and advanced browsing features
-
-#### Deliverables:
-1. **Download Service**
-   - Generate filtered datasets in multiple formats (CSV, TSV, JSON)
-   - Async download preparation for large datasets
-   - Download job status tracking
-   - Secure download links with expiration
-
-2. **Advanced Browsing Features**
-   - Variant-level carrier counts and frequencies
-   - Cross-tabulation views (ancestry × variant)
-   - Interactive data visualization (plots)
-   - Bookmarkable filter states
-
-3. **API Enhancements**
-   ```
-   POST /downloads/prepare         # Prepare download package
-   GET /downloads/{job_id}/status  # Check download status
-   GET /downloads/{job_id}/file    # Download prepared file
-   GET /stats/variants             # Variant statistics
-   GET /stats/samples              # Sample statistics
-   ```
-
-4. **Data Export Features**
-   - Choose specific columns for export
-   - Format selection (CSV, TSV, JSON, Excel)
-   - Metadata inclusion options
-   - Data dictionary generation
-
-#### Acceptance Criteria:
-- [ ] Users can download filtered datasets
-- [ ] Download system handles large files (>100MB)
-- [ ] Multiple export formats work correctly
-- [ ] Download jobs complete reliably
-
----
-
-### Phase 5: Production Readiness & Documentation (Week 5)
-**Goal:** Deploy-ready application with comprehensive documentation
-
-#### Deliverables:
-1. **Security & Authentication**
-   - Basic authentication system
-   - Rate limiting for API endpoints
-   - Input validation and sanitization
-   - GDPR compliance considerations
-
-2. **Production Deployment**
-   - Production Docker configuration
-   - Environment-specific configs
-   - Health monitoring endpoints
-   - Log aggregation setup
-
-3. **Documentation**
-   - API documentation (automatic with FastAPI)
-   - User guide for Streamlit interface
-   - Developer documentation
-   - Data dictionary and schema docs
-   - Deployment guide
-
-4. **Testing & Quality Assurance**
-   - Integration test suite
-   - Load testing with sample data
-   - Cross-browser testing for Streamlit
-   - Data validation tests
-
-5. **Data Path Configuration**
-   - Configurable paths for production data mounts
-   - Environment variables for data locations
-   - Graceful handling of missing data files
-
-#### Acceptance Criteria:
-- [ ] Application runs in production environment
-- [ ] All endpoints are documented and tested
-- [ ] User documentation is complete
-- [ ] Security measures are implemented
-- [ ] Application handles production data paths
-
----
-
-## Technical Specifications
-
-### Key Technologies
-- **Backend:** FastAPI, Pydantic, Pandas/Polars
-- **Frontend:** Streamlit, Plotly
-- **Data:** CSV processing, chunked loading
-- **Infrastructure:** Docker, nginx (reverse proxy)
-
-### Data Handling Strategy
-- **Variant-level:** Load full variant info into memory (small datasets)
-- **Sample-level:** Chunked processing for large carrier matrices
-- **Clinical:** Cached with frequent access patterns
-- **Integration:** Left joins on sample IDs with ancestry prioritization
-
-### Performance Targets
-- API response time: <2s for filtered queries
-- Data loading: <30s for application startup
-- Memory usage: <8GB for full dataset
-- Concurrent users: 10+ simultaneous sessions
+### Non-Functional Requirements
+- ✅ Code is under 1000 lines total
+- ✅ No circular dependencies
+- ✅ Memory usage under 2GB for typical datasets
+- ✅ Load time under 10 seconds
+- ✅ Zero external configuration files
 
 ## Risk Mitigation
 
-### Data Size Concerns
-- Implement streaming responses for large datasets
-- Use data chunking and pagination
-- Consider database migration if CSV performance insufficient
+### Technical Risks
+- **Large Dataset Performance**: Implement pagination/chunking from start
+- **Memory Issues**: Use generators and streaming where possible
+- **Data Format Changes**: Abstract file reading behind repository interface
 
-### User Experience
-- Progressive loading indicators
-- Graceful error handling and user feedback
-- Responsive design for different screen sizes
+### Business Risks
+- **Changing Requirements**: Keep abstractions minimal and focused
+- **New Data Types**: Repository pattern allows easy extension
+- **Release Management**: Configuration pattern handles path changes
 
-### Security & Privacy
-- No raw genetic data display (only carrier status)
-- Audit logging for data access
-- Secure session management
+## Next Steps
+1. Create project structure
+2. Implement configuration system
+3. Build data access layer
+4. Create basic UI
+5. Add filtering functionality
+6. Implement download features
 
-## Success Metrics
-- Users can subset data by ancestry in <3 clicks
-- Download preparation completes in <5 minutes for typical queries
-- 95% of user queries return results in <10 seconds
-- Zero data integrity issues in production
+Each step should be fully functional before moving to the next, allowing for early feedback and course correction.
