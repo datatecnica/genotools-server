@@ -3,13 +3,13 @@ Repository layer for NBA and WGS carriers data access.
 Simple repository pattern with lazy loading for performance.
 """
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import pandas as pd
 from pathlib import Path
 
-from ..core.config import DataConfig
-from ..core.exceptions import DataAccessError, FileNotFoundError as CustomFileNotFoundError
-from .models import (
+from src.core.config import DataConfig
+from src.core.exceptions import DataAccessError, FileNotFoundError as CustomFileNotFoundError
+from src.data_service.models import (
     NBADataset, NBAInfoRecord, NBAIntRecord, NBAStringRecord,
     WGSDataset, WGSInfoRecord, WGSIntRecord, WGSStringRecord
 )
@@ -46,6 +46,40 @@ class BaseRepository(ABC):
                     df_clean[col] = df_clean[col].astype(str)
         
         return df_clean
+    
+    def _filter_dataframe(self, df: pd.DataFrame, 
+                         sample_ids: Optional[List[str]] = None,
+                         snp_names: Optional[List[str]] = None,
+                         data_type: str = 'info') -> pd.DataFrame:
+        """Apply filtering to dataframes based on sample IDs and SNP names.
+        
+        Args:
+            df: DataFrame to filter
+            sample_ids: List of sample IDs to include (for int/string data)
+            snp_names: List of SNP names to include
+            data_type: Type of data ('info', 'int', 'string')
+            
+        Returns:
+            Filtered DataFrame
+        """
+        filtered_df = df.copy()
+        
+        if data_type == 'info':
+            # For info data, filter by SNP names in the 'snp_name' column
+            if snp_names:
+                filtered_df = filtered_df[filtered_df['snp_name'].isin(snp_names)]
+        else:
+            # For int/string data, filter by sample IDs and SNP name columns
+            if sample_ids:
+                filtered_df = filtered_df[filtered_df['IID'].isin(sample_ids)]
+            
+            if snp_names:
+                # Keep IID column and only the specified SNP name columns
+                snp_cols = [col for col in filtered_df.columns if col in snp_names]
+                cols_to_keep = ['IID'] + snp_cols
+                filtered_df = filtered_df[cols_to_keep]
+        
+        return filtered_df
 
 
 class NBARepository(BaseRepository):
@@ -130,6 +164,33 @@ class NBARepository(BaseRepository):
                 raise DataAccessError(f"Failed to load NBA dataset: {e}")
         
         return self._dataset
+    
+    def load_filtered_info_df(self, snp_names: Optional[List[str]] = None) -> pd.DataFrame:
+        """Load filtered variant info data."""
+        df = self.load_info_df()
+        return self._filter_dataframe(df, snp_names=snp_names, data_type='info')
+    
+    def load_filtered_int_df(self, sample_ids: Optional[List[str]] = None, 
+                            snp_names: Optional[List[str]] = None) -> pd.DataFrame:
+        """Load filtered integer genotype data."""
+        df = self.load_int_df()
+        return self._filter_dataframe(df, sample_ids=sample_ids, snp_names=snp_names, data_type='int')
+    
+    def load_filtered_string_df(self, sample_ids: Optional[List[str]] = None, 
+                               snp_names: Optional[List[str]] = None) -> pd.DataFrame:
+        """Load filtered string genotype data."""
+        df = self.load_string_df()
+        return self._filter_dataframe(df, sample_ids=sample_ids, snp_names=snp_names, data_type='string')
+    
+    def get_available_samples(self) -> List[str]:
+        """Get list of available sample IDs."""
+        int_df = self.load_int_df()
+        return sorted(int_df['IID'].unique().tolist())
+    
+    def get_available_snp_names(self) -> List[str]:
+        """Get list of available SNP names from info data."""
+        info_df = self.load_info_df()
+        return sorted(info_df['snp_name'].unique().tolist())
     
     def get_summary_stats(self) -> Dict[str, Any]:
         """Get summary statistics for the NBA data."""
@@ -333,6 +394,33 @@ class WGSRepository(BaseRepository):
         
         return self._dataset
     
+    def load_filtered_info_df(self, snp_names: Optional[List[str]] = None) -> pd.DataFrame:
+        """Load filtered variant info data."""
+        df = self.load_info_df()
+        return self._filter_dataframe(df, snp_names=snp_names, data_type='info')
+    
+    def load_filtered_int_df(self, sample_ids: Optional[List[str]] = None, 
+                            snp_names: Optional[List[str]] = None) -> pd.DataFrame:
+        """Load filtered integer genotype data."""
+        df = self.load_int_df()
+        return self._filter_dataframe(df, sample_ids=sample_ids, snp_names=snp_names, data_type='int')
+    
+    def load_filtered_string_df(self, sample_ids: Optional[List[str]] = None, 
+                               snp_names: Optional[List[str]] = None) -> pd.DataFrame:
+        """Load filtered string genotype data."""
+        df = self.load_string_df()
+        return self._filter_dataframe(df, sample_ids=sample_ids, snp_names=snp_names, data_type='string')
+    
+    def get_available_samples(self) -> List[str]:
+        """Get list of available sample IDs."""
+        int_df = self.load_int_df()
+        return sorted(int_df['IID'].unique().tolist())
+    
+    def get_available_snp_names(self) -> List[str]:
+        """Get list of available SNP names from info data."""
+        info_df = self.load_info_df()
+        return sorted(info_df['snp_name'].unique().tolist())
+    
     def get_summary_stats(self) -> Dict[str, Any]:
         """Get summary statistics for the WGS data."""
         info_df = self.load_info_df()
@@ -358,7 +446,7 @@ class WGSRepository(BaseRepository):
 def create_nba_repository(config: Optional[DataConfig] = None) -> NBARepository:
     """Factory function to create NBA repository."""
     if config is None:
-        from ..core.config import config as default_config
+        from src.core.config import config as default_config
         config = default_config
     
     return NBARepository(config)
@@ -367,7 +455,7 @@ def create_nba_repository(config: Optional[DataConfig] = None) -> NBARepository:
 def create_wgs_repository(config: Optional[DataConfig] = None) -> WGSRepository:
     """Factory function to create WGS repository."""
     if config is None:
-        from ..core.config import config as default_config
+        from src.core.config import config as default_config
         config = default_config
     
     return WGSRepository(config) 
