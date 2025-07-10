@@ -38,9 +38,9 @@ class DataConfig:
         
         # NBA combined data files
         self.nba_files = {
-            "info": self.nba_base / f"nba_{self.release}_combined_info.csv",
-            "int": self.nba_base / f"nba_{self.release}_combined_int.csv", 
-            "string": self.nba_base / f"nba_{self.release}_combined_string.csv"
+            "info": self.nba_base / f"nba_{self.release}_combined_info.parquet",
+            "int": self.nba_base / f"nba_{self.release}_combined_int.parquet", 
+            "string": self.nba_base / f"nba_{self.release}_combined_string.parquet"
         }
         
         # WGS (Whole Genome Sequencing) paths
@@ -48,9 +48,9 @@ class DataConfig:
         
         # WGS data files
         self.wgs_files = {
-            "info": self.wgs_base / f"{self.release}_var_info.csv",
-            "int": self.wgs_base / f"{self.release}_carriers_int.csv",
-            "string": self.wgs_base / f"{self.release}_carriers_string.csv"
+            "info": self.wgs_base / f"{self.release}_var_info.parquet",
+            "int": self.wgs_base / f"{self.release}_carriers_int.parquet",
+            "string": self.wgs_base / f"{self.release}_carriers_string.parquet"
         }
         
         # Export directory for generated ZIP files

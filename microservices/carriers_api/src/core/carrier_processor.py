@@ -225,8 +225,8 @@ class CarrierExtractor:
         comprehensive_var_info = comprehensive_var_info[final_column_order]
         
         # Save the comprehensive variant information file (replaces both var_info and subset_snps)
-        var_info_output_path = f"{out_path}_var_info.csv"
-        self.data_repo.write_csv(comprehensive_var_info, var_info_output_path, index=False)
+        var_info_output_path = f"{out_path}_var_info.parquet"
+        self.data_repo.write_parquet(comprehensive_var_info, var_info_output_path, index=False)
 
         # Process and save string format
         carriers_string = traw_out.drop(columns=var_cols).set_index('id').T.reset_index()
@@ -241,7 +241,7 @@ class CarrierExtractor:
         #     id_to_snp_name = subset_snp_df.set_index('id')['snp_name'].to_dict()
         #     carriers_string = carriers_string.rename(columns=id_to_snp_name)
         
-        self.data_repo.write_csv(carriers_string, f"{out_path}_carriers_string.csv", index=False)
+        self.data_repo.write_parquet(carriers_string, f"{out_path}_carriers_string.parquet", index=False)
         
         # Process and save integer format
         carriers_int = traw_final.drop(columns=var_cols).set_index('id').T.reset_index()
@@ -253,12 +253,12 @@ class CarrierExtractor:
         # if 'snp_name' in subset_snp_df.columns:
         #     carriers_int = carriers_int.rename(columns=id_to_snp_name)
         
-        self.data_repo.write_csv(carriers_int, f"{out_path}_carriers_int.csv", index=False)
+        self.data_repo.write_parquet(carriers_int, f"{out_path}_carriers_int.parquet", index=False)
         
         return {
-            'var_info': f"{out_path}_var_info.csv",
-            'carriers_string': f"{out_path}_carriers_string.csv",
-            'carriers_int': f"{out_path}_carriers_int.csv"
+            'var_info': f"{out_path}_var_info.parquet",
+            'carriers_string': f"{out_path}_carriers_string.parquet",
+            'carriers_int': f"{out_path}_carriers_int.parquet"
         }
 
 
@@ -295,9 +295,9 @@ class CarrierCombiner:
             print(f"Processing {label} for combination...")
             
             # Read the files
-            var_info = self.data_repo.read_csv(results['var_info'])
-            carriers_string = self.data_repo.read_csv(results['carriers_string'])
-            carriers_int = self.data_repo.read_csv(results['carriers_int'])
+            var_info = self.data_repo.read_parquet(results['var_info'])
+            carriers_string = self.data_repo.read_parquet(results['carriers_string'])
+            carriers_int = self.data_repo.read_parquet(results['carriers_int'])
             
             # Process var_info (combine frequency information from all populations)
             if var_info_base is None:
@@ -452,15 +452,15 @@ class CarrierCombiner:
                            carriers_int: pd.DataFrame, out_path: str) -> Dict[str, str]:
         """Save combined files and return their paths"""
         # Define output paths
-        carriers_string_path = f"{out_path}_string.csv"
-        carriers_int_path = f"{out_path}_int.csv"
-        var_info_path = f"{out_path}_info.csv"
+        carriers_string_path = f"{out_path}_string.parquet"
+        carriers_int_path = f"{out_path}_int.parquet"
+        var_info_path = f"{out_path}_info.parquet"
         
         # Save combined files
         print(f"Saving combined files to {out_path}...")
-        self.data_repo.write_csv(var_info, var_info_path, index=False)
-        self.data_repo.write_csv(carriers_string, carriers_string_path, index=False)
-        self.data_repo.write_csv(carriers_int, carriers_int_path, index=False)
+        self.data_repo.write_parquet(var_info, var_info_path, index=False)
+        self.data_repo.write_parquet(carriers_string, carriers_string_path, index=False)
+        self.data_repo.write_parquet(carriers_int, carriers_int_path, index=False)
         
         print(f"✓ Combined var_info: {var_info_path}")
         print(f"✓ Combined carriers_string: {carriers_string_path}")
