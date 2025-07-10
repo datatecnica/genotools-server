@@ -307,7 +307,8 @@ class AlleleHarmonizer:
     
     def _harmonize_alleles(self, pfile: str, reference: str, out: str, match_info_path: str) -> None:
         """
-        Harmonize alleles in PLINK files to match reference alleles and ensure alt alleles are minor alleles.
+        Harmonize alleles in PLINK files to match reference alleles for carrier screening.
+        Preserves biological meaning by keeping alleles as specified in reference (a2 = allele of interest).
         
         Args:
             pfile: Path to PLINK file prefix
@@ -375,23 +376,11 @@ class AlleleHarmonizer:
                 swap_cmd.execute()
                 current_pfile = reference_adjusted
             
-            # Run frequency calculation
-            freq_prefix = os.path.join(nested_tmpdir, "freq_check")
-            freq_cmd = FrequencyCommand(current_pfile, freq_prefix)
-            freq_cmd.execute()
+            # CARRIER SCREENING MODIFICATION: Skip frequency-based allele swapping
+            # For carrier screening, we preserve the biological meaning of alleles as defined
+            # in the reference SNP list (where a2 is always the allele of interest).
+            # Frequency-based swapping would break the biological interpretation.
             
-            # Process frequency data
-            freq_df = pd.read_csv(f"{freq_prefix}.afreq", sep='\t')
-            variants_to_swap = freq_df[freq_df['ALT_FREQS'] > 0.5][['ID', 'REF']]
-            
-            if not variants_to_swap.empty:
-                minor_swap_path = os.path.join(nested_tmpdir, "minor_allele_swap.txt")
-                variants_to_swap.to_csv(minor_swap_path, sep='\t', index=False, header=False)
-                
-                # Execute swap command
-                minor_swap_cmd = SwapAllelesCommand(current_pfile, minor_swap_path, out)
-                minor_swap_cmd.execute()
-            else:
-                # Just copy files
-                copy_cmd = CopyFilesCommand(current_pfile, out)
-                copy_cmd.execute() 
+            # Just copy the harmonized files without frequency-based swapping
+            copy_cmd = CopyFilesCommand(current_pfile, out)
+            copy_cmd.execute() 
