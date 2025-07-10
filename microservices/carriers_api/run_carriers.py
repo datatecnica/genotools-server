@@ -65,9 +65,9 @@ def combine_population_data(config: PipelineConfig, nba_output_dir: str):
     results_by_label = {}
     for label in config.labels:
         results_by_label[label] = {
-            'var_info': f"{nba_output_dir}/{label}/{label}_release{config.release}_var_info.csv",
-            'carriers_string': f"{nba_output_dir}/{label}/{label}_release{config.release}_carriers_string.csv",
-            'carriers_int': f"{nba_output_dir}/{label}/{label}_release{config.release}_carriers_int.csv"
+            'var_info': f"{nba_output_dir}/{label}/{label}_release{config.release}_var_info.parquet",
+            'carriers_string': f"{nba_output_dir}/{label}/{label}_release{config.release}_carriers_string.parquet",
+            'carriers_int': f"{nba_output_dir}/{label}/{label}_release{config.release}_carriers_int.parquet"
         }
     
     # Create output directory and manager
@@ -117,10 +117,14 @@ def main():
     
     # Initialize file manager
     file_manager = FileManager()
+
+    ##### Hardcode directories for testing combine_population_data #####
+    nba_output_dir = f'{config.mnt_dir}/genotools_server/carriers/nba/release{config.release}'
+    wgs_output_dir = f'{config.mnt_dir}/genotools_server/carriers/wgs/release{config.release}'
+    #########################################################
     
-    # Process data - TESTING: Only run WGS for now
-    nba_output_dir = process_population_data(config, file_manager)
-    wgs_output_dir = process_wgs_data(config, file_manager)
+    # nba_output_dir = process_population_data(config, file_manager)
+    # wgs_output_dir = process_wgs_data(config, file_manager)
     combined_results = combine_population_data(config, nba_output_dir)
     
     print("\n=== All processing complete! ===")
