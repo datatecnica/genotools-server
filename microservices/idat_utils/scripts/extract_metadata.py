@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import os
 import time
-from snp_metrics.snp_metrics import extract_vcf_columns
+from snp_metrics_old.snp_metrics import extract_vcf_columns
 
 output_directory = "/home/vitaled2/gp2-microservices/services/idat_utils/data/output"
 vcf_path = f"/{output_directory}/snp_metrics/tmp_207847320055/207847320055_R01C01.vcf.gz"

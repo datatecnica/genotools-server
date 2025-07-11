@@ -2,7 +2,7 @@
 import os
 import argparse
 import time
-from snp_metrics.snp_metrics import process_idat_files, extract_vcf_columns
+from snp_metrics import process_idat_files, extract_vcf_columns
 
 def parse_arguments():
     """Parse command line arguments."""
