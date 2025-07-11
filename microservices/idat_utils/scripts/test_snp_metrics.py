@@ -1,7 +1,7 @@
 import os
 import psutil
 import time
-from snp_metrics.snp_metrics import process_idat_files
+from snp_metrics_old.snp_metrics import process_idat_files
 import logging
 import threading
 logging.basicConfig(level=logging.INFO)
