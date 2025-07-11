@@ -105,11 +105,10 @@ class SNPProcessor:
             "--csv-manifest", str(self.config.bpm_csv_path),
             "--genome-fasta-file", str(self.config.ref_fasta_path),
             "--gtc-folder", gtc_path,
-            "--output-folder", str(vcf_output_dir),
-            "--num-threads", str(self.num_threads)
+            "--output-folder", str(vcf_output_dir)
         ]
         
-        self.logger.info(f"Converting GTC to VCF for {barcode} (threads: {self.num_threads})")
+        self.logger.info(f"Converting GTC to VCF for {barcode}")
         self._run_command(cmd, f"GTC to VCF conversion failed for {barcode}")
         
         # Find the generated VCF file
