@@ -70,10 +70,17 @@ class AlleleHarmonizer:
             ref_df['hg38'] = ref_df['hg38'].astype(str).str.strip().str.replace(' ', '')
             ref_df['variant_id'] = ref_df['hg38'].str.upper()
             
+            # Parse hg38 to create chrom, pos, a1, a2 columns (needed for downstream processing)
+            hg38_parts = ref_df['hg38'].str.split(':')
+            ref_df['chrom'] = hg38_parts.str[0]
+            ref_df['pos'] = hg38_parts.str[1]
+            ref_df['a1'] = hg38_parts.str[2].str.upper()
+            ref_df['a2'] = hg38_parts.str[3].str.upper()
+            
             # Merge match info with reference data to get subset of matched variants
             subset_snps = match_info.merge(ref_df, left_on='variant_id_ref', right_on='variant_id', how='inner')
             
-            # Keep original reference columns plus the genotype ID
+            # Keep original reference columns plus the genotype ID and parsed columns
             ref_cols = list(ref_df.columns)
             if 'id' not in ref_cols:
                 ref_cols.append('id')

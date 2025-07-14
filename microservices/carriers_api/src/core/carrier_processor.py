@@ -119,12 +119,6 @@ class CarrierExtractor:
         
         # Read the subset SNP list that contains matched IDs
         subset_snp_df = self.data_repo.read_csv(subset_snp_path)
-        print("=== DEBUGGING subset_snps_df ===")
-        print(f"subset_snps_df shape: {subset_snp_df.shape}")
-        print("Variants containing 'Pro158del':")
-        pro158_variants = subset_snp_df[subset_snp_df['snp_name'].str.contains('Pro158del', na=False)]
-        print(pro158_variants[['id', 'snp_name', 'hg38', 'pos']])
-        print("=== END DEBUG ===")
         # Read and process traw data
         traw = self.data_repo.read_csv(f"{plink_out}.traw", sep='\t')
         
@@ -139,10 +133,6 @@ class CarrierExtractor:
         else:
             # Define column sets without snp_name
             colnames = ['id', 'chrom', 'pos', 'a1', 'a2','CHR', 'SNP', '(C)M', 'POS', 'COUNTED', 'ALT']
-        
-        print('#'*30)
-        print(traw_merged.loc[traw_merged['snp_name']=='p.Pro158del'])
-        print('#'*30)
 
         var_cols = [x for x in colnames if x not in ['id']]
         sample_cols = list(traw_merged.drop(columns=colnames).columns)

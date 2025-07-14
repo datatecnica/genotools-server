@@ -119,12 +119,12 @@ def main():
     file_manager = FileManager()
 
     ##### Hardcode directories for testing combine_population_data #####
-    nba_output_dir = f'{config.mnt_dir}/genotools_server/carriers/nba/release{config.release}'
-    wgs_output_dir = f'{config.mnt_dir}/genotools_server/carriers/wgs/release{config.release}'
+    # nba_output_dir = f'{config.mnt_dir}/genotools_server/carriers/nba/release{config.release}'
+    # wgs_output_dir = f'{config.mnt_dir}/genotools_server/carriers/wgs/release{config.release}'
     #########################################################
     
-    # nba_output_dir = process_population_data(config, file_manager)
-    # wgs_output_dir = process_wgs_data(config, file_manager)
+    nba_output_dir = process_population_data(config, file_manager)
+    wgs_output_dir = process_wgs_data(config, file_manager)
     combined_results = combine_population_data(config, nba_output_dir)
     
     print("\n=== All processing complete! ===")
