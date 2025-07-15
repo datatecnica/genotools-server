@@ -228,7 +228,7 @@ def print_config(config: ProcessorConfig, barcode: str = None, output_file: Path
         if output_file:
             print(f"Custom Output File: {output_file}")
         else:
-            print(f"Default Output File: {config.metrics_path}/{barcode}_snp_metrics")
+            print(f"Default Output File: {config.metrics_path}/{barcode}")
         
         print("=" * 50)
 

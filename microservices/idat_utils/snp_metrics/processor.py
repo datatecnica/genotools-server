@@ -186,7 +186,7 @@ class SNPProcessor:
         if custom_path:
             output_path = Path(custom_path)
         else:
-            output_path = self.config.metrics_path / f"{barcode}_snp_metrics"
+            output_path = self.config.metrics_path / f"{barcode}"
             
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
