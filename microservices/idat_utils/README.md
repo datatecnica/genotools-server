@@ -1,195 +1,266 @@
-# SNP Metrics Processing Toolkit
+# SNP Metrics Processing Module
 
-This toolkit processes Illumina IDAT files to generate SNP metrics and create partitioned parquet files for downstream analysis. It also provides functionality to extract metadata from VCF files.
+A clean, efficient Python module for processing genetic data from IDAT files through GTC to VCF format, with final output as parquet files. Built with senior-level design patterns for maintainability and clarity.
 
 ## Features
 
-- Converts IDAT files to GTC format using Illumina's IAAP CLI
-- Processes GTC files to VCF format using bcftools
-- Extracts key SNP metrics (BAF, LRR, R, THETA, GT) from VCF files
-- Outputs chromosome-partitioned parquet files for efficient querying
-- Supports parallel processing for improved performance
-- Extracts metadata from VCF files to create sample lists
+- **Complete Pipeline**: IDAT → GTC → VCF → Parquet processing
+- **DRAGEN Integration**: Uses DRAGEN for efficient genetic data conversion
+- **Variant Reference Creation**: Separate variant metadata from sample data for efficiency
+- **Partitioned Output**: Chromosome and sample-based partitioning for fast queries
+- **Clean Architecture**: Separation of concerns with dedicated classes for configuration, parsing, and processing
+- **Type Safety**: Full type hints for better code clarity and IDE support
+- **Error Handling**: Comprehensive error handling with custom exceptions
+- **Logging**: Built-in logging for process monitoring
+- **Explicit Configuration**: All paths and settings are explicitly configured
+
+## Architecture
+
+The module is organized into clean, focused components:
+
+- `processor.py`: Main `SNPProcessor` class that orchestrates the pipeline
+- `config.py`: `ProcessorConfig` for managing paths and settings
+- `vcf_parser.py`: `VCFParser` for efficient VCF file parsing
+- `run_snp_metrics.py`: Command-line interface for processing
+- `example.py`: Usage examples and patterns
+
+## Command Line Usage
+
+### Process Sample Data
+
+```bash
+python run_snp_metrics.py \
+    --barcode-path data/idats/205746280003 \
+    --dragen-path exec/dragena \
+    --bpm-path data/manifests/array.bpm \
+    --bpm-csv-path data/manifests/array.csv \
+    --egt-path data/manifests/cluster.egt \
+    --ref-fasta-path data/reference/genome.fa \
+    --gtc-path data/output/gtc \
+    --vcf-path data/output/vcf \
+    --metrics-path data/output/metrics \
+    --num-threads 4
+```
+
+### Create Variant Reference (run once)
+
+```bash
+python run_snp_metrics.py \
+    --create-variant-ref \
+    --vcf-file data/output/vcf/205746280003/205746280003_R01C01.snv.vcf.gz \
+    --metrics-path data/output/metrics \
+    --output-file data/output/metrics/variant_reference
+```
+
+## Python API Usage
+
+### Basic Sample Processing
+
+```python
+from pathlib import Path
+from snp_metrics.processor import SNPProcessor
+from snp_metrics.config import ProcessorConfig
+
+# Configure all paths explicitly - point directly to barcode directory
+data_path = Path("/path/to/your/data")
+barcode = "205746280003"
+
+config = ProcessorConfig(
+    barcode_path=data_path / "idats" / barcode,
+    dragen_path=data_path / "bin" / "dragena",
+    bpm_path=data_path / "manifests" / "array.bpm",
+    bpm_csv_path=data_path / "manifests" / "array.csv",
+    egt_path=data_path / "manifests" / "cluster.egt",
+    ref_fasta_path=data_path / "reference" / "genome.fa",
+    gtc_path=data_path / "output" / "gtcs",
+    vcf_path=data_path / "output" / "vcfs",
+    metrics_path=data_path / "output" / "metrics"
+)
+
+# Create processor and process the barcode
+processor = SNPProcessor(config, num_threads=4)
+output_file = processor.process_barcode(barcode)
+
+print(f"SNP metrics saved to: {output_file}")
+```
+
+### Create Variant Reference
+
+```python
+# Create variant reference from any VCF file (run once)
+variant_ref_path = processor.create_variant_reference(
+    vcf_path="data/output/vcf/205746280003/205746280003_R01C01.snv.vcf.gz",
+    output_path="data/output/metrics/variant_reference"
+)
+```
+
+## Output Format
+
+The module generates two types of parquet datasets for optimal efficiency:
+
+### 1. Variant Reference (created once)
+
+**Path:** `data/output/metrics/variant_reference/`
+**Partitioning:** By chromosome only
+**Columns:**
+- `chromosome`: Chromosome number (cleaned, no 'chr' prefix)
+- `POS`: Genomic position
+- `ID`: SNP identifier
+- `REF`: Reference allele
+- `ALT`: Alternative allele
+- `QUAL`: Quality score
+- `FILTER`: Filter status
+- `INFO`: VCF INFO field
+
+**Structure:**
+```
+variant_reference/
+├── chromosome=1/
+│   └── part-0.parquet
+├── chromosome=2/
+│   └── part-0.parquet
+└── ...
+```
+
+### 2. Sample Data (per barcode)
+
+**Path:** `data/output/metrics/{barcode}/`
+**Partitioning:** By IID (sample) and chromosome
+**Columns:**
+- `chromosome`: Chromosome number
+- `ID`: SNP identifier (matches variant reference)
+- `GT`: Genotype (0=0/0, 1=0/1, 2=1/1, -9=missing)
+- `GS`: GenCall Score (confidence score for genotype call)
+- `BAF`: B Allele Frequency
+- `LRR`: Log R Ratio
+- `IID`: Sample identifier
+
+**Structure:**
+```
+205746280003/
+├── IID=205746280003_R01C01/
+│   ├── chromosome=1/
+│   │   └── part-0.parquet
+│   ├── chromosome=2/
+│   │   └── part-0.parquet
+│   └── ...
+├── IID=205746280003_R02C01/
+│   └── ...
+└── ...
+```
+
+## Data Joining
+
+To get complete variant and sample information:
+
+```python
+import pandas as pd
+
+# Load variant reference
+variants = pd.read_parquet("data/output/metrics/variant_reference")
+
+# Load sample data
+samples = pd.read_parquet("data/output/metrics/205746280003")
+
+# Join on ID and chromosome
+combined = samples.merge(variants, on=['ID', 'chromosome'], how='left')
+```
 
 ## Requirements
 
-- Python 3.7+
-- bcftools with the gtc2vcf plugin
-- IAAP CLI (Illumina Array Analysis Platform)
+- Python 3.8+
+- pandas
+- pyarrow (for parquet support)
+- DRAGEN installed and accessible
 
-## Installation
+## Error Handling
 
-Install Python dependencies:
-```bash
-pip install -r requirements.txt
-```
+The module provides clear error messages for common issues:
 
-Install bcftools with the gtc2vcf plugin:
-```bash
-# On Ubuntu/Debian
-sudo apt-get install bcftools
+- Missing required files (manifests, reference files, etc.)
+- DRAGEN command failures
+- VCF parsing errors
+- Configuration validation errors
+- Existing output conflicts
 
-# On CentOS/RHEL
-sudo yum install bcftools
+## Design Principles
 
-# On macOS
-brew install bcftools
-```
+This module follows senior-level software engineering practices:
 
-Download the Illumina IAAP CLI tool from the Illumina website and make it executable. Add it to the exec/ directory:
-```bash
-chmod +x exec/path/to/iaap-cli/iaap-cli
-```
+1. **Single Responsibility**: Each class has a focused purpose
+2. **Explicit Configuration**: All paths and settings are explicitly defined
+3. **Error Propagation**: Clear error handling with custom exceptions
+4. **Type Safety**: Comprehensive type hints
+5. **Logging**: Built-in observability
+6. **Testability**: Clean interfaces that are easy to test
+7. **Documentation**: Clear docstrings and examples
+8. **Data Efficiency**: Separates variant metadata from sample data
 
-## Running the Pipeline
+## Performance
 
-The `main.py` script provides two main subcommands:
-- `process`: Processes IDAT files to generate SNP metrics
-- `extract`: Extracts metadata from VCF files to create sample lists
+- Uses efficient pandas operations for data processing
+- Streams VCF files to avoid loading large files into memory
+- Leverages parquet's columnar storage for fast downstream analysis
+- Partitioned datasets for optimized query performance
+- Compressed storage with brotli compression
+- Proper path handling with `pathlib.Path`
 
-### Process Subcommand
+## Example Workflow
 
-Process IDAT files to generate SNP metrics:
+```python
+import logging
+from pathlib import Path
+from snp_metrics.processor import SNPProcessor
+from snp_metrics.config import ProcessorConfig
 
-```bash
-python main.py process \
-  --idat_path /path/to/idat/directory \
-  --output_directory /path/to/output/directory \
-  --bpm /path/to/beadpool_manifest.bpm \
-  --bpm_csv /path/to/beadpool_manifest.csv \
-  --egt /path/to/cluster_file.egt \
-  --ref_fasta /path/to/reference_genome.fna \
-  --iaap /path/to/iaap-cli/iaap-cli \
-  --bcftools_plugins_path /path/to/bcftools/plugins
-```
+# Enable logging to see progress
+logging.basicConfig(level=logging.INFO)
 
-### Extract Subcommand
-
-Extract metadata from VCF files to create sample lists:
-
-```bash
-python main.py extract \
-  --vcf_path /path/to/vcf/file.vcf.gz \
-  --output_file /path/to/output/sample_list.csv
-```
-
-#### Extract Arguments
-
-- `--vcf_path`: Path to the VCF file to extract metadata from
-- `--output_file`: Path to save the extracted metadata as CSV
-
-### Full Options
-
-```bash
-python main.py \
-  --idat_path /path/to/idat/directory \
-  --output_directory /path/to/output/directory \
-  --bpm /path/to/beadpool_manifest.bpm \
-  --bpm_csv /path/to/beadpool_manifest.csv \
-  --egt /path/to/cluster_file.egt \
-  --ref_fasta /path/to/reference_genome.fna \
-  --iaap /path/to/iaap-cli/iaap-cli \
-  --bcftools_plugins_path /path/to/bcftools/plugins \
-  --cleanup \
-  --debug \
-  --bcftools_threads 8
-```
-
-### Required Arguments
-
-- `--idat_path`: Directory containing the IDAT files (Red and Green)
-- `--output_directory`: Where to save the processed data
-- `--bpm`: Path to the Illumina BeadPool Manifest file (.bpm)
-- `--bpm_csv`: Path to the BeadPool Manifest CSV file
-- `--egt`: Path to the Illumina cluster file (.egt)
-- `--ref_fasta`: Path to the reference genome FASTA file
-- `--iaap`: Path to the Illumina Array Analysis Platform CLI executable
-- `--bcftools_plugins_path`: Directory containing bcftools plugins, especially gtc2vcf
-
-### Optional Arguments
-
-- `--cleanup`: Delete intermediate files after processing
-- `--debug`: Print detailed debugging information
-- `--bcftools_threads`: Number of threads to use for bcftools operations (default: uses all available CPUs)
-
-## Output Structure
-
-For each IDAT directory processed, the pipeline creates:
-
-```
-output_directory/
-└── barcode/
-    ├── 207847320055_R01C01/  # Sample directory, partitioned by chromosome
-    │   ├── chromosome=1/     # Chromosome partitions
-    │   │   └── part.0.parquet
-    │   ├── chromosome=2/
-    │   │   └── part.0.parquet
-    │   └── ... 
-    ├── 207847320055_R02C01/
-    └── ...
-```
-
-Each sample's data includes only the essential columns:
-- `snpID`: The SNP identifier
-- `BAF`: B Allele Frequency
-- `LRR`: Log R Ratio
-- `R`: Raw intensity value
-- `THETA`: Theta value
-- `GT`: Genotype (0=AA, 1=AB, 2=BB, -9=No Call)
-
-## Example
-
-### Process IDAT Files
-
-```bash
-python main.py process \
-  --idat_path /data/illumina/runs/2023-05-15/207847320055 \
-  --output_directory /data/processed/snp_metrics \
-  --bpm /data/reference/illumina/NeuroBooster_20042459_A2.bpm \
-  --bpm_csv /data/reference/illumina/NeuroBooster_20042459_A2.csv \
-  --egt /data/reference/illumina/recluster_09092022.egt \
-  --ref_fasta /data/reference/genome/GRCh38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna \
-  --iaap /usr/local/bin/iaap-cli/iaap-cli \
-  --bcftools_plugins_path /usr/local/lib/bcftools/plugins \
-  --cleanup \
-  --bcftools_threads 8
-```
-
-### Extract VCF Metadata
-
-```bash
-python main.py extract \
-  --vcf_path /data/processed/vcfs/samples.vcf.gz \
-  --output_file /data/metadata/sample_list.csv
-```
-
-## Processing Multiple Samples
-
-To process multiple IDAT directories, you can create a simple bash script:
-
-```bash
-#!/bin/bash
-
-# List of IDAT directories
-IDAT_DIRS=(
-  "/data/illumina/runs/2023-05-15/207847320055"
-  "/data/illumina/runs/2023-05-15/207847320056"
+# Step 1: Create variant reference (run once)
+data_path = Path("/your/data/path")
+config = ProcessorConfig(
+    barcode_path=data_path / "idats" / "205746280003",  # Any barcode for config
+    dragen_path=data_path / "bin" / "dragena", 
+    bpm_path=data_path / "manifests" / "array.bpm",
+    bpm_csv_path=data_path / "manifests" / "array.csv",
+    egt_path=data_path / "manifests" / "cluster.egt",
+    ref_fasta_path=data_path / "reference" / "genome.fa",
+    gtc_path=data_path / "output" / "gtcs",
+    vcf_path=data_path / "output" / "vcfs",
+    metrics_path=data_path / "output" / "metrics"
 )
 
-# Common arguments
-COMMON_ARGS="
-  --output_directory /data/processed/snp_metrics \
-  --bpm /data/reference/illumina/NeuroBooster_20042459_A2.bpm \
-  --bpm_csv /data/reference/illumina/NeuroBooster_20042459_A2.csv \
-  --egt /data/reference/illumina/recluster_09092022.egt \
-  --ref_fasta /data/reference/genome/GRCh38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna \
-  --iaap /usr/local/bin/iaap-cli/iaap-cli \
-  --bcftools_plugins_path /usr/local/lib/bcftools/plugins \
-  --cleanup"
+processor = SNPProcessor(config, num_threads=4)
 
-# Process each directory
-for IDAT_DIR in "${IDAT_DIRS[@]}"; do
-  echo "Processing: $IDAT_DIR"
-  python main.py process --idat_path "$IDAT_DIR" $COMMON_ARGS
-done
+# Create variant reference from any VCF file
+variant_ref = processor.create_variant_reference(
+    vcf_path=str(data_path / "output" / "vcf" / "205746280003" / "205746280003_R01C01.snv.vcf.gz")
+)
+print(f"✅ Variant reference created: {variant_ref}")
+
+# Step 2: Process multiple barcodes
+barcodes = ["205746280003", "207847320055"]
+
+for barcode in barcodes:
+    try:
+        # Update config for each barcode
+        config.barcode_path = data_path / "idats" / barcode
+        processor = SNPProcessor(config, num_threads=4)
+        
+        output_file = processor.process_barcode(barcode)
+        print(f"✅ {barcode} → {output_file}")
+    except Exception as e:
+        print(f"❌ {barcode} failed: {e}")
+
+# Step 3: Analyze combined data
+import pandas as pd
+
+# Load and join data for analysis
+variants = pd.read_parquet(variant_ref)
+samples_205 = pd.read_parquet(data_path / "output" / "metrics" / "205746280003")
+combined = samples_205.merge(variants, on=['ID', 'chromosome'], how='left')
+
+print(f"Combined dataset: {len(combined):,} records with {len(combined.columns)} columns")
 ```
+
+This module provides a clean, maintainable, and reusable Python package for SNP metrics processing suitable for production use, with optimized data structures for efficient storage and analysis. 

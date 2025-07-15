@@ -19,17 +19,13 @@ class VCFParser:
     - chromosome: Chromosome number
     - position: Genomic position  
     - GT: Genotype (0/0, 0/1, 1/1, ./.)
-    - GQ: Genotype Quality
-    - IGC: Illumina GenCall Score
+    - GS: GenCall Score (confidence score for the genotype call)
     - BAF: B Allele Frequency
     - LRR: Log R Ratio
-    - NORMX, NORMY: Normalized intensities
-    - R, THETA: Raw intensity values
-    - X, Y: Raw intensity coordinates
     """
     
-    # Metrics we want to extract from the FORMAT field
-    METRICS_COLUMNS = ['GT', 'GQ', 'IGC', 'BAF', 'LRR', 'NORMX', 'NORMY', 'R', 'THETA', 'X', 'Y']
+    # Metrics we want to extract from the FORMAT field (based on actual VCF output)
+    METRICS_COLUMNS = ['GT', 'GS', 'BAF', 'LRR']
     
     def parse_vcf(self, vcf_path: Union[str, Path], sample_id: Optional[str] = None) -> pd.DataFrame:
         """Parse VCF file and extract SNP metrics.
@@ -67,6 +63,38 @@ class VCFParser:
         except Exception as e:
             raise VCFParsingError(f"Failed to parse VCF {vcf_path}") from e
     
+    def parse_variants(self, vcf_path: Union[str, Path]) -> pd.DataFrame:
+        """Parse VCF file and extract variant-specific information only.
+        
+        Args:
+            vcf_path: Path to VCF file (.vcf or .vcf.gz)
+            
+        Returns:
+            DataFrame with variant information: #CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO
+            
+        Raises:
+            VCFParsingError: If VCF parsing fails
+        """
+        vcf_path = Path(vcf_path)
+        
+        if not vcf_path.exists():
+            raise VCFParsingError(f"VCF file not found: {vcf_path}")
+        
+        try:
+            # Read VCF data
+            header, data_rows = self._read_vcf_data(vcf_path)
+            
+            # Create dataframe
+            df = pd.DataFrame(data_rows, columns=header)
+            
+            # Extract variant information only
+            variant_df = self._extract_variant_info(df)
+            
+            return variant_df
+            
+        except Exception as e:
+            raise VCFParsingError(f"Failed to parse VCF {vcf_path}") from e
+    
     def _read_vcf_data(self, vcf_path: Path) -> tuple[List[str], List[List[str]]]:
         """Read VCF file and extract header and data rows."""
         opener = gzip.open if vcf_path.suffix == '.gz' else open
@@ -91,8 +119,24 @@ class VCFParser:
         
         return header, data_rows
     
+    def _extract_variant_info(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Extract variant-specific information from VCF dataframe."""
+        variant_cols = ['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO']
+        
+        # Extract variant information
+        result_df = df[variant_cols].copy()
+        
+        # Clean chromosome names and convert position to numeric
+        result_df['#CHROM'] = result_df['#CHROM'].str.replace('chr', '', regex=False)
+        result_df['POS'] = pd.to_numeric(result_df['POS'], errors='coerce')
+        
+        # Rename #CHROM to chromosome for consistency
+        result_df = result_df.rename(columns={'#CHROM': 'chromosome'})
+        
+        return result_df
+    
     def _extract_metrics(self, df: pd.DataFrame, sample_id: str) -> pd.DataFrame:
-        """Extract and clean SNP metrics from VCF dataframe."""
+        """Extract and clean sample-specific metrics from VCF dataframe."""
         # Identify sample column (should be the last column after FORMAT)
         metadata_cols = ['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']
         sample_cols = [col for col in df.columns if col not in metadata_cols]
@@ -102,11 +146,10 @@ class VCFParser:
         
         sample_col = sample_cols[0]
         
-        # Extract basic information
+        # Extract sample-specific information only
         result_df = pd.DataFrame({
-            'snpID': df['ID'],
+            'ID': df['ID'],
             'chromosome': df['#CHROM'].str.replace('chr', '', regex=False),
-            'position': pd.to_numeric(df['POS'], errors='coerce'),
             'IID': sample_id
         })
         
@@ -131,15 +174,14 @@ class VCFParser:
             gt_map = {'0/0': 0, '0/1': 1, '1/0': 1, '1/1': 2, './.': -9}
             df['GT'] = df['GT'].map(gt_map).fillna(-9).astype(int)
         
-        # Convert numeric columns
-        numeric_columns = ['GQ', 'IGC', 'BAF', 'LRR', 'NORMX', 'NORMY', 'R', 'THETA', 'X', 'Y']
+        # Convert numeric columns (GS, BAF, LRR are all numeric)
+        numeric_columns = ['GS', 'BAF', 'LRR']
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
-        # Ensure chromosome is string and position is int
+        # Ensure chromosome is string
         df['chromosome'] = df['chromosome'].astype(str)
-        df['position'] = df['position'].astype('Int64')  # Nullable integer
         
         return df
 
