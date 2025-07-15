@@ -19,17 +19,13 @@ class VCFParser:
     - chromosome: Chromosome number
     - position: Genomic position  
     - GT: Genotype (0/0, 0/1, 1/1, ./.)
-    - GQ: Genotype Quality
-    - IGC: Illumina GenCall Score
+    - GS: GenCall Score (confidence score for the genotype call)
     - BAF: B Allele Frequency
     - LRR: Log R Ratio
-    - NORMX, NORMY: Normalized intensities
-    - R, THETA: Raw intensity values
-    - X, Y: Raw intensity coordinates
     """
     
-    # Metrics we want to extract from the FORMAT field
-    METRICS_COLUMNS = ['GT', 'GQ', 'IGC', 'BAF', 'LRR', 'NORMX', 'NORMY', 'R', 'THETA', 'X', 'Y']
+    # Metrics we want to extract from the FORMAT field (based on actual VCF output)
+    METRICS_COLUMNS = ['GT', 'GS', 'BAF', 'LRR']
     
     def parse_vcf(self, vcf_path: Union[str, Path], sample_id: Optional[str] = None) -> pd.DataFrame:
         """Parse VCF file and extract SNP metrics.
@@ -131,8 +127,8 @@ class VCFParser:
             gt_map = {'0/0': 0, '0/1': 1, '1/0': 1, '1/1': 2, './.': -9}
             df['GT'] = df['GT'].map(gt_map).fillna(-9).astype(int)
         
-        # Convert numeric columns
-        numeric_columns = ['GQ', 'IGC', 'BAF', 'LRR', 'NORMX', 'NORMY', 'R', 'THETA', 'X', 'Y']
+        # Convert numeric columns (GS, BAF, LRR are all numeric)
+        numeric_columns = ['GS', 'BAF', 'LRR']
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
