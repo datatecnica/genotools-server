@@ -6,6 +6,7 @@ Uses DRAGEN for IDAT->GTC->VCF conversion and pandas for data processing.
 
 import os
 import subprocess
+import shutil
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 import logging
@@ -54,11 +55,18 @@ class SNPProcessor:
         self.logger.info(f"Starting processing for barcode: {barcode}")
         
         try:
-            # Step 1: Convert IDAT to GTC
-            gtc_dir = self._convert_idat_to_gtc(barcode)
+            # Step 1: Convert IDAT to GTC - TEMPORARILY COMMENTED OUT FOR TESTING
+            # gtc_dir = self._convert_idat_to_gtc(barcode)
             
-            # Step 2: Convert GTC to VCF  
-            vcf_paths = self._convert_gtc_to_vcf(barcode, gtc_dir)
+            # Step 2: Convert GTC to VCF - TEMPORARILY COMMENTED OUT FOR TESTING
+            # vcf_paths = self._convert_gtc_to_vcf(barcode, gtc_dir)
+            
+            # TEMPORARY: Hardcoded VCF paths for testing
+            vcf_dir = self.config.vcf_path / barcode
+            vcf_paths = [str(vcf_file) for vcf_file in vcf_dir.glob("*.vcf.gz")]
+            if not vcf_paths:
+                raise ProcessingError(f"No VCF files found in {vcf_dir}")
+            self.logger.info(f"Using existing VCF files: {vcf_paths}")
             
             # Step 3: Parse VCF and convert to dataframe
             df = self._parse_vcf_to_dataframe(vcf_paths, barcode)
@@ -144,9 +152,16 @@ class SNPProcessor:
         if custom_path:
             output_path = Path(custom_path)
         else:
-            output_path = self.config.metrics_path / f"{barcode}_snp_metrics.parquet"
+            output_path = self.config.metrics_path / f"{barcode}_snp_metrics"
             
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Check if output already exists and throw informative error
+        if output_path.exists():
+            raise ProcessingError(
+                f"Output already exists at: {output_path}\n"
+                f"Please remove the existing file/directory before rerunning"
+            )
         
         # Write with partitioning by IID and chromosome
         df.to_parquet(
