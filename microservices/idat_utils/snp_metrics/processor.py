@@ -81,6 +81,40 @@ class SNPProcessor:
             self.logger.error(f"Failed to process barcode {barcode}: {str(e)}")
             raise ProcessingError(f"Processing failed for {barcode}") from e
 
+    def create_variant_reference(self, vcf_path: str, output_path: Optional[str] = None) -> str:
+        """Create a variant reference file from a single VCF file.
+        
+        This extracts variant-specific information (CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO)
+        and saves it as a chromosome-partitioned parquet file. This should be run once to create
+        a central reference since variant information is the same across all samples.
+        
+        Args:
+            vcf_path: Path to any VCF file from the dataset (variant info is the same across samples)
+            output_path: Optional custom output path for the variant reference parquet
+            
+        Returns:
+            Path to the generated variant reference parquet
+            
+        Raises:
+            ProcessingError: If variant reference creation fails
+        """
+        self.logger.info(f"Creating variant reference from: {vcf_path}")
+        
+        try:
+            # Parse variant information only
+            parser = VCFParser()
+            df = parser.parse_variants(vcf_path)
+            
+            # Write variant reference to parquet
+            variant_ref_path = self._write_variant_reference(df, output_path)
+            
+            self.logger.info(f"Successfully created variant reference -> {variant_ref_path}")
+            return variant_ref_path
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create variant reference: {str(e)}")
+            raise ProcessingError(f"Variant reference creation failed") from e
+
     def _convert_idat_to_gtc(self, barcode: str) -> str:
         """Convert IDAT files to GTC format using DRAGEN."""
         gtc_output_dir = self.config.gtc_path / barcode
@@ -175,6 +209,37 @@ class SNPProcessor:
         unique_chromosomes = df['chromosome'].nunique()
         self.logger.info(f"Wrote {len(df)} records to {output_path} "
                         f"({unique_samples} samples, {unique_chromosomes} chromosomes)")
+        
+        return str(output_path)
+
+    def _write_variant_reference(self, df: pd.DataFrame, custom_path: Optional[str] = None) -> str:
+        """Write variant reference dataframe to parquet format partitioned by chromosome."""
+        if custom_path:
+            output_path = Path(custom_path)
+        else:
+            output_path = self.config.metrics_path / "variant_reference"
+            
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Check if output already exists and throw informative error
+        if output_path.exists():
+            raise ProcessingError(
+                f"Variant reference already exists at: {output_path}\n"
+                f"Please remove the existing file/directory before rerunning"
+            )
+        
+        # Write with partitioning by chromosome only
+        df.to_parquet(
+            output_path, 
+            compression='brotli', 
+            index=False,
+            partition_cols=['chromosome']
+        )
+        
+        unique_chromosomes = df['chromosome'].nunique()
+        total_variants = len(df)
+        self.logger.info(f"Wrote {total_variants} variants to {output_path} "
+                        f"({unique_chromosomes} chromosomes)")
         
         return str(output_path)
     
