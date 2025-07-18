@@ -30,8 +30,9 @@ async def process_carriers(
     # api_key: str = Depends(get_api_key)
 ):
     """
-    Process carrier information from a single genotype file stored locally.
-    Returns paths to the generated file.
+    Process carrier information from genotype files.
+    Handles both single files (NBA/WGS) and chromosome-split files (imputed) automatically.
+    Returns paths to the generated files.
     """
     try:
         parent_dir = os.path.dirname(request.out_path)
@@ -66,6 +67,7 @@ async def process_imputed_carriers(
 ):
     """
     Process imputed carrier information from chromosome-split genotype files.
+    This endpoint is kept for backwards compatibility but uses the same unified processing.
     Returns paths to the generated files.
     """
     try:
@@ -75,11 +77,11 @@ async def process_imputed_carriers(
         
         manager = CarrierAnalysisManager()
         
-        results = manager.process_imputed_carriers(
-            ancestry=request.ancestry,
-            imputed_base_dir=request.imputed_base_dir,
+        results = manager.extract_carriers(
+            geno_path=request.imputed_base_dir,
             snplist_path=request.snplist_path,
             out_path=request.out_path,
+            ancestry=request.ancestry,
             release=request.release_version
         )
 
