@@ -4,6 +4,8 @@ from src.core.harmonizer import AlleleHarmonizer
 from src.core.data_repository import DataRepository
 from src.core.genotype_converter import GenotypeConverter
 from src.core.carrier_validator import CarrierValidator
+import os
+import tempfile
 
 
 class CarrierProcessorFactory:
@@ -29,6 +31,12 @@ class CarrierProcessorFactory:
                          genotype_converter: GenotypeConverter) -> 'CarrierValidator':
         """Create a CarrierValidator instance"""
         return CarrierValidator(data_repo, genotype_converter)
+    
+    @staticmethod
+    def create_imputed_processor(carrier_extractor: 'CarrierExtractor',
+                                data_repo: DataRepository) -> 'ImputedCarrierProcessor':
+        """Create an ImputedCarrierProcessor instance"""
+        return ImputedCarrierProcessor(carrier_extractor, data_repo)
 
 
 # Processing Components (utilize Strategy pattern internally)
@@ -39,11 +47,11 @@ class VariantProcessor:
     
     def extract_variants(self, geno_path: str, reference_path: str, plink_out: str) -> Tuple[pd.DataFrame, str]:
         """
-        Extract variant statistics using plink2 from genotype data.
+        Extract variants of interest from genotype data using harmonization
         
         Args:
-            geno_path: Path to the plink2 pfile prefix (without extensions)
-            reference_path: Path to reference allele file for harmonization
+            geno_path: Path to PLINK file prefix  
+            reference_path: Path to reference allele file
             plink_out: Prefix for output files
             
         Returns:
@@ -51,6 +59,12 @@ class VariantProcessor:
         """
         # Use the updated harmonize_and_extract method that returns subset SNP path
         subset_snp_path = self.harmonizer.harmonize_and_extract(geno_path, reference_path, plink_out)
+        
+        # Handle case where no variants were found
+        if subset_snp_path is None:
+            print(f"No target variants found in {geno_path} - returning empty results")
+            empty_stats = pd.DataFrame()
+            return empty_stats, None
         
         # Initialize empty DataFrame for results
         var_stats = pd.DataFrame()
@@ -116,6 +130,29 @@ class CarrierExtractor:
         
         # Extract variant statistics using the SNP list as reference and get subset SNP path
         var_stats, subset_snp_path = self.variant_processor.extract_variants(geno_path, snplist_path, plink_out)
+        
+        # Handle case where no variants were found
+        if subset_snp_path is None:
+            print(f"No target variants found for {geno_path} - creating empty output files")
+            # Create empty output files with proper structure
+            empty_var_info = pd.DataFrame(columns=['chrom', 'pos', 'SNP', 'a1', 'a2'])
+            empty_carriers_int = pd.DataFrame(columns=['IID'])
+            empty_carriers_string = pd.DataFrame(columns=['IID'])
+            
+            # Write empty files
+            var_info_path = f"{out_path}_var_info.parquet"
+            carriers_int_path = f"{out_path}_carriers_int.parquet"
+            carriers_string_path = f"{out_path}_carriers_string.parquet"
+            
+            self.data_repo.write_parquet(empty_var_info, var_info_path)
+            self.data_repo.write_parquet(empty_carriers_int, carriers_int_path)
+            self.data_repo.write_parquet(empty_carriers_string, carriers_string_path)
+            
+            return {
+                'var_info': var_info_path,
+                'carriers_int': carriers_int_path,
+                'carriers_string': carriers_string_path
+            }
         
         # Read the subset SNP list that contains matched IDs
         subset_snp_df = self.data_repo.read_csv(subset_snp_path)
@@ -461,3 +498,224 @@ class CarrierCombiner:
             'carriers_string': carriers_string_path,
             'carriers_int': carriers_int_path
         }
+
+
+class ImputedCarrierProcessor:
+    """Processor for imputed genotype data that is split by chromosome"""
+    
+    def __init__(self, carrier_extractor: CarrierExtractor, data_repo: DataRepository):
+        self.carrier_extractor = carrier_extractor
+        self.data_repo = data_repo
+        # Standard chromosomes for human genome
+        self.chromosomes = [str(i) for i in range(1, 23)] + ['X']  # Add 'Y', 'MT' if needed
+    
+    def process_imputed_carriers(self, ancestry: str, imputed_base_dir: str, 
+                                snplist_path: str, out_path: str, release: str) -> Dict[str, str]:
+        """
+        Process imputed carrier data across all chromosomes for a single ancestry.
+        
+        Args:
+            ancestry: Ancestry label (e.g., 'AAC', 'AFR')
+            imputed_base_dir: Base directory for imputed genotypes
+            snplist_path: Path to SNP list file
+            out_path: Output path prefix
+            release: Release version
+            
+        Returns:
+            Dict with paths to combined output files
+        """
+        print(f"\n=== Processing Imputed Data for {ancestry} ===")
+        
+        # Read the full SNP list once
+        full_snp_list = self.data_repo.read_csv(snplist_path)
+        
+        # Ensure we have chromosome information
+        if 'hg38' in full_snp_list.columns and 'chrom' not in full_snp_list.columns:
+            # Parse chromosome from hg38 coordinates
+            hg38_parts = full_snp_list['hg38'].str.split(':')
+            full_snp_list['chrom'] = hg38_parts.str[0]
+        
+        chromosome_results = {}
+        
+        # Process each chromosome
+        for chrom in self.chromosomes:
+            # Check if chromosome file exists
+            geno_path = f"{imputed_base_dir}/{ancestry}/chr{chrom}_{ancestry}_release{release}_vwb"
+            
+            if not os.path.exists(f"{geno_path}.pgen"):
+                print(f"Chromosome {chrom} not found for {ancestry}, skipping...")
+                continue
+            
+            print(f"Processing chromosome {chrom}...")
+            
+            # Filter SNP list for this chromosome
+            chrom_snps = full_snp_list[full_snp_list['chrom'] == chrom]
+            
+            if chrom_snps.empty:
+                print(f"No SNPs found for chromosome {chrom}, skipping...")
+                continue
+            
+            # Create temporary SNP list for this chromosome
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp_file:
+                temp_snp_path = tmp_file.name
+                chrom_snps.to_csv(temp_snp_path, index=False)
+            
+            try:
+                # Process this chromosome
+                chrom_out = f"{out_path}_chr{chrom}"
+                results = self.carrier_extractor.extract_carriers(
+                    geno_path=geno_path,
+                    snplist_path=temp_snp_path,
+                    out_path=chrom_out
+                )
+                
+                chromosome_results[chrom] = results
+                print(f"✓ Chromosome {chrom} processed: {len(chrom_snps)} variants")
+                
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_snp_path):
+                    os.remove(temp_snp_path)
+        
+        if not chromosome_results:
+            raise ValueError(f"No chromosomes were successfully processed for {ancestry}")
+        
+        # Combine results across chromosomes
+        print(f"\nCombining {len(chromosome_results)} chromosomes for {ancestry}...")
+        combined_results = self._combine_chromosomes(chromosome_results, out_path)
+        
+        return combined_results
+    
+    def _combine_chromosomes(self, chromosome_results: Dict[str, Dict[str, str]], 
+                           out_path: str) -> Dict[str, str]:
+        """
+        Combine carrier data from multiple chromosomes into single files.
+        
+        Args:
+            chromosome_results: Dict mapping chromosome to file paths
+            out_path: Output path prefix for combined files
+            
+        Returns:
+            Dict with paths to combined output files
+        """
+        # Initialize lists to collect data from each chromosome
+        var_info_dfs = []
+        carriers_string_dfs = []
+        carriers_int_dfs = []
+        
+        # Sort chromosomes to ensure consistent ordering
+        sorted_chroms = sorted(chromosome_results.keys(), 
+                              key=lambda x: (int(x) if x.isdigit() else float('inf'), x))
+        
+        print("Reading chromosome data...")
+        for chrom in sorted_chroms:
+            results = chromosome_results[chrom]
+            
+            # Read chromosome-specific results
+            var_info = self.data_repo.read_parquet(results['var_info'])
+            carriers_string = self.data_repo.read_parquet(results['carriers_string'])
+            carriers_int = self.data_repo.read_parquet(results['carriers_int'])
+            
+            # Add chromosome identifier to var_info if not present
+            if 'chromosome' not in var_info.columns:
+                var_info['chromosome'] = chrom
+            
+            var_info_dfs.append(var_info)
+            carriers_string_dfs.append(carriers_string)
+            carriers_int_dfs.append(carriers_int)
+        
+        print("Combining var_info files...")
+        # Concatenate all var_info files (variants are different across chromosomes)
+        final_var_info = pd.concat(var_info_dfs, ignore_index=True)
+        
+        # Sort by genomic position
+        if 'chrom' in final_var_info.columns and 'pos' in final_var_info.columns:
+            # Convert chromosome to numeric for sorting (handle X, Y, MT)
+            final_var_info['chrom_sort'] = final_var_info['chrom'].apply(
+                lambda x: int(str(x)) if str(x).isdigit() else {'X': 23, 'Y': 24, 'MT': 25}.get(str(x), 99)
+            )
+            final_var_info = final_var_info.sort_values(['chrom_sort', 'pos'])
+            final_var_info = final_var_info.drop(columns=['chrom_sort'])
+        
+        print("Combining carrier files...")
+        # For carriers, merge on IID (samples are same across chromosomes)
+        final_carriers_string = carriers_string_dfs[0]
+        final_carriers_int = carriers_int_dfs[0]
+        
+        # Get the IID column and any study column if present
+        id_columns = ['IID']
+        if 'study' in final_carriers_string.columns:
+            id_columns.append('study')
+        
+        # Merge remaining chromosomes
+        for i in range(1, len(carriers_string_dfs)):
+            print(f"Merging chromosome {sorted_chroms[i]}...")
+            
+            # For string format
+            next_string = carriers_string_dfs[i]
+            # Get variant columns (exclude ID columns)
+            variant_cols = [col for col in next_string.columns if col not in id_columns]
+            
+            # Merge on ID columns, adding variant columns from each chromosome
+            final_carriers_string = final_carriers_string.merge(
+                next_string[id_columns + variant_cols],
+                on=id_columns,
+                how='outer',
+                suffixes=('', f'_dup{i}')  # Handle any duplicate column names
+            )
+            
+            # For int format
+            next_int = carriers_int_dfs[i]
+            variant_cols = [col for col in next_int.columns if col not in id_columns]
+            
+            final_carriers_int = final_carriers_int.merge(
+                next_int[id_columns + variant_cols],
+                on=id_columns,
+                how='outer',
+                suffixes=('', f'_dup{i}')
+            )
+        
+        # Clean up any duplicate columns (shouldn't happen if variant IDs are unique)
+        for df in [final_carriers_string, final_carriers_int]:
+            dup_cols = [col for col in df.columns if '_dup' in col]
+            if dup_cols:
+                print(f"Warning: Found {len(dup_cols)} duplicate columns, removing...")
+                df.drop(columns=dup_cols, inplace=True)
+        
+        # Fill missing values for string format
+        variant_columns = [col for col in final_carriers_string.columns if col not in id_columns]
+        final_carriers_string[variant_columns] = final_carriers_string[variant_columns].fillna('./.')
+        
+        # Save combined files
+        print("Saving combined files...")
+        var_info_path = f"{out_path}_var_info.parquet"
+        carriers_string_path = f"{out_path}_carriers_string.parquet"
+        carriers_int_path = f"{out_path}_carriers_int.parquet"
+        
+        self.data_repo.write_parquet(final_var_info, var_info_path, index=False)
+        self.data_repo.write_parquet(final_carriers_string, carriers_string_path, index=False)
+        self.data_repo.write_parquet(final_carriers_int, carriers_int_path, index=False)
+        
+        print(f"✓ Combined var_info: {var_info_path} ({len(final_var_info)} variants)")
+        print(f"✓ Combined carriers_string: {carriers_string_path} ({len(final_carriers_string)} samples)")
+        print(f"✓ Combined carriers_int: {carriers_int_path} ({len(final_carriers_int)} samples)")
+        
+        # Clean up intermediate chromosome files
+        self._cleanup_chromosome_files(chromosome_results)
+        
+        return {
+            'var_info': var_info_path,
+            'carriers_string': carriers_string_path,
+            'carriers_int': carriers_int_path
+        }
+    
+    def _cleanup_chromosome_files(self, chromosome_results: Dict[str, Dict[str, str]]):
+        """Remove intermediate chromosome-specific files to save space"""
+        print("Cleaning up intermediate files...")
+        for chrom, results in chromosome_results.items():
+            for file_type, file_path in results.items():
+                try:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                except Exception as e:
+                    print(f"Warning: Could not remove {file_path}: {e}")

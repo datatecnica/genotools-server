@@ -19,6 +19,8 @@ class CarrierAnalysisManager:
             self.variant_processor, self.genotype_converter, self.data_repo)
         self.carrier_combiner = factory.create_carrier_combiner(self.data_repo)
         self.validator = factory.create_validator(self.data_repo, self.genotype_converter)
+        self.imputed_processor = factory.create_imputed_processor(
+            self.carrier_extractor, self.data_repo)
     
     def extract_carriers(self, geno_path: str, snplist_path: str, out_path: str) -> Dict[str, str]:
         """Extract carrier information for given SNPs"""
@@ -33,3 +35,9 @@ class CarrierAnalysisManager:
                              snp_info_file: str, samples_to_check: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Validate that combined carrier data matches original traw files"""
         return self.validator.validate_carrier_data(traw_dir, combined_file, snp_info_file, samples_to_check)
+    
+    def process_imputed_carriers(self, ancestry: str, imputed_base_dir: str,
+                                snplist_path: str, out_path: str, release: str) -> Dict[str, str]:
+        """Process imputed carrier data for a specific ancestry across all chromosomes"""
+        return self.imputed_processor.process_imputed_carriers(
+            ancestry, imputed_base_dir, snplist_path, out_path, release)
