@@ -25,18 +25,6 @@ class CarrierAnalysisManager:
         """Extract carrier information for given SNPs (unified method for all data types)"""
         return self.carrier_extractor.extract_carriers(geno_path, snplist_path, out_path, ancestry, release)
     
-    def process_imputed_carriers(self, ancestry: str, imputed_base_dir: str,
-                                snplist_path: str, out_path: str, release: str) -> Dict[str, str]:
-        """Process imputed carrier data for a specific ancestry across all chromosomes (legacy method)"""
-        # This now just calls the unified extract_carriers method
-        return self.carrier_extractor.extract_carriers(
-            geno_path=imputed_base_dir,
-            snplist_path=snplist_path, 
-            out_path=out_path,
-            ancestry=ancestry,
-            release=release
-        )
-    
     def combine_carrier_files(self, results_by_label: Dict[str, Dict[str, str]], 
                              key_file: str, out_path: str) -> Dict[str, str]:
         """Combine carrier files from multiple ancestry labels"""

@@ -25,7 +25,7 @@ def process_population_data(config: PipelineConfig, file_manager: FileManager):
         
         # Build and send API request
         payload = {
-            "geno_path": f"{config.release_base_dir}/{label}/{label}_release{config.release}_vwb",
+            "geno_path": f"{config.nba_dir}/{label}/{label}_release{config.release}_vwb",
             "snplist_path": config.snplist_path,
             "out_path": f"{label_output_dir}/{label}_release{config.release}",
             "release_version": config.release
@@ -74,7 +74,7 @@ def process_imputed_data(config: PipelineConfig, file_manager: FileManager):
         # Build and send API request for imputed processing
         payload = {
             "ancestry": label,
-            "imputed_base_dir": config.imputed_base_dir,
+            "imputed_base_dir": config.imputed_dir,
             "snplist_path": config.snplist_path,
             "out_path": f"{label_output_dir}/{label}_release{config.release}",
             "release_version": config.release
@@ -143,7 +143,7 @@ def main():
         carriers_base_dir=args.carriers_dir,
         release_base_dir=args.release_dir,
         wgs_raw_dir=args.wgs_dir,
-        imputed_base_dir=args.imputed_dir
+        imputed_dir=args.imputed_dir
     )
     
     # Check API health

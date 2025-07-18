@@ -13,7 +13,8 @@ class PipelineConfig:
     carriers_base_dir: Optional[str] = None
     release_base_dir: Optional[str] = None
     wgs_raw_dir: Optional[str] = None
-    imputed_base_dir: Optional[str] = None
+    nba_dir: Optional[str] = None
+    imputed_dir: Optional[str] = None
     
     # Processing options
     api_base_url: str = "http://localhost:8000"
@@ -25,11 +26,13 @@ class PipelineConfig:
         if self.carriers_base_dir is None:
             self.carriers_base_dir = f'{self.mnt_dir}/genotools_server/carriers'
         if self.release_base_dir is None:
-            self.release_base_dir = f'{self.mnt_dir}/gp2_release{self.release}_staging/vwb/raw_genotypes'
+            self.release_base_dir = f'{self.mnt_dir}/gp2tier2_vwb/release{self.release}'
         if self.wgs_raw_dir is None:
             self.wgs_raw_dir = f'{self.carriers_base_dir}/wgs/raw_genotypes'
-        if self.imputed_base_dir is None:
-            self.imputed_base_dir = f'{self.mnt_dir}/gp2tier2_vwb/release{self.release}/imputed_genotypes'
+        if self.nba_dir is None:
+            self.nba_dir = f'{self.release_base_dir}/raw_genotypes'
+        if self.imputed_dir is None:
+            self.imputed_dir = f'{self.release_base_dir}/imputed_genotypes'
         if self.labels is None:
             self.labels = ['AAC', 'AFR', 'AJ', 'AMR', 'CAH', 'CAS', 'EAS', 'EUR', 'FIN', 'MDE', 'SAS']
     

@@ -19,7 +19,7 @@ class CarrierRequest(BaseModel):
 
 class ImputedCarrierRequest(BaseModel):
     ancestry: str  # Ancestry label (e.g., 'AAC', 'AFR')
-    imputed_base_dir: str  # Base directory for imputed genotypes
+    imputed_dir: str  # Base directory for imputed genotypes
     snplist_path: str  # Path to SNP list file
     out_path: str  # Full output path prefix for the generated files
     release_version: str = "10"  # Default release version
@@ -78,7 +78,7 @@ async def process_imputed_carriers(
         manager = CarrierAnalysisManager()
         
         results = manager.extract_carriers(
-            geno_path=request.imputed_base_dir,
+            geno_path=request.imputed_dir,
             snplist_path=request.snplist_path,
             out_path=request.out_path,
             ancestry=request.ancestry,
