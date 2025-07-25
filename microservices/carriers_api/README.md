@@ -6,6 +6,28 @@ A microservice for processing genetic carrier information. This API allows you t
 
 This service is part of the Genotools Server framework, designed to analyze genetic variant data across different ancestry populations. It provides an easy-to-use interface for extracting carrier information from PLINK2 formatted genotype files.
 
+## Data Types Supported
+
+The API supports three main types of genetic data:
+
+### 1. NBA (NeuroBooster Array) Data
+- **Format**: Single consolidated PLINK2 files per ancestry
+- **Structure**: `{ancestry}_release{version}_vwb.{pgen|pvar|psam}`
+- **Example**: `AAC_release10_vwb.pgen`, `AAC_release10_vwb.pvar`, `AAC_release10_vwb.psam`
+- **Processing**: Direct single-file processing
+
+### 2. WGS (Whole Genome Sequencing) Data  
+- **Format**: Single consolidated PLINK2 files across all ancestries
+- **Structure**: `R{version}_wgs_carrier_vars.{pgen|pvar|psam}`
+- **Example**: `R10_wgs_carrier_vars.pgen`, `R10_wgs_carrier_vars.pvar`, `R10_wgs_carrier_vars.psam`
+- **Processing**: Direct single-file processing
+
+### 3. Imputed Data
+- **Format**: Chromosome-split PLINK2 files per ancestry
+- **Structure**: `chr{chrom}_{ancestry}_release{version}_vwb.{pgen|pvar|psam}`
+- **Example**: `chr1_AAC_release10_vwb.pgen`, `chr1_AAC_release10_vwb.pvar`, `chr1_AAC_release10_vwb.psam`
+- **Processing**: Multi-chromosome processing with automatic combination
+
 ## Installation
 
 ### Prerequisites
@@ -52,17 +74,16 @@ GET /health
 ```
 Returns the health status of the API.
 
-#### Process Carriers
+#### Process Carriers (NBA/WGS)
 ```
 POST /process_carriers
 ```
-Processes carrier information from genotype files and returns paths to the generated output files.
+Processes carrier information from single consolidated genotype files (NBA or WGS data).
 
 Request Body:
 ```json
 {
   "geno_path": "/path/to/plink/files/prefix",
-  "key_file_path": "/path/to/key/file.csv",
   "snplist_path": "/path/to/snplist.csv",
   "out_path": "/path/to/output/prefix",
   "release_version": "10"
@@ -74,80 +95,149 @@ Response:
 {
   "status": "success",
   "outputs": {
-    "var_info": "/path/to/output/prefix_var_info.csv",
-    "carriers_string": "/path/to/output/prefix_carriers_string.csv",
-    "carriers_int": "/path/to/output/prefix_carriers_int.csv"
+    "var_info": "/path/to/output/prefix_var_info.parquet",
+    "carriers_string": "/path/to/output/prefix_carriers_string.parquet",
+    "carriers_int": "/path/to/output/prefix_carriers_int.parquet"
+  }
+}
+```
+
+#### Process Imputed Carriers
+```
+POST /process_imputed_carriers
+```
+Processes carrier information from chromosome-split imputed genotype files.
+
+Request Body:
+```json
+{
+  "ancestry": "AAC",
+  "imputed_dir": "/path/to/imputed/genotypes/base/directory",
+  "snplist_path": "/path/to/snplist.csv",
+  "out_path": "/path/to/output/prefix",
+  "release_version": "10"
+}
+```
+
+Response:
+```json
+{
+  "status": "success",
+  "outputs": {
+    "var_info": "/path/to/output/prefix_var_info.parquet",
+    "carriers_string": "/path/to/output/prefix_carriers_string.parquet",
+    "carriers_int": "/path/to/output/prefix_carriers_int.parquet"
   }
 }
 ```
 
 ### Example Script Usage
 
-The repository includes a sample script `run_carriers.py` that demonstrates how to use the API:
+The repository includes a comprehensive script `run_carriers.py` that demonstrates how to process all data types:
 
-```python
-import pandas as pd
-import os
-import requests
-from src.core.api_utils import format_error_response, post_to_api
+```bash
+# Process all data types (NBA, WGS, Imputed)
+python run_carriers.py --data-type all
 
-# Define paths
-mnt_dir = '/home/user/gcs_mounts'
-carriers_dir = f'{mnt_dir}/genotools_server/carriers'
-summary_dir = f'{carriers_dir}/summary_data'
+# Process only NBA data
+python run_carriers.py --data-type nba
 
-release = '10'
-release_dir = '/path/to/genotypes/'
-key_file = '/path/to/master_key.csv'
-output_dir = f'/path/to/output/release{release}'
+# Process only WGS data  
+python run_carriers.py --data-type wgs
 
-# Population labels
-labels = ['AAC', 'AFR', 'AJ', 'AMR', 'CAH', 'CAS', 'EAS', 'EUR', 'FIN','MDE', 'SAS']
+# Process only imputed data
+python run_carriers.py --data-type imputed
 
-# Check API health
-response = requests.get("http://localhost:8000/health")
-print(f"Health check: {response.json()}")
-
-# Process each population
-for label in labels:
-    os.makedirs(f'{output_dir}/{label}', exist_ok=True)
-    
-    payload = {
-        "geno_path": f"{release_dir}/{label}/{label}_release{release}_prefix",
-        "key_file_path": key_file,
-        "snplist_path": f'{summary_dir}/carriers_report_snps_full.csv',
-        "out_path": f"{output_dir}/{label}/{label}_release{release}",
-        "release_version": "10"
-    }
-
-    api_url = "http://localhost:8000/process_carriers"
-    post_to_api(api_url, payload)
+# Only run combination step (skip individual processing)
+python run_carriers.py --data-type nba --combine-only
 ```
+
+#### Command Line Options
+
+```bash
+python run_carriers.py [OPTIONS]
+
+Options:
+  --mnt-dir PATH           Mount directory path (default: /home/vitaled2/gcs_mounts)
+  --release VERSION        Release version (default: 10)
+  --api-url URL           API base URL (default: http://localhost:8000)
+  --cleanup BOOL          Enable cleanup of existing files (default: True)
+  --data-type TYPE        Type of data to process: nba, wgs, imputed, all (default: all)
+  --combine-only          Only run combination step (skip individual processing)
+  --carriers-dir PATH     Override carriers base directory
+  --release-dir PATH      Override release data directory
+  --wgs-dir PATH          Override WGS raw data directory
+  --imputed-dir PATH      Override imputed data base directory
+```
+
+#### Directory Structure
+
+The script automatically creates the following directory structure:
+
+```
+carriers_base_dir/
+├── nba/release{version}/
+│   ├── AAC/
+│   ├── AFR/
+│   └── ... (other ancestries)
+├── wgs/release{version}/
+└── imputed/release{version}/
+    ├── AAC/
+    ├── AFR/
+    └── ... (other ancestries)
+```
+
+Each ancestry directory contains individual processing results, and a `combined/` subdirectory contains population-combined results.
 
 ## File Structure
 
-- `main.py` - FastAPI server definition
-- `run_carriers.py` - Example script to process multiple populations
+- `main.py` - FastAPI server definition with endpoints for NBA/WGS and Imputed processing
+- `run_carriers.py` - Comprehensive script to process all data types with command-line interface
 - `src/core/` - Core implementation modules
   - `api_utils.py` - Utility functions for API interaction
-  - `carrier_processor.py` - Processing logic for carrier extraction
+  - `carrier_processor.py` - Unified processing logic for all data types (NBA, WGS, Imputed)
   - `harmonizer.py` - Allele harmonization utilities
   - `manager.py` - Orchestration of carrier analysis workflow
   - `carrier_validator.py` - Validation logic for carrier data
   - `data_repository.py` - Data access layer
   - `genotype_converter.py` - Utilities for genotype format conversion
+  - `pipeline_config.py` - Configuration management for data paths and processing options
+  - `file_manager.py` - File system operations and cleanup utilities
 
 ## Output Files
 
-Processing carriers generates three output files:
+Processing carriers generates three output files per ancestry:
 
-1. `*_var_info.csv` - Comprehensive variant information including:
+1. `*_var_info.parquet` - Comprehensive variant information including:
    - Original input metadata (snp_name, locus, rsid, hg38, hg19, etc.)
    - Harmonization results (genotype ID mapping)
    - PLINK statistics (frequencies, missingness rates)
    - PLINK metadata (chromosome format, positions, alleles)
-2. `*_carriers_string.csv` - Carriers in string format (e.g., A/G)
-3. `*_carriers_int.csv` - Carriers in integer format
+2. `*_carriers_string.parquet` - Carriers in string format (e.g., A/G)
+3. `*_carriers_int.parquet` - Carriers in integer format
+
+### Combined Output Files
+
+For NBA and Imputed data, the script also generates population-combined files:
+
+1. `*_info.parquet` - Combined variant information with population-specific frequency columns
+2. `*_string.parquet` - Combined carriers in string format across all ancestries
+3. `*_int.parquet` - Combined carriers in integer format across all ancestries
+
+### Population Labels
+
+The API processes the following ancestry populations:
+- **AAC** (African American Caribbean)
+- **AFR** (African)
+- **AJ** (Ashkenazi Jewish)
+- **AMR** (Admixed American)
+- **CAH** (Central Asian Hispanic)
+- **CAS** (Central Asian)
+- **EAS** (East Asian)
+- **EUR** (European)
+- **FIN** (Finnish)
+- **MDE** (Middle Eastern)
+- **SAS** (South Asian)
 
 ## Error Handling
 
@@ -156,3 +246,20 @@ The API provides detailed error responses including:
 - Stack trace (for debugging)
 
 The `api_utils` module contains utilities for processing and displaying these errors in a readable format.
+
+## Performance Considerations
+
+### Processing Speed
+- **NBA Data**: Fastest processing (single file per ancestry)
+- **WGS Data**: Fast processing (single consolidated file)
+- **Imputed Data**: Slower processing (chromosome-split files require individual processing and combination)
+
+### Optimization Strategies
+- **Multiprocessing**: The unified processor can be extended with parallel chromosome processing for imputed data
+- **Cloud Deployment**: Consider using GCP with higher core counts for faster processing
+- **Memory Management**: Large imputed datasets may require significant RAM for chromosome combination
+
+### Data Volume Estimates
+- **NBA**: ~200MB per ancestry file
+- **WGS**: ~2-5GB consolidated file
+- **Imputed**: ~25GB total across all chromosomes per ancestry
