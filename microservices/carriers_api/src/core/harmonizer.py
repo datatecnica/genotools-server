@@ -13,25 +13,14 @@ from src.core.plink_operations import (
 
 
 class AlleleHarmonizer:
-    def harmonize_and_extract(self, 
-                             geno_path: str, 
-                             reference_path: Optional[str], 
-                             plink_out: str,
-                             additional_args: List[str] = None) -> str:
+    def harmonize_and_extract(self, geno_path: str, reference_path: str, plink_out: str) -> str:
         """
-        Harmonize alleles if reference provided, then extract SNPs and execute PLINK operations.
+        Main method to harmonize alleles between genotype and reference files.
+        Returns the path to a harmonized subset file suitable for carrier extraction.
+        """
+        tmpdir = tempfile.mkdtemp()
         
-        Args:
-            geno_path: Path to PLINK file prefix
-            reference_path: Path to reference allele file
-            plink_out: Output path prefix
-            additional_args: Optional list of additional PLINK arguments
-            
-        Returns:
-            str: Path to the subset SNP list file with matched IDs
-        """
-        with tempfile.TemporaryDirectory() as tmpdir:
-            current_geno = geno_path
+        try:
             
             # Step 1: Find common SNPs between genotype and reference
             common_snps_path = self._find_common_snps(geno_path, reference_path, os.path.join(tmpdir, "common_snps"))
@@ -40,7 +29,14 @@ class AlleleHarmonizer:
             # Also standardizes chromosome format during extraction
             extracted_prefix = os.path.join(tmpdir, "extracted")
             extract_cmd = ExtractSnpsCommand(geno_path, common_snps_path, extracted_prefix, output_chr='M')
-            extract_cmd.execute()
+            try:
+                extract_cmd.execute()
+            except ValueError as e:
+                if "No variants found after extraction" in str(e):
+                    print(f"No target variants found in {geno_path}")
+                    return None
+                else:
+                    raise
             
             # Step 3: Harmonize alleles on the smaller extracted dataset
             harmonized_prefix = os.path.join(tmpdir, "harmonized")
@@ -51,8 +47,7 @@ class AlleleHarmonizer:
             # Step 4: Build and execute PLINK command with all operations
             export_cmd = ExportCommand(
                 pfile=current_geno, 
-                out=plink_out, 
-                additional_args=additional_args
+                out=plink_out
             )
             export_cmd.execute()
             
@@ -60,7 +55,6 @@ class AlleleHarmonizer:
             subset_snp_path = f"{plink_out}_subset_snps.csv"
             
             # Read the match info to get the mapping between genotype IDs and reference variants
-            match_info_path = os.path.join(tmpdir, "common_snps_match_info.tsv")
             match_info = pd.read_csv(match_info_path, sep='\t')
             
             # Read original reference SNP list
@@ -82,20 +76,21 @@ class AlleleHarmonizer:
             
             # Keep original reference columns plus the genotype ID and parsed columns
             ref_cols = list(ref_df.columns)
-            if 'id' not in ref_cols:
-                ref_cols.append('id')
+            subset_cols = ref_cols + ['id_geno']
+            subset_snps = subset_snps[subset_cols]
             
-            # Rename id_geno to id for consistency
+            # Rename id_geno to id for consistency with carrier processor expectations
             subset_snps = subset_snps.rename(columns={'id_geno': 'id'})
-            
-            # Select relevant columns, keeping all from original reference
-            cols_to_keep = [col for col in ref_cols if col in subset_snps.columns]
-            subset_snps = subset_snps[cols_to_keep]
             
             # Save the subset SNP list
             subset_snps.to_csv(subset_snp_path, index=False)
             
             return subset_snp_path
+            
+        finally:
+            # Clean up temporary directory
+            import shutil
+            shutil.rmtree(tmpdir, ignore_errors=True)
     
     def _find_common_snps(self, pfile: str, reference: str, out: str, chunk_size: int = 500000) -> str:
         """

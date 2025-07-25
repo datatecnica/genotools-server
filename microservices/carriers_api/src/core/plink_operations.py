@@ -1,9 +1,11 @@
 import subprocess
 from typing import Optional, List
+from abc import ABC, abstractmethod
 
 
 # command interface
-class PlinkCommand:
+class PlinkCommand(ABC):
+    @abstractmethod
     def get_command_string(self) -> str:
         """Returns the command string to be executed"""
         pass
@@ -11,7 +13,16 @@ class PlinkCommand:
     def execute(self) -> None:
         """Executes the command"""
         cmd = self.get_command_string()
-        subprocess.run(cmd, shell=True, check=True)
+        try:
+            subprocess.run(cmd, shell=True, check=True)
+        except subprocess.CalledProcessError as e:
+            # Handle PLINK2 exit code 13: "Invalid/no variants specified."
+            # This typically means no variants remain after --extract
+            if e.returncode == 13:
+                raise ValueError("No variants found after extraction - this ancestry/chromosome may not contain any target variants")
+            else:
+                # Re-raise other errors
+                raise
 
 # concrete command implementations
 class ExtractSnpsCommand(PlinkCommand):
