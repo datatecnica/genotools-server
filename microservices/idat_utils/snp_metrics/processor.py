@@ -55,15 +55,18 @@ class SNPProcessor:
         self.logger.info(f"Starting processing for barcode: {barcode}")
         
         try:
-            # Step 1: Convert IDAT to GTC - TEMPORARILY COMMENTED OUT FOR TESTING
-            # gtc_dir = self._convert_idat_to_gtc(barcode)
+            # Step 1: Convert IDAT to GTC
+            gtc_dir = self._convert_idat_to_gtc(barcode)
             
-            # Step 2: Convert GTC to VCF - TEMPORARILY COMMENTED OUT FOR TESTING
-            # vcf_paths = self._convert_gtc_to_vcf(barcode, gtc_dir)
+            # Step 2: Convert GTC to VCF
+            vcf_paths = self._convert_gtc_to_vcf(barcode, gtc_dir)
+            
+            
+            vcf_dir = self.config.vcf_path / barcode
             
             # TEMPORARY: Hardcoded VCF paths for testing
-            vcf_dir = self.config.vcf_path / barcode
-            vcf_paths = [str(vcf_file) for vcf_file in vcf_dir.glob("*.vcf.gz")]
+            # vcf_paths = [str(vcf_file) for vcf_file in vcf_dir.glob("*.vcf.gz")]
+
             if not vcf_paths:
                 raise ProcessingError(f"No VCF files found in {vcf_dir}")
             self.logger.info(f"Using existing VCF files: {vcf_paths}")
@@ -147,6 +150,7 @@ class SNPProcessor:
             "--csv-manifest", str(self.config.bpm_csv_path),
             "--genome-fasta-file", str(self.config.ref_fasta_path),
             "--gtc-folder", gtc_dir,
+            "--unsquash-duplicates",
             "--output-folder", str(vcf_output_dir)
         ]
         

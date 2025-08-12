@@ -32,6 +32,12 @@ class RecruitmentAnalysisRequest(BaseModel):
     output_dir: Optional[str] = None
     # Dry run flag
     dry_run: bool = False  # Check paths without running analysis
+class ImputedCarrierRequest(BaseModel):
+    ancestry: str  # Ancestry label (e.g., 'AAC', 'AFR')
+    imputed_dir: str  # Base directory for imputed genotypes
+    snplist_path: str  # Path to SNP list file
+    out_path: str  # Full output path prefix for the generated files
+    release_version: str = "10"  # Default release version
 
 @app.post("/process_carriers")
 async def process_carriers(
@@ -39,8 +45,9 @@ async def process_carriers(
     # api_key: str = Depends(get_api_key)
 ):
     """
-    Process carrier information from a single genotype file stored locally.
-    Returns paths to the generated file.
+    Process carrier information from genotype files.
+    Handles both single files (NBA/WGS) and chromosome-split files (imputed) automatically.
+    Returns paths to the generated files.
     """
     try:
         parent_dir = os.path.dirname(request.out_prefix)
@@ -178,10 +185,41 @@ async def run_recruitment_analysis(
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
+@app.post("/process_imputed_carriers")
+async def process_imputed_carriers(
+    request: ImputedCarrierRequest,
+    # api_key: str = Depends(get_api_key)
+):
+    """
+    Process imputed carrier information from chromosome-split genotype files.
+    This endpoint is kept for backwards compatibility but uses the same unified processing.
+    Returns paths to the generated files.
+    """
+    try:
+        parent_dir = os.path.dirname(request.out_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+        
+        manager = CarrierAnalysisManager()
+        
+        results = manager.extract_carriers(
+            geno_path=request.imputed_dir,
+            snplist_path=request.snplist_path,
+            out_path=request.out_path,
+            ancestry=request.ancestry,
+            release=request.release_version
+        )
+
+        return {
+            "status": "success",
+            "ancestry": request.ancestry,
+            "outputs": results
+        }
+
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
         raise HTTPException(
-            status_code=500,
-            detail=f"Recruitment analysis failed: {str(e)}\n\nTraceback: {error_trace}"
+            status_code=500, 
+            detail=f"Processing failed: {str(e)}\n\nTraceback: {error_trace}"
         )

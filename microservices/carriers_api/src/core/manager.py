@@ -20,9 +20,10 @@ class CarrierAnalysisManager:
         self.carrier_combiner = factory.create_carrier_combiner(self.data_repo)
         self.validator = factory.create_validator(self.data_repo, self.genotype_converter)
     
-    def extract_carriers(self, geno_path: str, snplist_path: str, out_path: str) -> Dict[str, str]:
-        """Extract carrier information for given SNPs"""
-        return self.carrier_extractor.extract_carriers(geno_path, snplist_path, out_path)
+    def extract_carriers(self, geno_path: str, snplist_path: str, out_path: str,
+                        ancestry: str = None, release: str = None) -> Dict[str, str]:
+        """Extract carrier information for given SNPs (unified method for all data types)"""
+        return self.carrier_extractor.extract_carriers(geno_path, snplist_path, out_path, ancestry, release)
     
     def combine_carrier_files(self, results_by_label: Dict[str, Dict[str, str]], 
                              key_file: str, out_path: str) -> Dict[str, str]:
