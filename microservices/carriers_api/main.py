@@ -32,6 +32,7 @@ class RecruitmentAnalysisRequest(BaseModel):
     output_dir: Optional[str] = None
     # Dry run flag
     dry_run: bool = False  # Check paths without running analysis
+
 class ImputedCarrierRequest(BaseModel):
     ancestry: str  # Ancestry label (e.g., 'AAC', 'AFR')
     imputed_dir: str  # Base directory for imputed genotypes
@@ -185,6 +186,7 @@ async def run_recruitment_analysis(
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
+    
 @app.post("/process_imputed_carriers")
 async def process_imputed_carriers(
     request: ImputedCarrierRequest,
