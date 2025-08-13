@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Literal
 import os
 from src.core.manager import CarrierAnalysisManager
 from src.core.recruitment_manager import create_recruitment_analyzer
 from src.core.security import get_api_key
+from src.core.harmonization_manager import HarmonizationPrecomputeManager
+from src.core.harmonization_runner import HarmonizationRunner
 
 app = FastAPI()
 
@@ -39,6 +41,30 @@ class ImputedCarrierRequest(BaseModel):
     snplist_path: str  # Path to SNP list file
     out_path: str  # Full output path prefix for the generated files
     release_version: str = "10"  # Default release version
+
+class HarmonizationPrecomputeRequest(BaseModel):
+    data_type: Literal['nba', 'wgs', 'imputed']
+    release: str
+    snplist_path: str
+    nba_dir: Optional[str] = None
+    wgs_prefix: Optional[str] = None
+    imputed_dir: Optional[str] = None
+    labels: Optional[List[str]] = None
+    chromosomes: Optional[List[str]] = None
+    output_dir: Optional[str] = "~/gcs_mounts/genotools_server/harmonization"
+    dry_run: bool = False
+
+class HarmonizeMaterializeRequest(BaseModel):
+    data_type: Literal['nba', 'wgs', 'imputed']
+    release: str
+    snplist_path: str
+    mapping_file: str
+    nba_dir: Optional[str] = None
+    wgs_prefix: Optional[str] = None
+    imputed_dir: Optional[str] = None
+    labels: Optional[List[str]] = None
+    chromosomes: Optional[List[str]] = None
+    output_dir: Optional[str] = None
 
 @app.post("/process_carriers")
 async def process_carriers(
@@ -224,4 +250,54 @@ async def process_imputed_carriers(
         raise HTTPException(
             status_code=500, 
             detail=f"Processing failed: {str(e)}\n\nTraceback: {error_trace}"
+        )
+
+@app.post("/precompute_harmonization")
+async def precompute_harmonization(request: HarmonizationPrecomputeRequest):
+    try:
+        manager = HarmonizationPrecomputeManager(
+            base_output_dir=request.output_dir or "~/gcs_mounts/genotools_server/harmonization"
+        )
+        result = manager.run(
+            data_type=request.data_type,
+            release=request.release,
+            snplist_path=os.path.expanduser(request.snplist_path),
+            nba_dir=os.path.expanduser(request.nba_dir) if request.nba_dir else None,
+            wgs_prefix=os.path.expanduser(request.wgs_prefix) if request.wgs_prefix else None,
+            imputed_dir=os.path.expanduser(request.imputed_dir) if request.imputed_dir else None,
+            labels=request.labels,
+            chromosomes=request.chromosomes,
+            dry_run=request.dry_run,
+        )
+        return {"status": "success", **result}
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Harmonization precompute failed: {str(e)}\n\nTraceback: {error_trace}"
+        )
+
+@app.post("/harmonize_materialize")
+async def harmonize_materialize(request: HarmonizeMaterializeRequest) -> Dict[str, Any]:
+    try:
+        runner = HarmonizationRunner(mapping_file=request.mapping_file)
+        result = runner.harmonize_dataset(
+            data_type=request.data_type,
+            release=request.release,
+            snplist_path=os.path.expanduser(request.snplist_path),
+            nba_dir=os.path.expanduser(request.nba_dir) if request.nba_dir else None,
+            wgs_prefix=os.path.expanduser(request.wgs_prefix) if request.wgs_prefix else None,
+            imputed_dir=os.path.expanduser(request.imputed_dir) if request.imputed_dir else None,
+            labels=request.labels,
+            chromosomes=request.chromosomes,
+            output_dir=os.path.expanduser(request.output_dir) if request.output_dir else None,
+        )
+        return {"status": "success", **result}
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Harmonize materialize failed: {str(e)}\n\nTraceback: {error_trace}"
         )

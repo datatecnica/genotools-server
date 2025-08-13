@@ -225,7 +225,10 @@ class AlleleHarmonizer:
                                 'variant_id_ref': match_info['variant_id_ref'],
                                 'match_type': match_info['match_type'],
                                 'a1_ref': match_info['ref_row']['a1'],
-                                'a2_ref': match_info['ref_row']['a2']
+                                'a2_ref': match_info['ref_row']['a2'],
+                                # capture genotype alleles from pvar to enable update_alleles construction later
+                                'a1_geno': row['a1'],
+                                'a2_geno': row['a2']
                             }
                             # Add snp_name_ref if available
                             if 'snp_name' in match_info['ref_row']:
@@ -280,7 +283,7 @@ class AlleleHarmonizer:
             
             match_info_cols = ['id_geno', 'variant_id_ref', 'match_type']
             # Add reference columns that exist
-            for col in ['a1_ref', 'a2_ref', 'snp_name_ref']:
+            for col in ['a1_ref', 'a2_ref', 'a1_geno', 'a2_geno', 'snp_name_ref']:
                 if col in true_matches.columns:
                     match_info_cols.append(col)
             
