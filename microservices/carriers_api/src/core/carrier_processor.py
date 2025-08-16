@@ -6,6 +6,12 @@ from src.core.genotype_converter import GenotypeConverter
 from src.core.carrier_validator import CarrierValidator
 import os
 import tempfile
+import logging
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
+
+logger = logging.getLogger(__name__)
 
 
 class CarrierProcessorFactory:
@@ -103,6 +109,7 @@ class CarrierExtractor:
         self.variant_processor = variant_processor
         self.genotype_converter = genotype_converter
         self.data_repo = data_repo
+        self._progress_lock = Lock()  # Thread-safe progress reporting
 
     def extract_carriers(self, geno_path: str, snplist_path: str, out_path: str, 
                         ancestry: str = None, release: str = None) -> Dict[str, str]:
@@ -153,9 +160,10 @@ class CarrierExtractor:
         return self._process_traw_data(subset_snp_path, plink_out, out_path)
     
     def _process_chromosome_split(self, base_dir: str, snplist_path: str, out_path: str, 
-                                ancestry: str, release: str) -> Dict[str, str]:
-        """Process chromosome-split genotype files (Imputed workflow)"""
-        print(f"\n=== Processing Imputed Data for {ancestry} ===")
+                                ancestry: str, release: str, max_workers: int = 4) -> Dict[str, str]:
+        """Process chromosome-split genotype files (Imputed workflow) with parallel processing"""
+        logger.info(f"=== Processing Imputed Data for {ancestry} with {max_workers} workers ===")
+        start_total = time.time()
         
         # Read the full SNP list once
         full_snp_list = self.data_repo.read_csv(snplist_path)
@@ -166,29 +174,95 @@ class CarrierExtractor:
             hg38_parts = full_snp_list['hg38'].str.split(':')
             full_snp_list['chrom'] = hg38_parts.str[0]
         
-        chromosome_results = {}
         chromosomes = [str(i) for i in range(1, 23)] + ['X']  # Standard chromosomes
         
-        # Process each chromosome
+        # Pre-check which chromosomes exist and have SNPs
+        valid_chromosomes = []
+        chromosome_snps = {}
+        
         for chrom in chromosomes:
             # Check if chromosome file exists
             geno_path = f"{base_dir}/{ancestry}/chr{chrom}_{ancestry}_release{release}_vwb"
             
             if not os.path.exists(f"{geno_path}.pgen"):
-                print(f"Chromosome {chrom} not found for {ancestry}, skipping...")
+                logger.debug(f"Chromosome {chrom} file not found for {ancestry}, skipping...")
                 continue
-            
-            print(f"Processing chromosome {chrom}...")
             
             # Filter SNP list for this chromosome
             chrom_snps = full_snp_list[full_snp_list['chrom'] == chrom]
             
             if chrom_snps.empty:
-                print(f"No SNPs found for chromosome {chrom}, skipping...")
+                logger.debug(f"No SNPs found for chromosome {chrom}, skipping...")
                 continue
             
-            # Create temporary SNP list for this chromosome
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp_file:
+            valid_chromosomes.append(chrom)
+            chromosome_snps[chrom] = chrom_snps
+        
+        if not valid_chromosomes:
+            raise ValueError(f"No valid chromosomes found for {ancestry}")
+        
+        logger.info(f"Processing {len(valid_chromosomes)} chromosomes in parallel: {valid_chromosomes}")
+        
+        # Process chromosomes in parallel
+        chromosome_results = {}
+        failed_chromosomes = []
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all chromosome processing tasks
+            future_to_chrom = {}
+            
+            for chrom in valid_chromosomes:
+                future = executor.submit(
+                    self._process_single_chromosome,
+                    base_dir, ancestry, release, chrom, 
+                    chromosome_snps[chrom], out_path
+                )
+                future_to_chrom[future] = chrom
+            
+            # Collect results as they complete
+            completed = 0
+            for future in as_completed(future_to_chrom):
+                chrom = future_to_chrom[future]
+                completed += 1
+                
+                try:
+                    results = future.result()
+                    chromosome_results[chrom] = results
+                    
+                    with self._progress_lock:
+                        logger.info(f"✓ Chromosome {chrom} completed ({completed}/{len(valid_chromosomes)}) - {len(chromosome_snps[chrom])} variants")
+                        
+                except Exception as e:
+                    failed_chromosomes.append(chrom)
+                    with self._progress_lock:
+                        logger.error(f"✗ Chromosome {chrom} failed ({completed}/{len(valid_chromosomes)}): {e}")
+        
+        # Check if we have enough successful results
+        if not chromosome_results:
+            error_msg = f"All chromosomes failed for {ancestry}"
+            if failed_chromosomes:
+                error_msg += f". Failed chromosomes: {failed_chromosomes}"
+            raise ValueError(error_msg)
+        elif failed_chromosomes:
+            logger.warning(f"Some chromosomes failed for {ancestry}: {failed_chromosomes}. Continuing with {len(chromosome_results)} successful chromosomes.")
+        
+        processing_time = time.time() - start_total
+        logger.info(f"Parallel processing completed in {processing_time:.2f}s for {ancestry}")
+        
+        # Combine results across chromosomes
+        logger.info(f"Combining {len(chromosome_results)} chromosomes for {ancestry}...")
+        return self._combine_chromosomes(chromosome_results, out_path)
+    
+    def _process_single_chromosome(self, base_dir: str, ancestry: str, release: str, 
+                                  chrom: str, chrom_snps: pd.DataFrame, out_path: str) -> Dict[str, str]:
+        """Process a single chromosome (thread-safe method for parallel execution)"""
+        try:
+            # Build chromosome genotype path
+            geno_path = f"{base_dir}/{ancestry}/chr{chrom}_{ancestry}_release{release}_vwb"
+            
+            # Create temporary SNP list for this chromosome (thread-safe with unique names)
+            temp_snp_path = None
+            with tempfile.NamedTemporaryFile(mode='w', suffix=f'_chr{chrom}_{ancestry}.csv', delete=False) as tmp_file:
                 temp_snp_path = tmp_file.name
                 chrom_snps.to_csv(temp_snp_path, index=False)
             
@@ -196,20 +270,19 @@ class CarrierExtractor:
                 # Process this chromosome
                 chrom_out = f"{out_path}_chr{chrom}"
                 results = self._process_single_file(geno_path, temp_snp_path, chrom_out)
-                chromosome_results[chrom] = results
-                print(f"✓ Chromosome {chrom} processed: {len(chrom_snps)} variants")
+                return results
                 
             finally:
                 # Clean up temporary file
-                if os.path.exists(temp_snp_path):
-                    os.remove(temp_snp_path)
-        
-        if not chromosome_results:
-            raise ValueError(f"No chromosomes were successfully processed for {ancestry}")
-        
-        # Combine results across chromosomes
-        print(f"\nCombining {len(chromosome_results)} chromosomes for {ancestry}...")
-        return self._combine_chromosomes(chromosome_results, out_path)
+                if temp_snp_path and os.path.exists(temp_snp_path):
+                    try:
+                        os.remove(temp_snp_path)
+                    except OSError:
+                        logger.warning(f"Could not remove temporary file {temp_snp_path}")
+                        
+        except Exception as e:
+            logger.error(f"Error processing chromosome {chrom} for {ancestry}: {e}")
+            raise
     
     def _create_empty_output_files(self, out_path: str) -> Dict[str, str]:
         """Create empty output files when no variants are found"""

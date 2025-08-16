@@ -1,4 +1,5 @@
 import argparse
+import os
 import requests
 from src.core.pipeline_config import PipelineConfig
 from src.core.file_manager import FileManager
@@ -27,7 +28,7 @@ def process_population_data(config: PipelineConfig, file_manager: FileManager):
         payload = {
             "geno_path": f"{config.nba_dir}/{label}/{label}_release{config.release}_vwb",
             "snplist_path": config.snplist_path,
-            "out_path": f"{label_output_dir}/{label}_release{config.release}",
+            "out_prefix": f"{label_output_dir}/{label}_release{config.release}",
             "release_version": config.release
         }
         
@@ -48,7 +49,7 @@ def process_wgs_data(config: PipelineConfig, file_manager: FileManager):
     payload = {
         "geno_path": f"{config.wgs_raw_dir}/R{config.release}_wgs_carrier_vars",
         "snplist_path": config.snplist_path,
-        "out_path": f"{wgs_output_dir}/release{config.release}",
+        "out_prefix": f"{wgs_output_dir}/release{config.release}",
         "release_version": config.release
     }
     
@@ -102,7 +103,7 @@ def combine_population_data(config: PipelineConfig, output_dir: str, data_type: 
     combined_output_dir = f'{output_dir}/combined'
     FileManager.ensure_directory(combined_output_dir)
     
-    manager = CarrierAnalysisManager()
+    manager = CarrierAnalysisManager(config)
     combined_output_path = f'{combined_output_dir}/{data_type}_release{config.release}_combined'
     
     # Note: pass None for key_file since we don't use study info, and track_probe_usage=True
@@ -125,6 +126,8 @@ def main():
     parser.add_argument('--release-dir', help='Override release data directory')
     parser.add_argument('--wgs-dir', help='Override WGS raw data directory')
     parser.add_argument('--imputed-dir', help='Override imputed data base directory')
+    parser.add_argument('--variant-cache-dir', help='Override variant cache directory')
+    parser.add_argument('--max-workers', type=int, default=6, help='Maximum number of parallel workers (default: 6)')
     
     # Data type selection arguments
     parser.add_argument('--data-type', choices=['nba', 'wgs', 'imputed', 'all'], default='all',
@@ -143,7 +146,9 @@ def main():
         carriers_base_dir=args.carriers_dir,
         release_base_dir=args.release_dir,
         wgs_raw_dir=args.wgs_dir,
-        imputed_dir=args.imputed_dir
+        imputed_dir=args.imputed_dir,
+        variant_cache_dir=args.variant_cache_dir,
+        max_chromosome_workers=args.max_workers
     )
     
     # Check API health

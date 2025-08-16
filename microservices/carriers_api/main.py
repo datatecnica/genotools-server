@@ -3,10 +3,19 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import os
 from src.core.manager import CarrierAnalysisManager
+from src.core.pipeline_config import PipelineConfig
 from src.core.recruitment_manager import create_recruitment_analyzer
 from src.core.security import get_api_key
 
 app = FastAPI()
+
+def get_default_config() -> PipelineConfig:
+    """Create a default configuration for API endpoints"""
+    return PipelineConfig(
+        mnt_dir=os.getenv('MNT_DIR', '/home/vitaled2/gcs_mounts'),
+        release=os.getenv('RELEASE', '10'),
+        max_chromosome_workers=int(os.getenv('MAX_WORKERS', '6'))
+    )
 
 @app.get("/health")
 async def health_check():
@@ -55,7 +64,7 @@ async def process_carriers(
         if parent_dir:
             os.makedirs(parent_dir, exist_ok=True)
         
-        manager = CarrierAnalysisManager()
+        manager = CarrierAnalysisManager(get_default_config())
         
         results = manager.extract_carriers(
             geno_path=request.geno_path,
@@ -202,7 +211,7 @@ async def process_imputed_carriers(
         if parent_dir:
             os.makedirs(parent_dir, exist_ok=True)
         
-        manager = CarrierAnalysisManager()
+        manager = CarrierAnalysisManager(get_default_config())
         
         results = manager.extract_carriers(
             geno_path=request.imputed_dir,
