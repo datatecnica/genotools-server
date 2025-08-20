@@ -1,4 +1,4 @@
-from .variant import Variant, VariantList, InheritancePattern
+from .variant import Variant, ProcessedVariant, VariantList, InheritancePattern
 from .carrier import (
     Genotype, 
     GenotypeValue,
@@ -16,9 +16,16 @@ from .analysis import (
 )
 from .key_model import KeyRecord
 from .snp_model import SNPRecord
+from .genotype import (
+    GenotypeRecord,
+    GenotypeData,
+    GenotypeCallFormat,
+    CarrierStatus
+)
 
 __all__ = [
     "Variant",
+    "ProcessedVariant", 
     "VariantList",
     "InheritancePattern",
     "Genotype",
@@ -33,5 +40,9 @@ __all__ = [
     "AnalysisMetadata",
     "AnalysisResult",
     "KeyRecord",
-    "SNPRecord"
+    "SNPRecord",
+    "GenotypeRecord",
+    "GenotypeData",
+    "GenotypeCallFormat",
+    "CarrierStatus"
 ]

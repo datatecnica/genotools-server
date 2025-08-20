@@ -49,11 +49,11 @@ class Settings(BaseModel):
     
     @cached_property
     def carriers_path(self) -> str:
-        return os.path.join(self.mnt_path, "genotools_server", "carriers")
+        return os.path.join(self.mnt_path, "genotools_server", "precision_med")
     
     @cached_property
     def snp_list_path(self) -> str:
-        return os.path.join(self.carriers_path, "summary_data", "carriers_snp_list.csv")
+        return os.path.join(self.carriers_path, "summary_data", "precision_med_snp_list.csv")
     
     @cached_property
     def release_path(self) -> str:
@@ -76,7 +76,7 @@ class Settings(BaseModel):
             self.carriers_path,
             "wgs",
             "raw_genotypes",
-            f"R{self.release}_wgs_carrier_vars"
+            f"R{self.release}_wgs_carriers_vars"
         )
         return base_path
     

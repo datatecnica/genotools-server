@@ -11,51 +11,169 @@ class InheritancePattern(str, Enum):
 
 
 class Variant(BaseModel):
-    chromosome: str = Field(..., description="Chromosome (1-22, X, Y, MT)")
-    position: int = Field(..., ge=0, description="Genomic position (0-based)")
-    ref: str = Field(..., min_length=1, description="Reference allele")
-    alt: str = Field(..., min_length=1, description="Alternative allele")
-    gene: str = Field(..., min_length=1, description="Gene symbol")
+    """Model for input genomic variants from SNP lists (pre-extraction)"""
+    
+    # Variant annotation (from SNP list)
+    snp_name: Optional[str] = Field(None, description="SNP name (e.g., G2019S)")
+    snp_name_alt: Optional[str] = Field(None, description="Alternative SNP name (e.g., p.Gly2019Ser)")
+    locus: str = Field(..., description="Gene locus/symbol")
     rsid: Optional[str] = Field(None, description="dbSNP RS ID")
-    inheritance_pattern: InheritancePattern = Field(..., description="Inheritance pattern")
     
-    @field_validator('chromosome')
-    @classmethod
-    def validate_chromosome(cls, v: str) -> str:
-        valid_chroms = [str(i) for i in range(1, 23)] + ['X', 'Y', 'MT']
-        if v not in valid_chroms:
-            raise ValueError(f"Invalid chromosome: {v}. Must be one of {valid_chroms}")
-        return v
+    # Genome coordinates
+    hg38: str = Field(..., description="HG38 genome coordinates (chr:pos:ref:alt)")
+    hg19: str = Field(..., description="HG19 genome coordinates (chr:pos:ref:alt)")
     
-    @field_validator('ref', 'alt')
-    @classmethod
-    def validate_allele(cls, v: str) -> str:
-        valid_bases = set('ACGTMRWSYKVHDBN-')
-        if not all(c.upper() in valid_bases for c in v):
-            raise ValueError(f"Invalid allele: {v}. Must contain only valid nucleotide codes")
-        return v.upper()
+    # Clinical/submission metadata
+    ancestry: Optional[str] = Field(None, description="Ancestry information")
+    precision_medicine: Optional[str] = Field(None, description="Precision medicine flag")
+    pipeline: Optional[str] = Field(None, description="Pipeline information")
+    submitter_email: Optional[str] = Field(None, description="Submitter email")
+    
+    # Computed properties from coordinates
+    @property
+    def chromosome(self) -> str:
+        """Extract chromosome from HG38 coordinates"""
+        return self.hg38.split(':')[0].replace('chr', '')
+    
+    @property
+    def position(self) -> int:
+        """Extract position from HG38 coordinates"""
+        return int(self.hg38.split(':')[1])
+    
+    @property
+    def ref(self) -> str:
+        """Extract reference allele from HG38 coordinates"""
+        return self.hg38.split(':')[2]
+    
+    @property
+    def alt(self) -> str:
+        """Extract alternative allele from HG38 coordinates"""
+        return self.hg38.split(':')[3]
     
     @field_validator('rsid')
     @classmethod
     def validate_rsid(cls, v: Optional[str]) -> Optional[str]:
-        if v and not v.startswith('rs'):
+        if v is None or v == '.' or v == 'NaN':
+            return None
+        if not v.startswith('rs'):
             raise ValueError(f"Invalid rsid: {v}. Must start with 'rs'")
+        return v
+    
+    @field_validator('precision_medicine')
+    @classmethod
+    def normalize_precision_medicine(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == 'NaN':
+            return None
         return v
     
     @property
     def variant_id(self) -> str:
-        return f"{self.chromosome}:{self.position}:{self.ref}:{self.alt}"
+        """Generate variant ID from HG38 coordinates"""
+        return self.hg38
+    
+    @property
+    def gene_symbol(self) -> str:
+        """Return gene symbol"""
+        return self.locus
     
     model_config = ConfigDict(
+        populate_by_name=True,
         json_schema_extra={
             "example": {
-                "chromosome": "1",
-                "position": 762273,
-                "ref": "G",
-                "alt": "A",
-                "gene": "BRCA2",
-                "rsid": "rs121913023",
-                "inheritance_pattern": "AD"
+                "snp_name": "G2019S",
+                "snp_name_alt": "p.Gly2019Ser",
+                "locus": "LRRK2",
+                "rsid": "rs34637584",
+                "hg38": "12:40340400:G:A",
+                "hg19": "12:40734202:G:A",
+                "ancestry": "multi",
+                "precision_medicine": "yes",
+                "submitter_email": "lara.lange@nih.gov"
+            }
+        }
+    )
+
+
+class ProcessedVariant(BaseModel):
+    """Model for variants after PLINK processing with population statistics"""
+    
+    # Variant identification
+    id: str = Field(..., description="Variant ID in format chr:pos:ref:alt")
+    snp_name: Optional[str] = Field(None, description="SNP name (e.g., G2019S)")
+    snp_name_alt: Optional[str] = Field(None, description="Alternative SNP name (e.g., p.Gly2019Ser)")
+    locus: str = Field(..., description="Gene locus/symbol")
+    rsid: Optional[str] = Field(None, description="dbSNP RS ID")
+    
+    # Genomic coordinates
+    hg38: str = Field(..., description="HG38 genome coordinates")
+    hg19: str = Field(..., description="HG19 genome coordinates")
+    chrom: int = Field(..., description="Chromosome number")
+    pos: int = Field(..., description="Position")
+    a1: str = Field(..., description="Allele 1 (reference)")
+    a2: str = Field(..., description="Allele 2 (alternate)")
+    
+    # Clinical metadata
+    ancestry: Optional[str] = Field(None, description="Ancestry information")
+    submitter_email: Optional[str] = Field(None, description="Submitter email")
+    precision_medicine: Optional[str] = Field(None, description="Precision medicine flag")
+    pipeline: Optional[str] = Field(None, description="Pipeline information")
+    
+    # Population statistics (from PLINK output)
+    ALT_FREQS: float = Field(..., description="Alternative allele frequency")
+    OBS_CT: int = Field(..., description="Observation count (number of samples)")
+    F_MISS: float = Field(..., description="Missing data frequency")
+    
+    @property
+    def chromosome(self) -> str:
+        """Get chromosome as string"""
+        return str(self.chrom)
+    
+    @property
+    def position(self) -> int:
+        """Get position"""
+        return self.pos
+    
+    @property
+    def ref(self) -> str:
+        """Get reference allele"""
+        return self.a1
+    
+    @property
+    def alt(self) -> str:
+        """Get alternative allele"""
+        return self.a2
+    
+    @property
+    def variant_id(self) -> str:
+        """Get variant ID"""
+        return self.id
+    
+    @property
+    def gene_symbol(self) -> str:
+        """Get gene symbol"""
+        return self.locus
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "example": {
+                "id": "chr12:40340400:G:A",
+                "snp_name": "G2019S",
+                "snp_name_alt": "p.Gly2019Ser",
+                "locus": "LRRK2",
+                "rsid": "rs34637584",
+                "hg38": "12:40340400:G:A",
+                "hg19": "12:40734202:G:A",
+                "chrom": 12,
+                "pos": 40340400,
+                "a1": "G",
+                "a2": "A",
+                "ancestry": "multi",
+                "precision_medicine": "yes",
+                "submitter_email": "lara.lange@nih.gov",
+                "ALT_FREQS": 0.023191,
+                "OBS_CT": 41956,
+                "F_MISS": 0.002757
             }
         }
     )
