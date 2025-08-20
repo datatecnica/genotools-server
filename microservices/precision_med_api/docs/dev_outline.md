@@ -1,246 +1,255 @@
-# Genomic Carrier Screening FastAPI Application
+# Updated Development Plan - Genomic Carrier Screening API
 
-## Project Overview
-A production-ready FastAPI application for genomic carrier screening analysis that processes variant data from multiple sources (NBA, WGS, and imputed genotype data), identifies carriers of pathogenic variants, and provides ancestry-stratified reporting with statistical analysis.
+## 📋 Development Progress Checklist
 
-## Core Objectives
-1. Process ~400 pathogenic SNPs across multiple data types and ancestries
-2. Harmonize variants to reference genome (build 38)
-3. Identify carriers with statistical validation
-4. Provide real-time analysis through REST API
-5. Support background processing for large-scale batch analysis
-6. Generate comprehensive carrier reports with ancestry stratification
+### Phase 1: Foundation
+- [x] **Component 1**: Data Models & Validation (variant.py, carrier.py, analysis.py)
+- [x] **Component 2**: Configuration Management (config.py with path methods)  
+- [x] **Component 3**: File Discovery System (file detection and validation)
 
-## Technical Architecture
+### Phase 2: Core Processing (Current Focus)
+- [ ] **Component 4**: Variant Index Cache System (cache.py)
+- [ ] **Component 5**: Variant Extraction Engine (extractor.py)
+- [ ] **Component 6**: Harmonization Pipeline (harmonizer.py)
 
-### Data Sources
-- **NBA (NeuroBooster Array)**: Split by ancestry
-- **WGS (Whole Genome Sequencing)**: No split
-- **Imputed**: Split by both ancestry and chromosome (11 ancestries × 22 chromosomes)
+### Phase 3: Analysis & Reporting
+- [ ] **Component 7**: Carrier Detection (detector.py)
+- [ ] **Component 8**: Statistical Analysis (statistics.py)
+- [ ] **Component 9**: Report Generation (reporting.py)
 
-### File Formats
-- **Input**: 
-  - PLINK 2.0 pgen/pvar/psam files for genotype data
-  - CSV files for variant lists, clinical data, and metadata
-- **Output**: 
-  - Parquet files for results, reports, and cached indexes
-  - JSON for API responses
-- **Processing**: 
-  - Parquet for intermediate data storage and caching
+### Phase 4: API & Infrastructure  
+- [ ] **Component 10**: FastAPI Endpoints (analysis.py, variants.py, reports.py)
+- [ ] **Component 11**: Background Processing (Celery tasks)
+- [ ] **Component 12**: Monitoring & Logging (Prometheus metrics)
 
-### Technology Stack
-- **Core Framework**: FastAPI with Pydantic v2
-- **Data Storage**: Parquet files (with potential PostgreSQL migration path)
-- **Caching**: Redis for API response caching
-- **Background Processing**: Celery with Redis broker
-- **File Processing**: pgenlib for PLINK files
-- **Scientific Computing**: NumPy, Pandas, SciPy
-- **Deployment**: Docker with multi-stage builds
-- **Monitoring**: Prometheus + Grafana
+---
 
-## Development Phases
+## Phase 1: Foundation ✅ COMPLETED
 
-### Phase 1: Foundation (Week 1)
-1. **Data Models & Validation**
-   - Variant, Carrier, and Report models
-   - Genomic coordinate validation
-   - Inheritance pattern enums
-   
-2. **File Discovery System**
-   - Automatic detection of available files
-   - Ancestry/chromosome mapping
-   - File integrity validation
+### Component 1: Data Models & Validation ✅
+**Implementation:** Pydantic v2 models with genomic coordinate validation
 
-3. **Configuration Management**
-   - Environment-specific configs
-   - File path management
-   - Output directory structure
-   - Parquet file organization
+**Files Created:**
+- `app/models/variant.py` - Variant, VariantList models
+- `app/models/carrier.py` - Genotype, Carrier, CarrierReport models  
+- `app/models/analysis.py` - DataType enum, AnalysisRequest, AnalysisResult models
 
-### Phase 2: Core Processing (Week 2)
-4. **Variant Index Cache**
-   - Build persistent variant ID indexes as Parquet files
-   - Store variant locations for quick lookup
-   - Reduce file reading time from days to minutes
-   - Support incremental updates to cache
-
-5. **Variant Extraction Engine**
-   - Extract variants from PLINK files
-   - Memory-efficient processing
-   - Parallel chromosome processing
-
-6. **Harmonization Pipeline**
-   - Allele harmonization to reference
-   - Strand flip detection
-   - Quality control metrics
-
-### Phase 3: Analysis & Reporting (Week 3)
-7. **Carrier Detection**
-   - Identify carriers by genotype
-   - Calculate carrier frequencies
-   - Ancestry-stratified analysis
-
-8. **Statistical Analysis**
-   - Hardy-Weinberg equilibrium testing
-   - Fisher's exact test for ancestry differences
-   - Confidence intervals
-
-9. **Report Generation**
-   - Summary statistics exported to Parquet
-   - Sample-level carrier status in Parquet format
-   - Precision medicine insights
-   - Structured output for downstream analysis
-
-### Phase 4: API & Infrastructure (Week 4)
-10. **FastAPI Endpoints**
-    - `/analyze` - Submit analysis request
-    - `/status/{job_id}` - Check job status
-    - `/results/{job_id}` - Retrieve results
-    - `/variants` - List available variants
-    - `/files` - List available genotype files
-
-11. **Background Processing**
-    - Celery task queue
-    - Progress tracking
-    - Result storage
-
-12. **Monitoring & Logging**
-    - Structured logging
-    - Performance metrics
-    - Error tracking
-
-## Key Features
-
-### Performance Optimizations
-- Variant index caching in Parquet format (reduce processing from days to minutes)
-- Memory mapping for large PLINK files
-- Concurrent processing by chromosome
-- Redis caching for frequently accessed API responses
-- Parquet columnar storage for efficient data retrieval
-- Partitioned Parquet files by ancestry/chromosome for faster queries
-
-### Data Quality & Validation
+**Key Features:**
+- Chromosome validation (1-22, X, Y, MT)
+- Inheritance pattern enums (AD/AR/XL/MT)
 - Genomic coordinate validation
-- Allele frequency checks
-- Sample quality metrics
-- Missing data handling
-- Duplicate variant detection
+- Sample ancestry tracking
 
-### Security & Compliance
-- HIPAA-compliant data handling
-- File system permissions for genomic data
-- Access control with JWT authentication
-- Audit logging for all operations
-- Secure file upload validation
-- Output file encryption options
+### Component 2: Configuration Management ✅
+**Implementation:** Settings class with computed path properties
 
-## File Structure
-```
-genomic-carrier-screening/
-├── app/
-│   ├── api/
-│   │   ├── endpoints/
-│   │   │   ├── analysis.py
-│   │   │   ├── variants.py
-│   │   │   └── reports.py
-│   │   └── dependencies.py
-│   ├── core/
-│   │   ├── config.py
-│   │   ├── security.py
-│   │   └── logging.py
-│   ├── models/
-│   │   ├── variant.py
-│   │   ├── carrier.py
-│   │   └── report.py
-│   ├── processing/
-│   │   ├── extractor.py
-│   │   ├── harmonizer.py
-│   │   ├── detector.py
-│   │   └── cache.py
-│   ├── tasks/
-│   │   ├── analysis.py
-│   │   └── reporting.py
-│   └── utils/
-│       ├── file_discovery.py
-│       ├── parquet_io.py
-│       └── statistics.py
-├── data/
-│   ├── cache/           # Variant index cache files
-│   ├── results/         # Analysis results in Parquet
-│   └── reports/         # Generated reports
-├── tests/
-├── docker/
-├── config/
-└── scripts/
+**Files Created:**
+- `app/core/config.py` - Settings class with path methods
+
+**Key Features:**
+- Environment-specific configurations
+- Dynamic path generation for NBA, WGS, Imputed data
+- Ancestry and chromosome constants
+- Clinical data path management
+
+**Path Methods:**
+```python
+settings.get_nba_path("AAC")      # NBA files by ancestry
+settings.get_wgs_path()           # WGS consolidated files  
+settings.get_imputed_path("EUR", "1")  # Imputed by ancestry + chromosome
+settings.get_clinical_paths()     # Clinical data files
 ```
 
-## Data Storage Strategy
+### Component 3: File Discovery System ✅
+**Implementation:** Automatic detection and validation of PLINK files
 
-### Current Implementation (File-Based)
-- **Input**: CSV files for variant lists and clinical data
-- **Processing**: PLINK pgen files for genotype data
-- **Cache**: Parquet files for variant indexes and intermediate results
-- **Output**: Parquet files for carrier reports and analysis results
-- **Organization**: Partitioned by release/ancestry/chromosome
+**Files Created:**
+- `app/utils/file_discovery.py` - File scanning and validation
+- `app/utils/paths.py` - PgenFileSet class for .pgen/.pvar/.psam triplets
 
-### Future Migration Path
-- PostgreSQL integration for metadata management
-- Hybrid approach: Parquet for large datasets, PostgreSQL for queries
-- Migration utilities to transfer Parquet data to database tables
-- Backward compatibility with file-based outputs
+**Key Features:**
+- Validates PLINK file triplets (.pgen/.pvar/.psam)
+- Scans available ancestries and chromosomes
+- File integrity checking
+- Missing file detection and reporting
 
-## Development Workflow with Claude Code
+---
 
-### Prompt Strategy
-Each feature will be developed with a specific, self-contained prompt that includes:
-1. **Context**: Brief description of the component's role
-2. **Requirements**: Specific technical requirements
-3. **Input/Output**: Clear data flow specification
-4. **Dependencies**: Required libraries and modules
-5. **Testing**: Unit test requirements
-6. **Error Handling**: Expected error scenarios
+## Phase 2: Core Processing (Current Focus)
 
-### Example Prompt Template
+### 🎯 Primary Objective
+Build the variant index caching system and extraction engine to reduce processing time from **days to minutes** for 400+ pathogenic SNPs across 242+ PLINK files.
+
+### Component 4: Variant Index Cache System
+**Status:** 🔄 **READY TO IMPLEMENT**
+
+**Key Performance Target:** Process 1M variants in <30 seconds, reduce file scanning from days to minutes
+
+**Implementation Priority:**
+1. `app/processing/cache.py` - CacheBuilder class with Parquet-based indexes
+2. Cache validation and staleness detection
+3. Parallel cache building for multiple ancestries/chromosomes
+4. Memory-efficient cache loading
+
+### Component 5: Variant Extraction Engine  
+**Status:** 🔄 **NEXT UP**
+
+**Key Performance Target:** Extract 400 variants from 242 files in <5 minutes, never exceed 8GB RAM
+
+**Implementation Priority:**
+1. `app/processing/extractor.py` - VariantExtractor class
+2. Memory-mapped file access for large PLINK files
+3. Batch extraction with concurrent processing
+4. Streaming genotype access for memory efficiency
+
+### Component 6: Harmonization Pipeline
+**Status:** ⏳ **PHASE 2 FINAL**
+
+**Implementation Priority:**
+1. `app/processing/harmonizer.py` - Reference genome integration
+2. Allele harmonization and strand flip detection
+3. Variant normalization for indels
+4. Quality control metrics
+
+---
+
+## Updated Technical Architecture
+
+### Performance Optimizations (Phase 2 Focus)
+- **Variant Index Caching**: Parquet-based indexes mapping variant IDs to file positions
+- **Memory Mapping**: Large PLINK file access without loading entire files
+- **Concurrent Processing**: Parallel extraction by chromosome/ancestry
+- **Streaming Interface**: Process variants in chunks to control memory usage
+
+### Data Flow (Phase 2)
 ```
-Create a [component name] for genomic carrier screening:
+PLINK Files → Cache Builder → Parquet Indexes → Variant Extractor → Harmonizer → Processed Variants
+```
 
-Context: [What this component does in the pipeline]
+### File Organization (Updated)
+```
+~/gcs_mounts/genotools_server/carriers/
+├── cache/                    # NEW: Variant index cache
+│   └── release10/
+│       ├── nba/{ancestry}_variant_index.parquet
+│       ├── wgs/wgs_variant_index.parquet
+│       └── imputed/{ancestry}/chr{chrom}_variant_index.parquet
+├── results/                  # Analysis results in Parquet
+└── reports/                  # Generated reports
+```
+
+---
+
+## Claude Code Prompt Strategy (Updated)
+
+### Phase 2 Prompt Template
+Each Phase 2 component will use this enhanced template:
+
+```
+Create [component] for genomic carrier screening (Phase 2: Core Processing):
+
+Context: [Component role in caching/extraction pipeline]
+Performance Target: [Specific speed/memory requirements]
+Cache Integration: [How component uses/builds Parquet indexes]
 
 Requirements:
-- [Specific requirement 1]
-- [Specific requirement 2]
+- [Specific technical requirements]
+- [Performance constraints]
+- [Cache dependencies]
 
 Input: [Data format and structure]
-Output: [Expected results format]
+Output: [Expected results format with Parquet schema]
 
-Dependencies: [Required libraries]
+Dependencies: [pgenlib, pandas, pyarrow for Parquet]
 
 Include:
+- Memory-efficient processing (streaming, chunking)
+- Progress tracking with tqdm
+- Cache validation and staleness checks
+- Parallel processing capabilities
 - Comprehensive error handling
-- Type hints with Pydantic models
-- Docstrings with examples
-- Unit tests with pytest
+- Unit tests with mock data
 ```
 
-## Success Metrics
-- Process 400 variants across 242 files in <1 hour (vs. days)
-- API response time <500ms for cached queries
-- Support concurrent analysis of 10+ jobs
-- 99.9% uptime for production deployment
-- Zero data integrity issues
+---
 
-## Next Steps
-1. Set up development environment
-2. Create initial project structure
-3. Implement Phase 1 foundation components
-4. Begin iterative development with Claude Code
+## Next Immediate Steps
 
-## Notes for Claude Code
-- Always use type hints and Pydantic models
-- Include comprehensive error handling
-- Write unit tests alongside implementation
-- Use async/await for I/O operations where beneficial
-- Follow genomics best practices for coordinate systems (0-based vs 1-based)
-- Optimize for large file processing (streaming, chunking, memory mapping)
-- Use Parquet for all persistent data storage with appropriate partitioning
-- Design with future PostgreSQL migration in mind (clean data access layer)
+### 1. Implement Variant Index Cache (This Week)
+- Create `CacheBuilder` class in `app/processing/cache.py`
+- Build Parquet indexes for all data types (NBA, WGS, Imputed)
+- Implement cache validation and rebuild logic
+- Add progress tracking for long-running cache builds
+
+### 2. Variant Extraction Engine (Next Week)
+- Create `VariantExtractor` class in `app/processing/extractor.py`
+- Integrate with cache system for rapid variant lookup
+- Implement memory-efficient genotype streaming
+- Add concurrent processing for multiple files
+
+### 3. Testing & Validation
+- Unit tests with mock PLINK files
+- Performance benchmarking against targets
+- Memory usage profiling
+- Integration testing with real data
+
+---
+
+## Success Metrics (Phase 2)
+
+| Metric | Target | Current Status |
+|--------|--------|----------------|
+| Cache Build Time | <30 seconds for 1M variants | 🔄 Implementing |
+| Variant Extraction | <5 minutes for 400 variants from 242 files | 🔄 Next |
+| Memory Usage | <8GB peak RAM | 🔄 To validate |
+| Cache Storage | <1GB total for all indexes | 🔄 To measure |
+
+---
+
+## Risk Mitigation
+
+### Technical Risks
+- **Large file memory usage**: Implement streaming and memory mapping
+- **Cache corruption**: Add validation and automatic rebuild
+- **Slow I/O**: Use Parquet columnar format and SSD storage
+
+### Development Risks  
+- **Complex PLINK format**: Use proven pgenlib library
+- **Performance bottlenecks**: Profile and optimize iteratively
+- **Integration complexity**: Build comprehensive test suite
+
+---
+
+## Future Phases (Post Phase 2)
+
+### Phase 3: Analysis & Reporting (Week 3)
+- Carrier detection algorithms
+- Statistical analysis (Hardy-Weinberg, Fisher's exact test)
+- Ancestry-stratified reporting
+
+### Phase 4: API & Infrastructure (Week 4) 
+- FastAPI endpoints implementation
+- Celery background processing
+- Redis caching and monitoring
+
+---
+
+## Development Environment Setup
+
+### Required for Phase 2
+```bash
+# Core dependencies
+pip install pgenlib pandas pyarrow fastapi pydantic
+
+# Development tools  
+pip install pytest tqdm black isort
+
+# Performance monitoring
+pip install memory-profiler py-spy
+```
+
+### Claude Code Integration
+- Use the project document as context for each prompt
+- Reference Phase 2 performance targets in prompts
+- Include cache integration requirements
+- Test each component independently before integration

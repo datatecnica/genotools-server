@@ -123,7 +123,7 @@ class Settings(BaseModel):
     def get_cache_path(self) -> str:
         return os.path.join(
             self.carriers_path,
-            "variant_cache"
+            "cache"
         )
     
     def get_variant_index_path(self, data_type: str, ancestry: Optional[str] = None, 
