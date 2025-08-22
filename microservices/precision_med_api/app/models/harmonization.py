@@ -122,6 +122,7 @@ class HarmonizationStats(BaseModel):
     # Processing metadata
     processing_time_seconds: Optional[float] = Field(None, description="Processing time")
     cache_file_path: Optional[str] = Field(None, description="Path to cache file")
+    harmonized_files_generated: bool = Field(False, description="Whether harmonized PLINK files were generated")
     created_at: datetime = Field(default_factory=datetime.now, description="Creation timestamp")
     
     @property

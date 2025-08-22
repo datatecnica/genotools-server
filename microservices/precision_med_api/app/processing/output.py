@@ -82,7 +82,11 @@ class TrawFormatter:
         metadata_cols = {
             'chromosome', 'variant_id', 'position', 'counted_allele', 'alt_allele',
             'harmonization_action', 'snp_list_id', 'data_type', 'ancestry',
-            'chromosome_file', 'gene', 'rsid', 'inheritance_pattern'
+            'chromosome_file', 'gene', 'rsid', 'inheritance_pattern',
+            'genotype_transform', 'pgen_variant_id', 'snp_list_a1', 'snp_list_a2',
+            'pgen_a1', 'pgen_a2', 'file_path',
+            # TRAW format columns that are not sample genotypes
+            '(C)M', 'COUNTED', 'ALT'
         }
         
         return [col for col in df.columns if col not in metadata_cols]
@@ -127,22 +131,35 @@ class TrawFormatter:
                 'alt_allele': 'ALT'
             }
             
-            # Create base TRAW structure
-            traw_output = pd.DataFrame()
+            # Build all columns efficiently using pd.concat
+            column_dfs = []
             
+            # Add mapped metadata columns
+            metadata_dict = {}
             for our_col, traw_col in column_mapping.items():
                 if our_col in traw_df.columns:
-                    traw_output[traw_col] = traw_df[our_col]
+                    metadata_dict[traw_col] = traw_df[our_col]
                 else:
-                    traw_output[traw_col] = '.'
+                    metadata_dict[traw_col] = '.'
             
             # Add genetic distance (typically 0 for SNPs)
-            traw_output['CM'] = 0
+            metadata_dict['CM'] = 0
+            
+            # Create metadata DataFrame
+            metadata_df = pd.DataFrame(metadata_dict)
+            column_dfs.append(metadata_df)
             
             # Add sample genotype columns
             sample_cols = self._get_sample_columns(traw_df)
-            for col in sample_cols:
-                traw_output[col] = traw_df[col]
+            if sample_cols:
+                sample_df = traw_df[sample_cols].copy()
+                column_dfs.append(sample_df)
+            
+            # Combine all columns at once using pd.concat
+            if column_dfs:
+                traw_output = pd.concat(column_dfs, axis=1)
+            else:
+                traw_output = metadata_df
             
             # Reorder columns
             final_columns = traw_columns + sample_cols
@@ -157,54 +174,6 @@ class TrawFormatter:
             logger.error(f"Failed to write TRAW file {output_path}: {e}")
             raise
     
-    def write_tfam(
-        self, 
-        samples: pd.DataFrame, 
-        output_path: str
-    ) -> None:
-        """
-        Write sample information to PLINK TFAM format.
-        
-        TFAM format: FID IID PID MID SEX PHENO
-        
-        Args:
-            samples: DataFrame with sample information
-            output_path: Output file path
-        """
-        try:
-            # Ensure output directory exists
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            
-            if samples.empty:
-                # Create minimal TFAM with no samples
-                tfam_df = pd.DataFrame(columns=['FID', 'IID', 'PID', 'MID', 'SEX', 'PHENO'])
-            else:
-                # Create TFAM DataFrame
-                tfam_df = pd.DataFrame()
-                
-                # Map sample columns
-                if 'sample_id' in samples.columns:
-                    tfam_df['IID'] = samples['sample_id']
-                    tfam_df['FID'] = samples.get('family_id', samples['sample_id'])
-                else:
-                    # Use index as sample IDs
-                    tfam_df['IID'] = samples.index
-                    tfam_df['FID'] = samples.index
-                
-                # Add other required columns
-                tfam_df['PID'] = samples.get('paternal_id', 0)
-                tfam_df['MID'] = samples.get('maternal_id', 0)
-                tfam_df['SEX'] = samples.get('sex', 0)  # 0=unknown, 1=male, 2=female
-                tfam_df['PHENO'] = samples.get('phenotype', -9)  # -9=missing
-            
-            # Write to file
-            tfam_df.to_csv(output_path, sep='\t', index=False, header=False)
-            
-            logger.info(f"Wrote TFAM file with {len(tfam_df)} samples to {output_path}")
-            
-        except Exception as e:
-            logger.error(f"Failed to write TFAM file {output_path}: {e}")
-            raise
     
     def write_harmonization_report(
         self, 
@@ -285,6 +254,8 @@ class TrawFormatter:
                             genotypes.append(row[col])
                     
                     if genotypes:
+                        # Convert to numeric, handling string values like "NA"
+                        genotypes = pd.to_numeric(genotypes, errors='coerce')
                         genotypes = np.array(genotypes)
                         valid_gts = genotypes[~np.isnan(genotypes)]
                         
@@ -447,13 +418,7 @@ class TrawFormatter:
                 self.write_harmonization_report(harmonization_stats, report_path)
                 output_files['harmonization_report'] = report_path
             
-            # Sample file (TFAM format)
-            sample_cols = self._get_sample_columns(formatted_df)
-            if sample_cols:
-                samples_df = pd.DataFrame({'sample_id': sample_cols})
-                tfam_path = os.path.join(output_dir, f"{base_name}.tfam")
-                self.write_tfam(samples_df, tfam_path)
-                output_files['tfam'] = tfam_path
+            # TFAM file generation removed - TRAW format is self-contained with sample IDs
                 
         except Exception as e:
             logger.error(f"Failed to write additional files: {e}")
@@ -496,6 +461,8 @@ class TrawFormatter:
                     for _, row in df.iterrows():
                         genotypes = [row[col] for col in sample_cols if pd.notna(row[col])]
                         if genotypes:
+                            # Convert to numeric, handling string values like "NA"
+                            genotypes = pd.to_numeric(genotypes, errors='coerce')
                             genotypes = np.array(genotypes)
                             valid_gts = genotypes[~np.isnan(genotypes)]
                             

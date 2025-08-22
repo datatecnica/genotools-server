@@ -219,8 +219,9 @@ class GenotypeTransformer:
         # Apply transformation
         transformed = self.apply_transformation(genotypes, action)
         
-        # Remove missing values
-        valid_gts = transformed[~np.isnan(transformed)]
+        # Remove missing values - convert to numeric first to handle mixed types
+        transformed_numeric = pd.to_numeric(transformed, errors='coerce')
+        valid_gts = transformed_numeric[~np.isnan(transformed_numeric)]
         
         if len(valid_gts) == 0:
             return {"n_samples": 0, "n_allele1": 0, "n_allele2": 0, "frequency_allele2": 0.0}

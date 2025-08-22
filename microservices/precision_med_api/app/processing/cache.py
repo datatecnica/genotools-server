@@ -13,6 +13,8 @@ from pathlib import Path
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import subprocess
+import tempfile
 
 from ..models.harmonization import (
     HarmonizationRecord, 
@@ -312,14 +314,35 @@ class CacheBuilder:
                 'snp_list_id', 'pgen_variant_id', 'chromosome', 'position',
                 'snp_list_a1', 'snp_list_a2', 'pgen_a1', 'pgen_a2',
                 'harmonization_action', 'genotype_transform', 'file_path',
-                'data_type', 'ancestry'
+                'data_type', 'ancestry', 'harmonized_file_path'
             ])
+        
+        # Generate harmonized PLINK files if we have harmonization records
+        harmonized_pgen_path = None
+        if records and self._check_plink2_availability():
+            try:
+                logger.info("Generating harmonized PLINK files...")
+                harmonized_pgen_path = self.generate_harmonized_plink_files(pgen_path, cache_df)
+                if harmonized_pgen_path:
+                    # Update cache with harmonized file path
+                    cache_df['harmonized_file_path'] = harmonized_pgen_path
+                    logger.info(f"Generated harmonized PLINK files: {harmonized_pgen_path}")
+                else:
+                    logger.warning("Failed to generate harmonized PLINK files, will use raw extraction")
+                    cache_df['harmonized_file_path'] = None
+            except Exception as e:
+                logger.error(f"Error generating harmonized PLINK files: {e}")
+                cache_df['harmonized_file_path'] = None
+        else:
+            cache_df['harmonized_file_path'] = None
         
         # Generate statistics
         stats = HarmonizationStats(total_variants=len(snp_list_norm))
         if records:
             stats.update_from_records(records)
         stats.processing_time_seconds = time.time() - start_time
+        if harmonized_pgen_path:
+            stats.harmonized_files_generated = True
         
         logger.info(f"Built cache with {len(records)} harmonized variants in {stats.processing_time_seconds:.1f}s")
         
@@ -391,6 +414,194 @@ class CacheBuilder:
         stats["chromosomes"] = chrom_counts
         
         return stats
+    
+    def _check_plink2_availability(self) -> bool:
+        """Check if PLINK 2.0 is available."""
+        try:
+            result = subprocess.run(['plink2', '--version'], 
+                                  capture_output=True, text=True, timeout=10)
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            logger.warning("PLINK 2.0 not found, harmonized PLINK files will not be generated")
+            return False
+    
+    def _get_harmonized_plink_path(self, original_pgen_path: str) -> str:
+        """Get path for harmonized PLINK files."""
+        # Place harmonized files in same directory with _harmonized suffix
+        base_path = original_pgen_path.replace('.pgen', '_harmonized')
+        return base_path
+    
+    def _create_flip_lists(self, cache_df: pd.DataFrame, temp_dir: str) -> Dict[str, str]:
+        """
+        Create flip lists for different harmonization actions.
+        
+        Args:
+            cache_df: Harmonization cache DataFrame
+            temp_dir: Temporary directory for flip list files
+            
+        Returns:
+            Dictionary mapping action to flip list file path
+        """
+        flip_files = {}
+        
+        # Group variants by harmonization action
+        action_groups = cache_df.groupby('harmonization_action')
+        
+        for action, group in action_groups:
+            if action in ['FLIP', 'FLIP_SWAP']:
+                # Create flip list file
+                flip_file = os.path.join(temp_dir, f"flip_{action.lower()}.txt")
+                variant_ids = group['pgen_variant_id'].tolist()
+                
+                with open(flip_file, 'w') as f:
+                    for var_id in variant_ids:
+                        f.write(f"{var_id}\n")
+                
+                flip_files[action] = flip_file
+                logger.debug(f"Created flip list for {action}: {len(variant_ids)} variants")
+        
+        return flip_files
+    
+    def _create_allele_lists(self, cache_df: pd.DataFrame, temp_dir: str) -> Dict[str, str]:
+        """
+        Create allele reference lists for harmonization.
+        
+        Args:
+            cache_df: Harmonization cache DataFrame
+            temp_dir: Temporary directory for allele list files
+            
+        Returns:
+            Dictionary mapping action to allele list file path
+        """
+        allele_files = {}
+        
+        # Create reference allele list for consistent orientation
+        ref_allele_file = os.path.join(temp_dir, "ref_alleles.txt")
+        
+        with open(ref_allele_file, 'w') as f:
+            for _, row in cache_df.iterrows():
+                # Write variant with reference allele from SNP list
+                f.write(f"{row['pgen_variant_id']}\t{row['snp_list_a1']}\n")
+        
+        allele_files['reference'] = ref_allele_file
+        logger.debug(f"Created reference allele list: {len(cache_df)} variants")
+        
+        return allele_files
+    
+    def generate_harmonized_plink_files(
+        self, 
+        original_pgen_path: str, 
+        cache_df: pd.DataFrame
+    ) -> Optional[str]:
+        """
+        Generate harmonized PLINK files using PLINK2 commands.
+        
+        Args:
+            original_pgen_path: Path to original PGEN file
+            cache_df: Harmonization cache DataFrame
+            
+        Returns:
+            Path to harmonized PGEN file or None if failed
+        """
+        if not self._check_plink2_availability():
+            logger.warning("PLINK2 not available, skipping harmonized PLINK generation")
+            return None
+        
+        if cache_df.empty:
+            logger.warning("Empty harmonization cache, no harmonized PLINK files to generate")
+            return None
+        
+        try:
+            # Get paths
+            original_base = original_pgen_path.replace('.pgen', '')
+            harmonized_base = self._get_harmonized_plink_path(original_pgen_path)
+            
+            # Ensure output directory exists
+            Path(harmonized_base).parent.mkdir(parents=True, exist_ok=True)
+            
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Create flip and allele lists
+                flip_files = self._create_flip_lists(cache_df, temp_dir)
+                allele_files = self._create_allele_lists(cache_df, temp_dir)
+                
+                # Start with original files
+                current_base = original_base
+                temp_base = os.path.join(temp_dir, "temp_harmonized")
+                
+                # Apply transformations step by step
+                
+                # Step 1: Apply strand flips if needed
+                if 'FLIP' in flip_files or 'FLIP_SWAP' in flip_files:
+                    # Combine all flip variants
+                    all_flip_file = os.path.join(temp_dir, "all_flips.txt")
+                    with open(all_flip_file, 'w') as outf:
+                        for action in ['FLIP', 'FLIP_SWAP']:
+                            if action in flip_files:
+                                with open(flip_files[action], 'r') as inf:
+                                    outf.write(inf.read())
+                    
+                    # Apply flips
+                    cmd_flip = [
+                        'plink2',
+                        '--pfile', current_base,
+                        '--flip', all_flip_file,
+                        '--make-pgen',
+                        '--out', f"{temp_base}_flipped"
+                    ]
+                    
+                    result = subprocess.run(cmd_flip, capture_output=True, text=True, timeout=600)
+                    if result.returncode != 0:
+                        logger.error(f"PLINK2 flip command failed: {result.stderr}")
+                        return None
+                    
+                    current_base = f"{temp_base}_flipped"
+                    logger.info("Applied strand flips to harmonized PLINK files")
+                
+                # Step 2: Set reference alleles for consistent orientation
+                if 'reference' in allele_files:
+                    cmd_ref = [
+                        'plink2',
+                        '--pfile', current_base,
+                        '--ref-allele', allele_files['reference'],
+                        '--make-pgen',
+                        '--out', harmonized_base
+                    ]
+                    
+                    result = subprocess.run(cmd_ref, capture_output=True, text=True, timeout=600)
+                    if result.returncode != 0:
+                        logger.error(f"PLINK2 ref-allele command failed: {result.stderr}")
+                        return None
+                    
+                    logger.info("Applied reference allele orientation to harmonized PLINK files")
+                else:
+                    # Just copy files if no reference alleles needed
+                    cmd_copy = [
+                        'plink2',
+                        '--pfile', current_base,
+                        '--make-pgen',
+                        '--out', harmonized_base
+                    ]
+                    
+                    result = subprocess.run(cmd_copy, capture_output=True, text=True, timeout=600)
+                    if result.returncode != 0:
+                        logger.error(f"PLINK2 copy command failed: {result.stderr}")
+                        return None
+                
+                # Verify output files exist
+                harmonized_pgen = f"{harmonized_base}.pgen"
+                harmonized_pvar = f"{harmonized_base}.pvar"
+                harmonized_psam = f"{harmonized_base}.psam"
+                
+                if all(os.path.exists(f) for f in [harmonized_pgen, harmonized_pvar, harmonized_psam]):
+                    logger.info(f"Successfully generated harmonized PLINK files: {harmonized_base}")
+                    return harmonized_pgen
+                else:
+                    logger.error("Harmonized PLINK files were not created properly")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Failed to generate harmonized PLINK files: {e}")
+            return None
     
     def _get_cache_path(self, data_type: str, release: str, ancestry: Optional[str] = None, chrom: Optional[str] = None) -> str:
         """Generate cache file path."""

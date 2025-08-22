@@ -59,7 +59,7 @@ def main():
             if 'summary' in results:
                 summary = results['summary']
                 logger.info(f"Total variants: {summary.get('total_variants', 0)}")
-                logger.info(f"Total samples: {summary.get('total_samples', 0)}")
+                logger.info(f"Total samples (actual): {summary.get('total_samples', 0)}")
         else:
             logger.error("Pipeline failed!")
             for error in results['errors']:

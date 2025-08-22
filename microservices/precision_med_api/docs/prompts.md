@@ -182,7 +182,6 @@ Possible PLINK representations:
    TrawFormatter class:
    - format_harmonized_genotypes(df: pd.DataFrame, snp_list: pd.DataFrame) -> pd.DataFrame
    - write_traw(df: pd.DataFrame, output_path: str) -> None
-   - write_tfam(samples: pd.DataFrame, output_path: str) -> None
    - write_harmonization_report(harmonization_stats: Dict, output_path: str) -> None
    
    Output specifications:

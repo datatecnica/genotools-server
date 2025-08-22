@@ -21,6 +21,7 @@ from ..models.harmonization import HarmonizationRecord, HarmonizationAction
 from ..core.config import Settings
 from ..utils.parquet_io import read_parquet, save_parquet
 from .transformer import GenotypeTransformer
+from .cache import CacheBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class VariantExtractor:
         self.cache_dir = cache_dir
         self.settings = settings
         self.transformer = GenotypeTransformer()
+        self.cache_builder = CacheBuilder(settings)
     
     def _check_plink_availability(self) -> bool:
         """Check if PLINK 2.0 is available."""
@@ -167,9 +169,9 @@ class VariantExtractor:
     def _load_harmonization_cache(self, file_path: str) -> pd.DataFrame:
         """Load harmonization cache for a specific file."""
         try:
-            # Determine cache path based on file path
+            # Determine cache path based on file path using settings method
             if "wgs" in file_path.lower():
-                cache_path = os.path.join(self.cache_dir, "wgs", "wgs_variant_harmonization.parquet")
+                cache_path = self.settings.get_harmonization_cache_path("WGS", self.settings.release)
             elif "nba" in file_path.lower() or any(anc in file_path for anc in self.settings.ANCESTRIES):
                 # Extract ancestry from path
                 ancestry = None
@@ -178,7 +180,7 @@ class VariantExtractor:
                         ancestry = anc
                         break
                 if ancestry:
-                    cache_path = os.path.join(self.cache_dir, "nba", f"{ancestry}_variant_harmonization.parquet")
+                    cache_path = self.settings.get_harmonization_cache_path("NBA", self.settings.release, ancestry)
                 else:
                     raise ValueError(f"Cannot determine ancestry from path: {file_path}")
             else:
@@ -198,18 +200,92 @@ class VariantExtractor:
                     chrom = chrom_match.group(1)
                 
                 if ancestry and chrom:
-                    cache_path = os.path.join(self.cache_dir, "imputed", ancestry, f"chr{chrom}_variant_harmonization.parquet")
+                    cache_path = self.settings.get_harmonization_cache_path("IMPUTED", self.settings.release, ancestry, chrom)
                 else:
                     raise ValueError(f"Cannot determine ancestry/chromosome from path: {file_path}")
             
             if os.path.exists(cache_path):
                 return read_parquet(cache_path)
             else:
-                logger.warning(f"Harmonization cache not found: {cache_path}")
-                return pd.DataFrame()
+                logger.info(f"Harmonization cache not found: {cache_path}")
+                logger.info("Building harmonization cache automatically...")
+                return self._build_cache_if_missing(file_path, cache_path)
                 
         except Exception as e:
             logger.error(f"Failed to load harmonization cache for {file_path}: {e}")
+            return pd.DataFrame()
+    
+    def _build_cache_if_missing(self, pgen_path: str, cache_path: str) -> pd.DataFrame:
+        """Build harmonization cache if it doesn't exist."""
+        try:
+            # Determine data type and extract metadata from path
+            if "wgs" in pgen_path.lower():
+                data_type = "WGS"
+                ancestry = None
+            elif "nba" in pgen_path.lower() or any(anc in pgen_path for anc in self.settings.ANCESTRIES):
+                data_type = "NBA"
+                ancestry = None
+                for anc in self.settings.ANCESTRIES:
+                    if anc in pgen_path:
+                        ancestry = anc
+                        break
+                if not ancestry:
+                    raise ValueError(f"Cannot determine ancestry from path: {pgen_path}")
+            else:
+                data_type = "IMPUTED"
+                ancestry = None
+                for anc in self.settings.ANCESTRIES:
+                    if anc in pgen_path:
+                        ancestry = anc
+                        break
+                if not ancestry:
+                    raise ValueError(f"Cannot determine ancestry from path: {pgen_path}")
+            
+            # Get PVAR path
+            pvar_path = pgen_path.replace('.pgen', '.pvar')
+            if not os.path.exists(pvar_path):
+                logger.error(f"PVAR file not found: {pvar_path}")
+                return pd.DataFrame()
+            
+            # Load SNP list from coordinator (we need it for cache building)
+            # For now, we'll need to accept it as a parameter or load the default
+            snp_list_path = self.settings.snp_list_path
+            if not os.path.exists(snp_list_path):
+                logger.error(f"SNP list not found: {snp_list_path}")
+                return pd.DataFrame()
+            
+            # Load and parse SNP list
+            import pandas as pd
+            snp_list = pd.read_csv(snp_list_path)
+            coords = snp_list['hg38'].str.split(':', expand=True)
+            snp_list['chromosome'] = coords[0].str.replace('chr', '').str.upper()
+            snp_list['position'] = pd.to_numeric(coords[1], errors='coerce')
+            snp_list['ref'] = coords[2].str.upper().str.strip()
+            snp_list['alt'] = coords[3].str.upper().str.strip()
+            snp_list['variant_id'] = snp_list['hg38']
+            
+            logger.info(f"Building harmonization cache for {data_type} {ancestry or ''}")
+            
+            # Build cache
+            cache_df, stats = self.cache_builder.build_harmonization_cache(
+                pvar_path=pvar_path,
+                snp_list=snp_list,
+                data_type=data_type,
+                ancestry=ancestry
+            )
+            
+            # Save cache
+            from pathlib import Path
+            Path(cache_path).parent.mkdir(parents=True, exist_ok=True)
+            cache_df.to_parquet(cache_path)
+            
+            logger.info(f"Built and saved harmonization cache: {len(cache_df)} variants")
+            logger.info(f"Cache stats: {stats}")
+            
+            return cache_df
+            
+        except Exception as e:
+            logger.error(f"Failed to build harmonization cache: {e}")
             return pd.DataFrame()
     
     def _get_extraction_plan(
@@ -338,6 +414,80 @@ class VariantExtractor:
         
         return harmonized_df
     
+    def _extract_from_harmonized_plink(
+        self, 
+        harmonized_pgen_path: str, 
+        plan_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Extract variants from harmonized PLINK files using PLINK2.
+        
+        Args:
+            harmonized_pgen_path: Path to harmonized PGEN file
+            plan_df: Extraction plan DataFrame
+            
+        Returns:
+            DataFrame with harmonized genotypes (no additional transformation needed)
+        """
+        try:
+            # Extract variant IDs we need from the harmonized file
+            pgen_variant_ids = plan_df['pgen_variant_id'].tolist()
+            
+            # Remove .pgen extension if present
+            if harmonized_pgen_path.endswith('.pgen'):
+                harmonized_base = harmonized_pgen_path[:-5]
+            else:
+                harmonized_base = harmonized_pgen_path
+            
+            # Check if PLINK is available
+            if self._check_plink_availability():
+                # Use PLINK2 to extract variants from harmonized files
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    output_prefix = os.path.join(temp_dir, "harmonized_extract")
+                    
+                    traw_file = self._extract_with_plink2(harmonized_base, pgen_variant_ids, output_prefix)
+                    
+                    if traw_file and os.path.exists(traw_file):
+                        # Read the TRAW file directly - no additional harmonization needed!
+                        traw_df = self._read_traw_file(traw_file)
+                        
+                        # Add metadata from plan
+                        if not traw_df.empty:
+                            # Create mapping from pgen_variant_id to metadata
+                            metadata_map = plan_df.set_index('pgen_variant_id')[
+                                ['snp_list_id', 'harmonization_action', 'genotype_transform']
+                            ].to_dict('index')
+                            
+                            # Add metadata columns
+                            for idx, row in traw_df.iterrows():
+                                var_id = row.get('variant_id', '')
+                                if var_id in metadata_map:
+                                    metadata = metadata_map[var_id]
+                                    traw_df.at[idx, 'snp_list_id'] = metadata['snp_list_id']
+                                    traw_df.at[idx, 'harmonization_action'] = metadata['harmonization_action']
+                                    traw_df.at[idx, 'genotype_transform'] = metadata['genotype_transform']
+                                    traw_df.at[idx, 'pgen_variant_id'] = var_id
+                            
+                            # Add allele information
+                            traw_df['counted_allele'] = traw_df.get('COUNTED', '.')
+                            traw_df['alt_allele'] = traw_df.get('ALT', '.')
+                            
+                            logger.info(f"Extracted {len(traw_df)} variants from harmonized PLINK files")
+                            return traw_df
+                        else:
+                            logger.warning("Empty TRAW file from harmonized PLINK extraction")
+                            return pd.DataFrame()
+                    else:
+                        logger.error("Failed to extract from harmonized PLINK files")
+                        return pd.DataFrame()
+            else:
+                logger.warning("PLINK2 not available, cannot extract from harmonized files")
+                return pd.DataFrame()
+                
+        except Exception as e:
+            logger.error(f"Error extracting from harmonized PLINK files: {e}")
+            return pd.DataFrame()
+    
     def extract_single_file_harmonized(
         self, 
         pgen_path: str, 
@@ -369,7 +519,15 @@ class VariantExtractor:
             logger.warning(f"No variants to extract from {pgen_path}")
             return pd.DataFrame()
         
-        # Extract raw genotypes
+        # Check if harmonized PLINK files are available
+        if 'harmonized_file_path' in cache_df.columns:
+            harmonized_pgen_path = cache_df['harmonized_file_path'].iloc[0]
+            if harmonized_pgen_path and os.path.exists(harmonized_pgen_path):
+                logger.info(f"Using harmonized PLINK files: {harmonized_pgen_path}")
+                return self._extract_from_harmonized_plink(harmonized_pgen_path, plan_df)
+        
+        # Fallback to traditional raw extraction + harmonization
+        logger.info("Using traditional extraction with manual harmonization")
         pgen_variant_ids = plan_df['pgen_variant_id'].tolist()
         raw_df = self._extract_raw_genotypes(pgen_path, pgen_variant_ids)
         
