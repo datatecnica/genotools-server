@@ -19,9 +19,9 @@ import time
 from ..models.analysis import DataType
 from ..models.harmonization import HarmonizationRecord, HarmonizationAction
 from ..core.config import Settings
-from ..utils.parquet_io import read_parquet, save_parquet
+from ..utils.parquet_io import save_parquet
 from .transformer import GenotypeTransformer
-from .cache import CacheBuilder
+from .harmonization import HarmonizationEngine
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +29,10 @@ logger = logging.getLogger(__name__)
 class VariantExtractor:
     """Extracts variants from PLINK files with harmonization."""
     
-    def __init__(self, cache_dir: str, settings: Settings):
-        self.cache_dir = cache_dir
+    def __init__(self, settings: Settings):
         self.settings = settings
         self.transformer = GenotypeTransformer()
-        self.cache_builder = CacheBuilder(settings)
+        self.harmonization_engine = HarmonizationEngine(settings)
     
     def _check_plink_availability(self) -> bool:
         """Check if PLINK 2.0 is available."""
@@ -166,156 +165,8 @@ class VariantExtractor:
         
         return pd.DataFrame(data)
     
-    def _load_harmonization_cache(self, file_path: str) -> pd.DataFrame:
-        """Load harmonization cache for a specific file."""
-        try:
-            # Determine cache path based on file path using settings method
-            if "wgs" in file_path.lower():
-                cache_path = self.settings.get_harmonization_cache_path("WGS", self.settings.release)
-            elif "nba" in file_path.lower() or any(anc in file_path for anc in self.settings.ANCESTRIES):
-                # Extract ancestry from path
-                ancestry = None
-                for anc in self.settings.ANCESTRIES:
-                    if anc in file_path:
-                        ancestry = anc
-                        break
-                if ancestry:
-                    cache_path = self.settings.get_harmonization_cache_path("NBA", self.settings.release, ancestry)
-                else:
-                    raise ValueError(f"Cannot determine ancestry from path: {file_path}")
-            else:
-                # Assume imputed
-                # Extract ancestry and chromosome from path
-                ancestry = None
-                chrom = None
-                for anc in self.settings.ANCESTRIES:
-                    if anc in file_path:
-                        ancestry = anc
-                        break
-                
-                # Extract chromosome
-                import re
-                chrom_match = re.search(r'chr(\d+|X|Y|MT)', file_path)
-                if chrom_match:
-                    chrom = chrom_match.group(1)
-                
-                if ancestry and chrom:
-                    cache_path = self.settings.get_harmonization_cache_path("IMPUTED", self.settings.release, ancestry, chrom)
-                else:
-                    raise ValueError(f"Cannot determine ancestry/chromosome from path: {file_path}")
-            
-            if os.path.exists(cache_path):
-                return read_parquet(cache_path)
-            else:
-                logger.info(f"Harmonization cache not found: {cache_path}")
-                logger.info("Building harmonization cache automatically...")
-                return self._build_cache_if_missing(file_path, cache_path)
-                
-        except Exception as e:
-            logger.error(f"Failed to load harmonization cache for {file_path}: {e}")
-            return pd.DataFrame()
     
-    def _build_cache_if_missing(self, pgen_path: str, cache_path: str) -> pd.DataFrame:
-        """Build harmonization cache if it doesn't exist."""
-        try:
-            # Determine data type and extract metadata from path
-            if "wgs" in pgen_path.lower():
-                data_type = "WGS"
-                ancestry = None
-            elif "nba" in pgen_path.lower() or any(anc in pgen_path for anc in self.settings.ANCESTRIES):
-                data_type = "NBA"
-                ancestry = None
-                for anc in self.settings.ANCESTRIES:
-                    if anc in pgen_path:
-                        ancestry = anc
-                        break
-                if not ancestry:
-                    raise ValueError(f"Cannot determine ancestry from path: {pgen_path}")
-            else:
-                data_type = "IMPUTED"
-                ancestry = None
-                for anc in self.settings.ANCESTRIES:
-                    if anc in pgen_path:
-                        ancestry = anc
-                        break
-                if not ancestry:
-                    raise ValueError(f"Cannot determine ancestry from path: {pgen_path}")
-            
-            # Get PVAR path
-            pvar_path = pgen_path.replace('.pgen', '.pvar')
-            if not os.path.exists(pvar_path):
-                logger.error(f"PVAR file not found: {pvar_path}")
-                return pd.DataFrame()
-            
-            # Load SNP list from coordinator (we need it for cache building)
-            # For now, we'll need to accept it as a parameter or load the default
-            snp_list_path = self.settings.snp_list_path
-            if not os.path.exists(snp_list_path):
-                logger.error(f"SNP list not found: {snp_list_path}")
-                return pd.DataFrame()
-            
-            # Load and parse SNP list
-            import pandas as pd
-            snp_list = pd.read_csv(snp_list_path)
-            coords = snp_list['hg38'].str.split(':', expand=True)
-            snp_list['chromosome'] = coords[0].str.replace('chr', '').str.upper()
-            snp_list['position'] = pd.to_numeric(coords[1], errors='coerce')
-            snp_list['ref'] = coords[2].str.upper().str.strip()
-            snp_list['alt'] = coords[3].str.upper().str.strip()
-            snp_list['variant_id'] = snp_list['hg38']
-            
-            logger.info(f"Building harmonization cache for {data_type} {ancestry or ''}")
-            
-            # Build cache
-            cache_df, stats = self.cache_builder.build_harmonization_cache(
-                pvar_path=pvar_path,
-                snp_list=snp_list,
-                data_type=data_type,
-                ancestry=ancestry
-            )
-            
-            # Save cache
-            from pathlib import Path
-            Path(cache_path).parent.mkdir(parents=True, exist_ok=True)
-            cache_df.to_parquet(cache_path)
-            
-            logger.info(f"Built and saved harmonization cache: {len(cache_df)} variants")
-            logger.info(f"Cache stats: {stats}")
-            
-            return cache_df
-            
-        except Exception as e:
-            logger.error(f"Failed to build harmonization cache: {e}")
-            return pd.DataFrame()
     
-    def _get_extraction_plan(
-        self, 
-        snp_list_ids: List[str], 
-        cache_df: pd.DataFrame
-    ) -> pd.DataFrame:
-        """
-        Get extraction plan from harmonization cache.
-        
-        Args:
-            snp_list_ids: Variant IDs from SNP list
-            cache_df: Harmonization cache DataFrame
-            
-        Returns:
-            DataFrame with extraction plan
-        """
-        if cache_df.empty:
-            return pd.DataFrame()
-        
-        # Filter cache for requested variants
-        plan_df = cache_df[cache_df['snp_list_id'].isin(snp_list_ids)].copy()
-        
-        # Only include successfully harmonized variants
-        valid_actions = [HarmonizationAction.EXACT, HarmonizationAction.SWAP, 
-                        HarmonizationAction.FLIP, HarmonizationAction.FLIP_SWAP]
-        plan_df = plan_df[plan_df['harmonization_action'].isin([a.value for a in valid_actions])]
-        
-        logger.info(f"Extraction plan: {len(plan_df)} variants from {len(snp_list_ids)} requested")
-        return plan_df
     
     def _extract_raw_genotypes(
         self, 
@@ -386,31 +237,59 @@ class VariantExtractor:
         sample_cols = [col for col in raw_df.columns if col not in metadata_cols]
         
         # Create mapping from PGEN variant ID to harmonization info
-        harm_lookup = harmonization_records.set_index('pgen_variant_id').to_dict('index')
+        # Allow multiple SNP list variants to map to the same PGEN variant (many-to-one mapping)
+        # This enables proper handling of cases like multiple probes at the same genomic position
+        if harmonization_records['pgen_variant_id'].duplicated().any():
+            logger.info(f"Found {harmonization_records['pgen_variant_id'].duplicated().sum()} SNP list variants mapping to the same PGEN variant - preserving all mappings")
         
-        # Apply transformations
-        for idx, row in harmonized_df.iterrows():
+        # Create a list-based lookup to handle multiple SNP list variants per PGEN variant
+        harm_lookup = {}
+        for _, record in harmonization_records.iterrows():
+            pgen_id = record['pgen_variant_id']
+            if pgen_id not in harm_lookup:
+                harm_lookup[pgen_id] = []
+            harm_lookup[pgen_id].append(record.to_dict())
+        
+        # Apply transformations - handle multiple SNP list variants per PGEN variant
+        transformed_rows = []
+        
+        for _, row in harmonized_df.iterrows():
             var_id = row['variant_id']
             
             if var_id in harm_lookup:
-                harm_info = harm_lookup[var_id]
-                transform = harm_info.get('genotype_transform')
-                action = harm_info.get('harmonization_action')
-                
-                # Apply transformation to all sample columns
-                for col in sample_cols:
-                    if pd.notna(row[col]):
-                        original_gt = np.array([row[col]])
-                        transformed_gt = self._apply_genotype_transform(original_gt, transform)
-                        harmonized_df.at[idx, col] = transformed_gt[0]
-                
-                # Update allele information to match SNP list
-                harmonized_df.at[idx, 'counted_allele'] = harm_info['snp_list_a1']
-                harmonized_df.at[idx, 'alt_allele'] = harm_info['snp_list_a2']
-                
-                # Add harmonization metadata
-                harmonized_df.at[idx, 'harmonization_action'] = action
-                harmonized_df.at[idx, 'snp_list_id'] = harm_info['snp_list_id']
+                # Process each harmonization record for this PGEN variant
+                for harm_info in harm_lookup[var_id]:
+                    transform = harm_info.get('genotype_transform')
+                    action = harm_info.get('harmonization_action')
+                    
+                    # Create a copy of the row for this SNP list variant
+                    transformed_row = row.copy()
+                    
+                    # Apply transformation to all sample columns
+                    for col in sample_cols:
+                        if pd.notna(row[col]):
+                            original_gt = np.array([row[col]])
+                            transformed_gt = self._apply_genotype_transform(original_gt, transform)
+                            transformed_row[col] = transformed_gt[0]
+                    
+                    # Update allele information to match SNP list
+                    transformed_row['counted_allele'] = harm_info['snp_list_a1']
+                    transformed_row['alt_allele'] = harm_info['snp_list_a2']
+                    
+                    # Add harmonization metadata
+                    transformed_row['harmonization_action'] = action
+                    transformed_row['snp_list_id'] = harm_info['snp_list_id']
+                    
+                    transformed_rows.append(transformed_row)
+        
+        # Convert list of transformed rows back to DataFrame
+        if transformed_rows:
+            harmonized_df = pd.DataFrame(transformed_rows)
+            # Reset index to avoid duplicate indices
+            harmonized_df = harmonized_df.reset_index(drop=True)
+        else:
+            # No harmonization records found, return empty DataFrame with same structure
+            harmonized_df = pd.DataFrame(columns=harmonized_df.columns)
         
         return harmonized_df
     
@@ -491,43 +370,50 @@ class VariantExtractor:
     def extract_single_file_harmonized(
         self, 
         pgen_path: str, 
-        snp_list_ids: List[str]
+        snp_list_ids: List[str],
+        snp_list_df: Optional[pd.DataFrame] = None
     ) -> pd.DataFrame:
         """
-        Extract variants from a single PLINK file with harmonization.
+        Extract variants from a single PLINK file with real-time harmonization.
         
         Args:
             pgen_path: Path to PGEN file
             snp_list_ids: List of variant IDs from SNP list
+            snp_list_df: Optional SNP list DataFrame (if not provided, will be reconstructed)
             
         Returns:
             DataFrame with harmonized genotypes
         """
         logger.info(f"Extracting {len(snp_list_ids)} variants from {pgen_path}")
         
-        # Load harmonization cache
-        cache_df = self._load_harmonization_cache(pgen_path)
-        
-        if cache_df.empty:
-            logger.warning(f"No harmonization cache found for {pgen_path}")
+        # Read PVAR file for this PLINK file
+        try:
+            pvar_df = self.harmonization_engine.read_pvar_file(pgen_path)
+        except Exception as e:
+            logger.error(f"Failed to read PVAR file for {pgen_path}: {e}")
             return pd.DataFrame()
         
-        # Get extraction plan
-        plan_df = self._get_extraction_plan(snp_list_ids, cache_df)
+        # Create SNP list DataFrame if not provided
+        if snp_list_df is None:
+            # Reconstruct from IDs (this is a fallback - ideally pass the full DataFrame)
+            snp_list_df = self._reconstruct_snp_list_from_ids(snp_list_ids)
+        
+        # Perform real-time harmonization
+        harmonization_records = self.harmonization_engine.harmonize_variants(pvar_df, snp_list_df)
+        
+        if not harmonization_records:
+            logger.warning(f"No variants harmonized for {pgen_path}")
+            return pd.DataFrame()
+        
+        # Convert to extraction plan DataFrame
+        plan_df = self._harmonization_records_to_plan_df(harmonization_records, snp_list_ids)
         
         if plan_df.empty:
             logger.warning(f"No variants to extract from {pgen_path}")
             return pd.DataFrame()
         
-        # Check if harmonized PLINK files are available
-        if 'harmonized_file_path' in cache_df.columns:
-            harmonized_pgen_path = cache_df['harmonized_file_path'].iloc[0]
-            if harmonized_pgen_path and os.path.exists(harmonized_pgen_path):
-                logger.info(f"Using harmonized PLINK files: {harmonized_pgen_path}")
-                return self._extract_from_harmonized_plink(harmonized_pgen_path, plan_df)
-        
-        # Fallback to traditional raw extraction + harmonization
-        logger.info("Using traditional extraction with manual harmonization")
+        # Use traditional raw extraction + harmonization (no pre-harmonized files in cache-free approach)
+        logger.info("Using real-time extraction with harmonization")
         pgen_variant_ids = plan_df['pgen_variant_id'].tolist()
         raw_df = self._extract_raw_genotypes(pgen_path, pgen_variant_ids)
         
@@ -540,6 +426,58 @@ class VariantExtractor:
         
         logger.info(f"Extracted and harmonized {len(harmonized_df)} variants from {pgen_path}")
         return harmonized_df
+    
+    def _reconstruct_snp_list_from_ids(self, snp_list_ids: List[str]) -> pd.DataFrame:
+        """
+        Reconstruct SNP list DataFrame from variant IDs.
+        This is a fallback method - ideally the full SNP list should be passed.
+        """
+        data = []
+        for variant_id in snp_list_ids:
+            try:
+                # Parse variant ID format: chr:pos:ref:alt
+                parts = variant_id.split(':')
+                if len(parts) >= 4:
+                    data.append({
+                        'variant_id': variant_id,
+                        'chromosome': parts[0],
+                        'position': int(parts[1]),
+                        'ref': parts[2],
+                        'alt': parts[3]
+                    })
+            except Exception as e:
+                logger.warning(f"Failed to parse variant ID {variant_id}: {e}")
+        
+        return pd.DataFrame(data)
+    
+    def _harmonization_records_to_plan_df(
+        self, 
+        records: List[HarmonizationRecord], 
+        requested_snp_ids: List[str]
+    ) -> pd.DataFrame:
+        """
+        Convert harmonization records to extraction plan DataFrame.
+        """
+        plan_data = []
+        
+        for record in records:
+            if record.snp_list_id in requested_snp_ids:
+                plan_data.append({
+                    'snp_list_id': record.snp_list_id,
+                    'pgen_variant_id': record.pgen_variant_id,
+                    'harmonization_action': record.harmonization_action.value,
+                    'genotype_transform': record.genotype_transform,
+                    'chromosome': record.chromosome,
+                    'position': record.position,
+                    'snp_list_a1': record.snp_list_a1,
+                    'snp_list_a2': record.snp_list_a2,
+                    'pgen_a1': record.pgen_a1,
+                    'pgen_a2': record.pgen_a2
+                })
+        
+        plan_df = pd.DataFrame(plan_data)
+        logger.info(f"Created extraction plan for {len(plan_df)} variants")
+        return plan_df
     
     def extract_nba(
         self, 
@@ -689,9 +627,12 @@ class VariantExtractor:
         data_type_priority = {'WGS': 3, 'NBA': 2, 'IMPUTED': 1}
         merged_df['priority'] = merged_df['data_type'].map(data_type_priority)
         
-        # Sort by priority and keep first occurrence
+        # Sort by priority and keep first occurrence for true duplicates
         merged_df = merged_df.sort_values('priority', ascending=False)
-        merged_df = merged_df.drop_duplicates(subset=['snp_list_id'], keep='first')
+        # Use SNP list ID, chromosome, position, and alleles to identify true duplicates
+        # This prevents excluding different SNP list variants at the same position (e.g., V499L vs V499M)
+        dedup_columns = ['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele']
+        merged_df = merged_df.drop_duplicates(subset=dedup_columns, keep='first')
         merged_df = merged_df.drop(columns=['priority'])
         
         logger.info(f"Merged to {len(merged_df)} unique variants")

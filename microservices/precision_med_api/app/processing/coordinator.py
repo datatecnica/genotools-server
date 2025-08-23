@@ -23,7 +23,7 @@ from ..utils.paths import PgenFileSet
 from .extractor import VariantExtractor
 from .transformer import GenotypeTransformer
 from .output import TrawFormatter
-from .cache import CacheBuilder
+from .harmonization import HarmonizationEngine
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class ExtractionCoordinator:
         self.transformer = transformer
         self.settings = settings
         self.formatter = TrawFormatter()
-        self.cache_builder = CacheBuilder(settings)
+        self.harmonization_engine = HarmonizationEngine(settings)
     
     def load_snp_list(self, file_path: str) -> pd.DataFrame:
         """
@@ -226,6 +226,7 @@ class ExtractionCoordinator:
     def execute_harmonized_extraction(
         self, 
         plan: ExtractionPlan, 
+        snp_list_df: pd.DataFrame,
         parallel: bool = True,
         max_workers: int = 4
     ) -> pd.DataFrame:
@@ -234,6 +235,7 @@ class ExtractionCoordinator:
         
         Args:
             plan: ExtractionPlan with file paths and variants
+            snp_list_df: SNP list DataFrame for harmonization
             parallel: Whether to run extractions in parallel
             max_workers: Maximum parallel workers
             
@@ -253,7 +255,8 @@ class ExtractionCoordinator:
                         self._extract_data_type,
                         data_type,
                         plan.snp_list_ids,
-                        plan.get_files_for_data_type(data_type)
+                        plan.get_files_for_data_type(data_type),
+                        snp_list_df
                     ): data_type
                     for data_type in plan.data_types
                 }
@@ -272,7 +275,7 @@ class ExtractionCoordinator:
             for data_type in plan.data_types:
                 try:
                     files = plan.get_files_for_data_type(data_type)
-                    result_df = self._extract_data_type(data_type, plan.snp_list_ids, files)
+                    result_df = self._extract_data_type(data_type, plan.snp_list_ids, files, snp_list_df)
                     if not result_df.empty:
                         all_results.append(result_df)
                         logger.info(f"Completed extraction for {data_type}: {len(result_df)} variants")
@@ -294,7 +297,8 @@ class ExtractionCoordinator:
         self, 
         data_type: str, 
         snp_list_ids: List[str], 
-        files: List[str]
+        files: List[str],
+        snp_list_df: pd.DataFrame
     ) -> pd.DataFrame:
         """Extract variants from a specific data type using the provided file list."""
         all_dfs = []
@@ -302,7 +306,7 @@ class ExtractionCoordinator:
         for file_path in files:
             try:
                 # Extract from individual file
-                df = self.extractor.extract_single_file_harmonized(file_path, snp_list_ids)
+                df = self.extractor.extract_single_file_harmonized(file_path, snp_list_ids, snp_list_df)
                 if not df.empty:
                     df['data_type'] = data_type
                     
@@ -438,7 +442,7 @@ class ExtractionCoordinator:
     
     def _generate_harmonization_summary_from_plan(self, plan: ExtractionPlan) -> Dict[str, Any]:
         """
-        Generate harmonization summary from extraction plan without full DataFrame extraction.
+        Generate harmonization summary from extraction plan in cache-free mode.
         
         Args:
             plan: ExtractionPlan with file information
@@ -447,115 +451,21 @@ class ExtractionCoordinator:
             Summary dictionary with statistics
         """
         summary = {
-            "total_variants": 0,
-            "total_samples": 0,
-            "unique_variants": 0,
+            "total_variants": len(plan.snp_list_ids),
+            "total_samples": plan.expected_total_samples,
+            "unique_variants": len(plan.snp_list_ids),
             "extraction_timestamp": datetime.now().isoformat(),
             "harmonization_actions": {},
             "by_data_type": {},
             "by_ancestry": {},
-            "by_chromosome": {}
+            "by_chromosome": {},
+            "harmonized_files_available": False,
+            "export_method": "cache_free_realtime"
         }
-        
-        all_harmonization_records = []
-        
-        # Collect harmonization info from all files in the plan
-        for data_type in plan.data_types:
-            files = plan.get_files_for_data_type(data_type)
-            data_type_variants = 0
-            
-            for file_path in files:
-                try:
-                    cache_df = self.extractor._load_harmonization_cache(file_path)
-                    if not cache_df.empty:
-                        # Filter cache for requested variants
-                        plan_df = self.extractor._get_extraction_plan(plan.snp_list_ids, cache_df)
-                        if not plan_df.empty:
-                            all_harmonization_records.append(plan_df)
-                            data_type_variants += len(plan_df)
-                            
-                            # Count by ancestry
-                            if 'ancestry' in plan_df.columns:
-                                for ancestry in plan_df['ancestry'].dropna().unique():
-                                    summary['by_ancestry'][ancestry] = summary['by_ancestry'].get(ancestry, 0) + len(plan_df[plan_df['ancestry'] == ancestry])
-                            
-                            # Count by chromosome
-                            if 'chromosome' in plan_df.columns:
-                                for chrom in plan_df['chromosome'].astype(str).unique():
-                                    summary['by_chromosome'][chrom] = summary['by_chromosome'].get(chrom, 0) + len(plan_df[plan_df['chromosome'].astype(str) == chrom])
-                except Exception as e:
-                    logger.error(f"Error processing harmonization cache for {file_path}: {e}")
-            
-            if data_type_variants > 0:
-                summary['by_data_type'][data_type] = data_type_variants
-        
-        # Combine all harmonization records
-        if all_harmonization_records:
-            combined_df = pd.concat(all_harmonization_records, ignore_index=True)
-            
-            # Remove duplicates based on snp_list_id
-            combined_df = combined_df.drop_duplicates(subset=['snp_list_id'], keep='first')
-            
-            summary['total_variants'] = len(combined_df)
-            summary['unique_variants'] = combined_df['snp_list_id'].nunique()
-            
-            # Harmonization action counts
-            if 'harmonization_action' in combined_df.columns:
-                action_counts = combined_df['harmonization_action'].value_counts().to_dict()
-                summary['harmonization_actions'] = action_counts
-                
-                # Calculate harmonization rates
-                total_with_action = sum(action_counts.values())
-                for action, count in action_counts.items():
-                    summary[f'rate_{action.lower()}'] = count / total_with_action if total_with_action > 0 else 0
-            
-            # Get actual sample counts from PLINK files
-            actual_sample_count = 0
-            sample_counts_by_file = {}
-            
-            for data_type in plan.data_types:
-                files = plan.get_files_for_data_type(data_type)
-                for file_path in files:
-                    try:
-                        # Get base path by removing .pgen extension
-                        base_path = file_path.replace('.pgen', '') if file_path.endswith('.pgen') else file_path
-                        pgen_set = PgenFileSet(
-                            base_path=base_path,
-                            pgen_file=f"{base_path}.pgen",
-                            pvar_file=f"{base_path}.pvar", 
-                            psam_file=f"{base_path}.psam"
-                        )
-                        file_sample_count = pgen_set.get_sample_count()
-                        sample_counts_by_file[file_path] = file_sample_count
-                        # For multiple files, we don't sum them since they're separate analyses
-                        # We take the max as they should all have the same samples for NBA
-                        actual_sample_count = max(actual_sample_count, file_sample_count)
-                    except Exception as e:
-                        logger.warning(f"Could not get sample count from {file_path}: {e}")
-            
-            # Use actual sample count if available, otherwise fall back to estimate
-            summary['total_samples'] = actual_sample_count if actual_sample_count > 0 else plan.expected_total_samples
-            
-            # Add harmonized files info
-            harmonized_files_available = False
-            for data_type in plan.data_types:
-                files = plan.get_files_for_data_type(data_type)
-                for file_path in files:
-                    cache_df = self.extractor._load_harmonization_cache(file_path)
-                    if not cache_df.empty and 'harmonized_file_path' in cache_df.columns:
-                        harmonized_pgen = cache_df['harmonized_file_path'].iloc[0]
-                        if harmonized_pgen and os.path.exists(harmonized_pgen):
-                            harmonized_files_available = True
-                            break
-                if harmonized_files_available:
-                    break
-            
-            summary['harmonized_files_available'] = harmonized_files_available
-            summary['export_method'] = 'native_plink' if harmonized_files_available else 'traditional'
         
         return summary
     
-    def export_results_with_native_plink(
+    def export_results_cache_free(
         self, 
         plan: ExtractionPlan,
         output_dir: str,
@@ -565,7 +475,7 @@ class ExtractionCoordinator:
         harmonization_summary: Optional[Dict[str, Any]] = None
     ) -> Dict[str, str]:
         """
-        Export results using PLINK's native export when harmonized files are available.
+        Export results using cache-free real-time harmonization.
         
         Args:
             plan: ExtractionPlan with file information
@@ -587,52 +497,27 @@ class ExtractionCoordinator:
         
         output_files = {}
         
-        # Check if we can use native PLINK export
+        # Cache-free mode: always use traditional extraction
+        
+        # Cache-free mode always uses traditional extraction
         can_use_native_export = False
-        harmonized_files = []
         
-        # Check each data source for harmonized files
-        for data_type in plan.data_types:
-            files = plan.get_files_for_data_type(data_type)
-            for file_path in files:
-                cache_df = self.extractor._load_harmonization_cache(file_path)
-                if not cache_df.empty and 'harmonized_file_path' in cache_df.columns:
-                    harmonized_pgen = cache_df['harmonized_file_path'].iloc[0]
-                    if harmonized_pgen and os.path.exists(harmonized_pgen):
-                        harmonized_files.append(harmonized_pgen)
-                        can_use_native_export = True
-        
-        if can_use_native_export and 'traw' in formats:
-            logger.info("Using PLINK native TRAW export from harmonized files")
-            try:
-                # Use PLINK2 to export TRAW directly from harmonized files
-                if len(harmonized_files) == 1:
-                    # Single file export
-                    native_traw_path = self._export_native_traw_single(
-                        harmonized_files[0], output_dir, base_name, plan.snp_list_ids
-                    )
-                    if native_traw_path:
-                        output_files['traw'] = native_traw_path
-                        logger.info(f"Generated native TRAW file: {native_traw_path}")
-                else:
-                    # Multi-file export (need to merge)
-                    native_traw_path = self._export_native_traw_merged(
-                        harmonized_files, output_dir, base_name, plan.snp_list_ids
-                    )
-                    if native_traw_path:
-                        output_files['traw'] = native_traw_path
-                        logger.info(f"Generated merged native TRAW file: {native_traw_path}")
-                        
-            except Exception as e:
-                logger.error(f"Failed to generate native TRAW export: {e}")
-                logger.info("Falling back to traditional DataFrame-based export")
-                can_use_native_export = False
-        
-        # If native export failed or not available, fall back to traditional approach
-        if not can_use_native_export or 'traw' not in output_files:
+        # Cache-free mode: always use traditional DataFrame-based export
+        if True:  # Always use traditional approach in cache-free mode
             logger.info("Using traditional DataFrame-based export")
             # Extract using traditional method
-            extracted_df = self.execute_harmonized_extraction(plan, parallel=True, max_workers=4)
+            extracted_df = self.execute_harmonized_extraction(plan, snp_list, parallel=True, max_workers=4)
+            
+            # Update harmonization summary with actual counts from extracted data
+            if harmonization_summary and not extracted_df.empty:
+                # Get actual counts from extracted data
+                sample_cols = self.formatter._get_sample_columns(extracted_df)
+                actual_sample_count = len(sample_cols)
+                actual_variant_count = len(extracted_df)
+                
+                # Update summary with actual counts
+                harmonization_summary['total_samples'] = actual_sample_count
+                harmonization_summary['total_variants'] = actual_variant_count
             
             # Use traditional export
             traditional_output_files = self.export_results(
@@ -646,22 +531,7 @@ class ExtractionCoordinator:
             output_files.update(traditional_output_files)
             return output_files
         
-        # For other formats, still need to extract DataFrame
-        if any(fmt in formats for fmt in ['parquet', 'csv', 'json']):
-            extracted_df = self.execute_harmonized_extraction(plan, parallel=True, max_workers=4)
-            
-            # Export other formats using traditional methods
-            other_formats = [fmt for fmt in formats if fmt != 'traw']
-            if other_formats:
-                other_output_files = self.formatter.export_multiple_formats(
-                    df=extracted_df,
-                    output_dir=output_dir,
-                    base_name=base_name,
-                    formats=other_formats,
-                    snp_list=snp_list,
-                    harmonization_stats=harmonization_summary
-                )
-                output_files.update(other_output_files)
+        # This section is no longer needed since we always use traditional extraction above
         
         # Always generate additional metadata files
         try:
@@ -675,7 +545,7 @@ class ExtractionCoordinator:
                 # Create basic QC report from harmonization summary
                 basic_qc = harmonization_summary.copy() if harmonization_summary else {}
                 basic_qc['generation_timestamp'] = datetime.now().isoformat()
-                basic_qc['export_method'] = 'native_plink'
+                basic_qc['export_method'] = 'cache_free'
                 
                 with open(qc_path, 'w') as f:
                     import json
@@ -695,138 +565,8 @@ class ExtractionCoordinator:
         logger.info(f"Exported {len(output_files)} files using native PLINK approach")
         return output_files
     
-    def _export_native_traw_single(
-        self, 
-        harmonized_pgen_path: str, 
-        output_dir: str, 
-        base_name: str,
-        snp_list_ids: List[str]
-    ) -> Optional[str]:
-        """Export TRAW from single harmonized PLINK file."""
-        try:
-            # Remove .pgen extension
-            harmonized_base = harmonized_pgen_path.replace('.pgen', '')
-            output_path = os.path.join(output_dir, f"{base_name}.traw")
-            
-            # Create variant list file
-            with tempfile.TemporaryDirectory() as temp_dir:
-                variant_file = os.path.join(temp_dir, "variants.txt")
-                with open(variant_file, 'w') as f:
-                    for var_id in snp_list_ids:
-                        f.write(f"{var_id}\n")
-                
-                # PLINK2 command to export TRAW
-                temp_output = os.path.join(temp_dir, "export")
-                cmd = [
-                    'plink2',
-                    '--pfile', harmonized_base,
-                    '--extract', variant_file,
-                    '--export', 'A-transpose',
-                    '--out', temp_output
-                ]
-                
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-                
-                if result.returncode == 0:
-                    temp_traw = f"{temp_output}.traw"
-                    if os.path.exists(temp_traw):
-                        # Move to final location
-                        import shutil
-                        shutil.move(temp_traw, output_path)
-                        return output_path
-                    else:
-                        logger.error("TRAW file was not created by PLINK2")
-                        return None
-                else:
-                    logger.error(f"PLINK2 export failed: {result.stderr}")
-                    return None
-                    
-        except Exception as e:
-            logger.error(f"Error in native TRAW export: {e}")
-            return None
     
-    def _export_native_traw_merged(
-        self, 
-        harmonized_files: List[str], 
-        output_dir: str, 
-        base_name: str,
-        snp_list_ids: List[str]
-    ) -> Optional[str]:
-        """Export and merge TRAW from multiple harmonized PLINK files."""
-        try:
-            output_path = os.path.join(output_dir, f"{base_name}.traw")
-            
-            # Export each file separately then merge
-            traw_files = []
-            
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # Create variant list file
-                variant_file = os.path.join(temp_dir, "variants.txt")
-                with open(variant_file, 'w') as f:
-                    for var_id in snp_list_ids:
-                        f.write(f"{var_id}\n")
-                
-                # Export each harmonized file
-                for i, harmonized_pgen in enumerate(harmonized_files):
-                    harmonized_base = harmonized_pgen.replace('.pgen', '')
-                    temp_output = os.path.join(temp_dir, f"export_{i}")
-                    
-                    cmd = [
-                        'plink2',
-                        '--pfile', harmonized_base,
-                        '--extract', variant_file,
-                        '--export', 'A-transpose',
-                        '--out', temp_output
-                    ]
-                    
-                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-                    
-                    if result.returncode == 0:
-                        temp_traw = f"{temp_output}.traw"
-                        if os.path.exists(temp_traw):
-                            traw_files.append(temp_traw)
-                        else:
-                            logger.warning(f"TRAW file not created for {harmonized_pgen}")
-                    else:
-                        logger.error(f"PLINK2 export failed for {harmonized_pgen}: {result.stderr}")
-                
-                # Merge TRAW files
-                if traw_files:
-                    self._merge_traw_files(traw_files, output_path)
-                    return output_path
-                else:
-                    logger.error("No TRAW files were successfully created")
-                    return None
-                    
-        except Exception as e:
-            logger.error(f"Error in merged TRAW export: {e}")
-            return None
     
-    def _merge_traw_files(self, traw_files: List[str], output_path: str) -> None:
-        """Merge multiple TRAW files into one."""
-        try:
-            # Read all TRAW files
-            dfs = []
-            for traw_file in traw_files:
-                df = pd.read_csv(traw_file, sep='\t', low_memory=False)
-                dfs.append(df)
-            
-            # Concatenate all DataFrames
-            if dfs:
-                merged_df = pd.concat(dfs, ignore_index=True)
-                
-                # Remove duplicates based on SNP column
-                merged_df = merged_df.drop_duplicates(subset=['SNP'], keep='first')
-                
-                # Write merged TRAW
-                merged_df.to_csv(output_path, sep='\t', index=False, na_rep='NA')
-                logger.info(f"Merged {len(traw_files)} TRAW files into {output_path}")
-            else:
-                logger.error("No TRAW files to merge")
-                
-        except Exception as e:
-            logger.error(f"Error merging TRAW files: {e}")
-            raise
     
     def export_results(
         self, 
@@ -887,7 +627,8 @@ class ExtractionCoordinator:
         ancestries: Optional[List[str]] = None,
         output_formats: List[str] = ['traw', 'parquet'],
         parallel: bool = True,
-        max_workers: int = 4
+        max_workers: int = 4,
+        output_name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Run complete extraction pipeline from SNP list to final output.
@@ -900,14 +641,20 @@ class ExtractionCoordinator:
             output_formats: Output formats
             parallel: Use parallel processing
             max_workers: Maximum parallel workers
+            output_name: Custom name for output files (default: auto-generated)
             
         Returns:
             Dictionary with pipeline results and metadata
         """
         pipeline_start = time.time()
-        job_id = f"extraction_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
         
-        logger.info(f"Starting full extraction pipeline: {job_id}")
+        # Use custom output name if provided, otherwise generate automatic name
+        if output_name:
+            job_id = output_name
+            logger.info(f"Starting full extraction pipeline with custom name: {job_id}")
+        else:
+            job_id = f"extraction_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+            logger.info(f"Starting full extraction pipeline: {job_id}")
         
         results = {
             'job_id': job_id,
@@ -928,13 +675,13 @@ class ExtractionCoordinator:
             logger.info("Step 2: Creating extraction plan")
             plan = self.plan_extraction(snp_list_ids, data_types, ancestries)
             
-            # Step 3: Check for harmonized files and generate summary from cache
-            logger.info("Step 3: Generating harmonization summary from cache")
+            # Step 3: Generate harmonization summary for cache-free mode
+            logger.info("Step 3: Generating harmonization summary")
             harmonization_summary = self._generate_harmonization_summary_from_plan(plan)
             
-            # Step 4: Export results (using native PLINK export when possible)
+            # Step 4: Export results using cache-free extraction
             logger.info("Step 4: Exporting results")
-            output_files = self.export_results_with_native_plink(
+            output_files = self.export_results_cache_free(
                 plan=plan,
                 output_dir=output_dir,
                 base_name=job_id,

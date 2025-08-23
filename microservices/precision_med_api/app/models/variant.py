@@ -207,24 +207,24 @@ class VariantList(BaseModel):
     def variants_by_gene(self) -> Dict[str, List[Variant]]:
         result = {}
         for variant in self.variants:
-            if variant.gene not in result:
-                result[variant.gene] = []
-            result[variant.gene].append(variant)
+            if variant.locus not in result:
+                result[variant.locus] = []
+            result[variant.locus].append(variant)
         return result
     
     @property
     def inheritance_patterns(self) -> Dict[str, int]:
+        # Note: inheritance_pattern is not part of Variant model
+        # This method would need to be updated when inheritance patterns are added
         counts = {}
-        for variant in self.variants:
-            pattern = variant.inheritance_pattern.value
-            counts[pattern] = counts.get(pattern, 0) + 1
+        # Placeholder implementation - would need to be updated based on actual data
         return counts
     
     def get_variants_for_chromosome(self, chromosome: str) -> List[Variant]:
         return [v for v in self.variants if v.chromosome == chromosome]
     
     def get_variants_for_gene(self, gene: str) -> List[Variant]:
-        return [v for v in self.variants if v.gene == gene]
+        return [v for v in self.variants if v.locus == gene]
     
     model_config = ConfigDict(
         json_schema_extra={

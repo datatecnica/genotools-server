@@ -227,43 +227,108 @@ class CacheBuilder:
                 snp_lookup[key] = []
             snp_lookup[key].append(snp)
         
-        logger.info(f"Matching {len(pvar_df)} PVAR variants against {len(snp_list)} SNP list variants")
-        
-        # Match variants
-        matched_count = 0
+        # Group PVAR variants by position to handle multi-allelic sites
+        pvar_by_position = {}
         for _, pvar_row in pvar_df.iterrows():
             pos_key = f"{pvar_row['CHROM']}:{pvar_row['POS']}"
+            if pos_key not in pvar_by_position:
+                pvar_by_position[pos_key] = []
+            pvar_by_position[pos_key].append(pvar_row)
+        
+        logger.info(f"Matching {len(pvar_df)} PVAR variants against {len(snp_list)} SNP list variants")
+        
+        # Match variants with improved multi-allelic handling
+        matched_count = 0
+        multi_allelic_count = 0
+        
+        for pos_key, pvar_variants in pvar_by_position.items():
+            if len(pvar_variants) > 1:
+                multi_allelic_count += 1
+                logger.debug(f"Multi-allelic position {pos_key}: {len(pvar_variants)} PLINK variants")
             
             if pos_key in snp_lookup:
-                # Try to match each SNP at this position
+                # Try to match each SNP at this position with each PLINK variant
                 for snp_row in snp_lookup[pos_key]:
-                    action, transform = self.harmonizer.determine_harmonization(
-                        snp_row['ref'], snp_row['alt'],
-                        pvar_row['REF'], pvar_row['ALT']
-                    )
+                    best_match = None
+                    best_score = 0
                     
-                    if action != "INVALID":
+                    for pvar_row in pvar_variants:
+                        action, transform = self.harmonizer.determine_harmonization(
+                            snp_row['ref'], snp_row['alt'],
+                            pvar_row['REF'], pvar_row['ALT']
+                        )
+                        
+                        if action != "INVALID":
+                            # Calculate quality score for this match
+                            score = self._calculate_match_quality(action, pvar_row)
+                            
+                            if score > best_score:
+                                best_score = score
+                                best_match = {
+                                    'pvar_row': pvar_row,
+                                    'action': action,
+                                    'transform': transform
+                                }
+                    
+                    # Create record for best match if found
+                    if best_match:
                         record = HarmonizationRecord(
                             snp_list_id=snp_row['variant_id'],
-                            pgen_variant_id=pvar_row['ID'],
-                            chromosome=str(pvar_row['CHROM']),
-                            position=int(pvar_row['POS']),
+                            pgen_variant_id=best_match['pvar_row']['ID'],
+                            chromosome=str(best_match['pvar_row']['CHROM']),
+                            position=int(best_match['pvar_row']['POS']),
                             snp_list_a1=snp_row['ref'],
                             snp_list_a2=snp_row['alt'],
-                            pgen_a1=pvar_row['REF'],
-                            pgen_a2=pvar_row['ALT'],
-                            harmonization_action=HarmonizationAction(action),
-                            genotype_transform=transform,
+                            pgen_a1=best_match['pvar_row']['REF'],
+                            pgen_a2=best_match['pvar_row']['ALT'],
+                            harmonization_action=HarmonizationAction(best_match['action']),
+                            genotype_transform=best_match['transform'],
                             file_path="",  # Will be set by caller
                             data_type="",  # Will be set by caller
                             ancestry=None  # Will be set by caller
                         )
                         records.append(record)
                         matched_count += 1
-                        break  # Only take first match per position
         
         logger.info(f"Matched {matched_count} variants with harmonization")
+        logger.info(f"Processed {multi_allelic_count} multi-allelic positions")
         return records
+
+    def _calculate_match_quality(self, action: str, pvar_row: pd.Series) -> float:
+        """
+        Calculate quality score for a harmonization match.
+        Higher scores are better.
+        
+        Args:
+            action: Harmonization action (EXACT, FLIP, SWAP, etc.)
+            pvar_row: PVAR row data
+            
+        Returns:
+            Quality score (0-100)
+        """
+        base_scores = {
+            'EXACT': 100,
+            'FLIP': 90,
+            'SWAP': 80,
+            'FLIP_SWAP': 70,
+            'AMBIGUOUS': 20,
+            'INVALID': 0
+        }
+        
+        score = base_scores.get(action, 0)
+        
+        # Prefer rsIDs over other variant IDs
+        variant_id = str(pvar_row['ID'])
+        if variant_id.startswith('rs'):
+            score += 10
+        elif 'ilmn' in variant_id.lower():
+            score += 5
+        
+        # Prefer non-symbolic alleles
+        if pvar_row['REF'] not in ['D', 'I', 'N'] and pvar_row['ALT'] not in ['D', 'I', 'N']:
+            score += 5
+        
+        return score
     
     def build_harmonization_cache(
         self, 
