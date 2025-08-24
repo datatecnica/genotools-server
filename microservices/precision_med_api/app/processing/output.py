@@ -125,7 +125,7 @@ class TrawFormatter:
             # Map our columns to TRAW format
             column_mapping = {
                 'chromosome': 'CHR',
-                'snp_list_id': 'SNP',  # Use original SNP list ID, not PLINK variant_id
+                'variant_id': 'SNP',  # Use original PLINK variant ID from TRAW, not SNP list ID
                 'position': 'POS',
                 'counted_allele': 'COUNTED',
                 'alt_allele': 'ALT'

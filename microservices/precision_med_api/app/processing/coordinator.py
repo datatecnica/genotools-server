@@ -23,7 +23,7 @@ from ..utils.paths import PgenFileSet
 from .extractor import VariantExtractor
 from .transformer import GenotypeTransformer
 from .output import TrawFormatter
-from .harmonization import HarmonizationEngine
+from .harmonizer import HarmonizationEngine
 
 logger = logging.getLogger(__name__)
 

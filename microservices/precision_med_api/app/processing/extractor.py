@@ -21,7 +21,7 @@ from ..models.harmonization import HarmonizationRecord, HarmonizationAction
 from ..core.config import Settings
 from ..utils.parquet_io import save_parquet
 from .transformer import GenotypeTransformer
-from .harmonization import HarmonizationEngine
+from .harmonizer import HarmonizationEngine
 
 logger = logging.getLogger(__name__)
 
@@ -268,9 +268,19 @@ class VariantExtractor:
                     # Apply transformation to all sample columns
                     for col in sample_cols:
                         if pd.notna(row[col]):
-                            original_gt = np.array([row[col]])
-                            transformed_gt = self._apply_genotype_transform(original_gt, transform)
-                            transformed_row[col] = transformed_gt[0]
+                            # Convert to numeric first, handling string genotypes
+                            try:
+                                numeric_gt = pd.to_numeric(row[col], errors='coerce')
+                                if pd.notna(numeric_gt):
+                                    original_gt = np.array([numeric_gt])
+                                    transformed_gt = self._apply_genotype_transform(original_gt, transform)
+                                    transformed_row[col] = transformed_gt[0]
+                                else:
+                                    # Keep original value if conversion fails
+                                    transformed_row[col] = row[col]
+                            except Exception as e:
+                                logger.warning(f"Failed to transform genotype {row[col]} for column {col}: {e}")
+                                transformed_row[col] = row[col]
                     
                     # Update allele information to match SNP list
                     transformed_row['counted_allele'] = harm_info['snp_list_a1']
