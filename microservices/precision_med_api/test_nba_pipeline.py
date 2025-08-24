@@ -44,9 +44,9 @@ def main():
     logger = logging.getLogger(__name__)
     
     try:
-        # Initialize components for cache-free mode
+   
         settings = Settings()
-        extractor = VariantExtractor(settings)  # Cache-free mode - no cache_dir parameter needed
+        extractor = VariantExtractor(settings)
         transformer = GenotypeTransformer()
         coordinator = ExtractionCoordinator(extractor, transformer, settings)
         
