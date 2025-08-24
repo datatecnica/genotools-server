@@ -13,7 +13,7 @@ class Settings(BaseModel):
     
     # Available ancestries in GP2 data
     ANCESTRIES: List[str] = Field(
-        default=["AAC", "AJ", "CAH", "CAS", "EAS", "EUR", "FIN", "LAS", "MDE", "SAS", "SSA"],
+        default=['AAC', 'AFR', 'AJ', 'AMR', 'CAH', 'CAS', 'EAS', 'EUR', 'FIN', 'MDE', 'SAS'],
         description="Available ancestry groups"
     )
     

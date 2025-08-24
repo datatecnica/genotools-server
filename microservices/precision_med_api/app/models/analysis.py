@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from .variant import VariantList
 from .carrier import Carrier, CarrierReport
+from ..core.config import get_settings
 
 
 class DataType(str, Enum):
@@ -72,11 +73,11 @@ class AnalysisRequest(BaseModel):
     @field_validator('ancestries')
     @classmethod
     def validate_ancestries(cls, v: Optional[List[str]]) -> Optional[List[str]]:
-        valid_ancestries = ["AAC", "AJ", "CAH", "CAS", "EAS", "EUR", "FIN", "LAS", "MDE", "SAS", "SSA"]
+        settings = get_settings()
         if v:
-            invalid = [a for a in v if a not in valid_ancestries]
+            invalid = [a for a in v if a not in settings.ANCESTRIES]
             if invalid:
-                raise ValueError(f"Invalid ancestries: {invalid}. Must be one of {valid_ancestries}")
+                raise ValueError(f"Invalid ancestries: {invalid}. Must be one of {settings.ANCESTRIES}")
         return v
     
     @field_validator('chromosomes')

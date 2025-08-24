@@ -28,7 +28,7 @@ The codebase follows a modular architecture with clear separation of concerns:
 - **Key Properties**:
   - `release`: GP2 release version (default: "10")
   - `mnt_path`: Mount path for GCS buckets
-  - `ANCESTRIES`: List of 11 ancestry groups (AAC, AJ, CAH, CAS, EAS, EUR, FIN, LAS, MDE, SAS, SSA)
+  - `ANCESTRIES`: List of 11 ancestry groups ('AAC', 'AFR', 'AJ', 'AMR', 'CAH', 'CAS', 'EAS', 'EUR', 'FIN', 'MDE', 'SAS')
   - `CHROMOSOMES`: Valid chromosome identifiers (1-22, X, Y, MT)
   - `chunk_size`: Processing chunk size (default: 10000)
   - `max_workers`: Maximum parallel workers (default: 4)
