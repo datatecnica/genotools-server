@@ -126,59 +126,6 @@ class Settings(BaseModel):
             "cache"
         )
     
-    def get_variant_index_path(self, data_type: str, ancestry: Optional[str] = None, 
-                              chrom: Optional[str] = None) -> str:
-        cache_base = self.get_cache_path()
-        
-        if data_type == "WGS":
-            return os.path.join(cache_base, "wgs", "variant_index.parquet")
-        elif data_type == "NBA":
-            if not ancestry:
-                raise ValueError("Ancestry required for NBA variant index")
-            return os.path.join(cache_base, "nba", ancestry, "variant_index.parquet")
-        elif data_type == "IMPUTED":
-            if not ancestry or not chrom:
-                raise ValueError("Ancestry and chromosome required for IMPUTED variant index")
-            return os.path.join(
-                cache_base, "imputed", ancestry, f"chr{chrom}_variant_index.parquet"
-            )
-        else:
-            raise ValueError(f"Invalid data type: {data_type}")
-    
-    def get_harmonization_cache_path(self, data_type: str, release: str, 
-                                   ancestry: Optional[str] = None, 
-                                   chrom: Optional[str] = None) -> str:
-        """Get path to harmonization cache file."""
-        cache_base = os.path.join(self.get_cache_path(), f"release{release}")
-        
-        if data_type == "WGS":
-            return os.path.join(cache_base, "wgs", "wgs_variant_harmonization.parquet")
-        elif data_type == "NBA":
-            if not ancestry:
-                raise ValueError("Ancestry required for NBA harmonization cache")
-            return os.path.join(cache_base, "nba", f"{ancestry}_variant_harmonization.parquet")
-        elif data_type == "IMPUTED":
-            if not ancestry or not chrom:
-                raise ValueError("Ancestry and chromosome required for IMPUTED harmonization cache")
-            return os.path.join(
-                cache_base, "imputed", ancestry, f"chr{chrom}_variant_harmonization.parquet"
-            )
-        else:
-            raise ValueError(f"Invalid data type: {data_type}")
-    
-    def get_harmonization_cache_dir(self, data_type: str, release: str) -> str:
-        """Get directory containing harmonization cache files."""
-        cache_base = os.path.join(self.get_cache_path(), f"release{release}")
-        
-        if data_type == "WGS":
-            return os.path.join(cache_base, "wgs")
-        elif data_type == "NBA":
-            return os.path.join(cache_base, "nba")
-        elif data_type == "IMPUTED":
-            return os.path.join(cache_base, "imputed")
-        else:
-            raise ValueError(f"Invalid data type: {data_type}")
-    
     def get_pvar_file_path(self, data_type: str, ancestry: Optional[str] = None, 
                           chrom: Optional[str] = None) -> str:
         """Get path to PVAR file for given data type and parameters."""
@@ -211,31 +158,6 @@ class Settings(BaseModel):
         else:
             raise ValueError(f"Invalid data type: {data_type}")
     
-    def list_harmonization_cache_files(self, data_type: str, release: str) -> List[str]:
-        """List all harmonization cache files for a data type."""
-        cache_files = []
-        
-        if data_type == "WGS":
-            cache_path = self.get_harmonization_cache_path("WGS", release)
-            if os.path.exists(cache_path):
-                cache_files.append(cache_path)
-        
-        elif data_type == "NBA":
-            for ancestry in self.list_available_ancestries("NBA"):
-                cache_path = self.get_harmonization_cache_path("NBA", release, ancestry=ancestry)
-                if os.path.exists(cache_path):
-                    cache_files.append(cache_path)
-        
-        elif data_type == "IMPUTED":
-            for ancestry in self.list_available_ancestries("IMPUTED"):
-                for chrom in self.list_available_chromosomes(ancestry):
-                    cache_path = self.get_harmonization_cache_path(
-                        "IMPUTED", release, ancestry=ancestry, chrom=chrom
-                    )
-                    if os.path.exists(cache_path):
-                        cache_files.append(cache_path)
-        
-        return cache_files
     
     def validate_file_paths(self, data_type: str, ancestry: Optional[str] = None, 
                            chrom: Optional[str] = None) -> Dict[str, bool]:

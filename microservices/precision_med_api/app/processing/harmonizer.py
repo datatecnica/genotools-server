@@ -142,12 +142,18 @@ class HarmonizationEngine:
             
             # 4. Flip+Swap match: REF:ALT -> FLIP(ALT):FLIP(REF) (both operations)
             flip_swap_id = f"{chrom}:{pos}:{alt_flip}:{ref_flip}"
-            variant_lookup[flip_swap_id] = {
-                **base_info,
-                'match_type': 'FLIP_SWAP',
-                'harmonization_action': HarmonizationAction.FLIP_SWAP,
-                'genotype_transform': '2-x'  # Both strand flip and allele swap
-            }
+            
+            # PATCH: Prevent complement-pair collisions
+            # If FLIP_SWAP produces the same ID as EXACT, skip it to preserve EXACT
+            if flip_swap_id == exact_id:
+                logger.debug(f"Skipping FLIP_SWAP for {flip_swap_id} - would overwrite EXACT match")
+            else:
+                variant_lookup[flip_swap_id] = {
+                    **base_info,
+                    'match_type': 'FLIP_SWAP',
+                    'harmonization_action': HarmonizationAction.FLIP_SWAP,
+                    'genotype_transform': '2-x'  # Both strand flip and allele swap
+                }
         
         logger.info(f"Created variant lookup with {len(variant_lookup)} total variant representations")
         return variant_lookup

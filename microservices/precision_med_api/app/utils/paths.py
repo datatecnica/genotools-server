@@ -253,14 +253,6 @@ def create_output_directory(job_id: str, settings: Settings) -> str:
     return output_path
 
 
-def create_cache_directory(data_type: str, ancestry: Optional[str], 
-                          chrom: Optional[str], settings: Settings) -> str:
-    cache_path = os.path.dirname(
-        settings.get_variant_index_path(data_type, ancestry, chrom)
-    )
-    Path(cache_path).mkdir(parents=True, exist_ok=True)
-    return cache_path
-
 
 def get_clinical_files(settings: Settings) -> Dict[str, Tuple[str, bool]]:
     clinical_paths = settings.get_clinical_paths()

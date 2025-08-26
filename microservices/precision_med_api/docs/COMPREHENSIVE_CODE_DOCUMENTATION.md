@@ -38,7 +38,6 @@ The codebase follows a modular architecture with clear separation of concerns:
 - `get_wgs_path()`: Returns WGS file path
 - `get_imputed_path(ancestry, chrom)`: Returns imputed file path
 - `get_cache_path()`: Returns cache directory path
-- `get_harmonization_cache_path()`: Returns harmonization cache paths
 - `validate_file_paths()`: Validates PLINK file existence
 - `list_available_ancestries(data_type)`: Lists available ancestries for data type
 - `list_available_chromosomes(ancestry)`: Lists available chromosomes for ancestry
@@ -449,7 +448,6 @@ The codebase follows a modular architecture with clear separation of concerns:
 **`get_file_info()`**: Get detailed information about PLINK file set
 **`find_matching_files()`**: Find files matching criteria
 **`create_output_directory()`**: Create output directory for job
-**`create_cache_directory()`**: Create cache directory structure
 **`get_clinical_files()`**: Get clinical data file paths and existence status
 
 #### Dependencies:

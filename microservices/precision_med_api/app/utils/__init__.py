@@ -5,7 +5,6 @@ from .paths import (
     get_file_info,
     find_matching_files,
     create_output_directory,
-    create_cache_directory,
     get_clinical_files
 )
 
@@ -16,6 +15,5 @@ __all__ = [
     "get_file_info",
     "find_matching_files",
     "create_output_directory",
-    "create_cache_directory",
     "get_clinical_files"
 ]
