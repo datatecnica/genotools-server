@@ -24,7 +24,7 @@ Process ~400 pathogenic SNPs across 242+ PLINK 2.0 files (>1M variants each) fro
 - **Imputed**: 242 files (11 ancestries × 22 chromosomes)
 
 ### Technical Solution
-- **Variant Index Caching**: Parquet-based mapping of SNP list IDs to PLINK variant IDs with harmonization metadata
+- **Merge-Based Harmonization**: Direct merging of PVAR and SNP list data with real-time allele comparison
 - **Allele Harmonization**: Handle strand flips and allele swaps to ensure correct genotype extraction
 - **Memory-Efficient Processing**: Stream processing and memory mapping to stay under 8GB RAM
 - **Output**: Harmonized genotypes in PLINK TRAW format for downstream analysis
@@ -32,8 +32,8 @@ Process ~400 pathogenic SNPs across 242+ PLINK 2.0 files (>1M variants each) fro
 ### Performance Targets
 - Reduce variant extraction from **days to <10 minutes** for 400 variants across all files
 - Support concurrent analysis of 10+ jobs
-- Cache build time <30 seconds for 1M variants
-- API response time <500ms for cached queries
+- Real-time harmonization without pre-processing delays
+- API response time <500ms for variant queries
 
 ### Technology Stack
 - **Core**: FastAPI, Pydantic v2, pgenlib (PLINK file processing)
@@ -43,12 +43,12 @@ Process ~400 pathogenic SNPs across 242+ PLINK 2.0 files (>1M variants each) fro
 
 ### Current Status
 - ✅ **Phase 1 Complete**: Data models, configuration, file discovery
-- ✅ **Phase 2 Complete**: Variant cache with harmonization, extraction engine, coordination system
+- ✅ **Phase 2 Complete**: Merge-based harmonization, extraction engine, coordination system
 - 🎯 **Phase 3 Ready**: Carrier detection, statistical analysis, reporting (NEXT FOCUS)
 - ⏳ **Phase 4 Planned**: REST API endpoints, background processing, monitoring
 
 ### Phase 2 Achievements (Recently Completed)
-- ✅ Variant index caching system with Parquet storage
+- ✅ Merge-based harmonization engine with real-time processing
 - ✅ Allele harmonization engine with strand flip detection
 - ✅ Multi-source extraction engine (NBA/WGS/Imputed)
 - ✅ Genotype transformation pipeline

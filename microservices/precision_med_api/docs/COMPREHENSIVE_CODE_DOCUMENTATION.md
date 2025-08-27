@@ -333,20 +333,22 @@ The codebase follows a modular architecture with clear separation of concerns:
 #### Main Classes:
 
 **`HarmonizationEngine`**
-- **Purpose**: Enhanced harmonization engine based on proven logic
+- **Purpose**: Merge-based harmonization engine using direct allele comparison
 - **Key Features**:
-  - Pre-computing all variant representations
-  - Exact variant matching instead of position-based lookup
+  - Merges PVAR and SNP list data on chromosome and position
+  - Direct allele comparison for harmonization decisions
   - Deterministic, reproducible results
 - **Key Methods**:
   - `read_pvar_file()`: Read PVAR file for PLINK file
-  - `harmonize_variants()`: Harmonize SNP list against PLINK variants
-  - `get_harmonization_records()`: Get harmonization records for file
-- **Private Methods**: Variant lookup creation, exact matching logic
+  - `harmonize_variants()`: Harmonize variants using merge-based approach
+  - `_prepare_snp_list()`: Prepare SNP list DataFrame for merging
+  - `_merge_data()`: Merge PVAR and SNP list on chromosome/position
+  - `_harmonize_on_merged()`: Direct allele comparison on merged data
+- **Harmonization Logic**: EXACT (same alleles), SWAP (swapped alleles), FLIP (complement), FLIP_SWAP (complement + swap)
 
 #### Dependencies:
 - Standard: `os`, `pandas`, `typing`, `logging`
-- Internal: `..models.harmonization`, `..core.config`, `.cache.AlleleHarmonizer`
+- Internal: `..models.harmonization`, `..core.config`
 
 ### `/app/processing/output.py`
 
