@@ -54,6 +54,7 @@ The API supports three main types of genetic data:
    ```
    gcsfuse --implicit-dirs gp2tier2_vwb ~/gcs_mounts/gp2tier2_vwb
    gcsfuse --implicit-dirs genotools-server ~/gcs_mounts/genotools_server
+   gcsfuse --implicit-dirs gp2_release11 ~/gcs_mounts/gp2_release11
    ```
 
 ## Usage

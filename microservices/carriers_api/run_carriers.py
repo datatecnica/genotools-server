@@ -23,11 +23,19 @@ def process_population_data(config: PipelineConfig, file_manager: FileManager):
         file_manager.ensure_directory(label_output_dir)
         file_manager.cleanup_directory(label_output_dir, config.cleanup_enabled)
         
+        # Build geno_path - handle both standard and GP2 cohort data return patterns
+        if "gp2_release11" in config.release_base_dir and "cohort_data_return" in config.carriers_base_dir:
+            # GP2 R11 cohort data return pattern: GP2_cohort_data_return_{label}_release{release}
+            geno_path = f"{config.release_base_dir}/cohort_data_return/GP2_cohort_data_return_{label}_release{config.release}"
+        else:
+            # Standard pattern: {nba_dir}/{label}/{label}_release{release}_vwb
+            geno_path = f"{config.nba_dir}/{label}/{label}_release{config.release}_vwb"
+        
         # Build and send API request
         payload = {
-            "geno_path": f"{config.nba_dir}/{label}/{label}_release{config.release}_vwb",
+            "geno_path": geno_path,
             "snplist_path": config.snplist_path,
-            "out_path": f"{label_output_dir}/{label}_release{config.release}",
+            "out_prefix": f"{label_output_dir}/{label}_release{config.release}",
             "release_version": config.release
         }
         
