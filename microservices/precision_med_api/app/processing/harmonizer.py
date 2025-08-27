@@ -1,13 +1,3 @@
-"""
-New variant harmonization engine based on proven old version logic.
-
-This implementation fixes issues with the current harmonization engine by:
-1. Pre-computing all variant representations (exact, swap, flip, flip_swap)
-2. Using exact variant matching instead of position-based lookup with quality scoring
-3. Preserving all valid matches instead of selecting "best" matches
-4. Providing deterministic, reproducible results
-"""
-
 import os
 import pandas as pd
 from typing import List, Dict, Any
@@ -18,17 +8,15 @@ from ..models.harmonization import (
     HarmonizationAction
 )
 from ..core.config import Settings
-from .cache import AlleleHarmonizer
 
 logger = logging.getLogger(__name__)
 
 
 class HarmonizationEngine:
-    """Improved harmonization engine based on proven old version logic."""
+    """Merge-based harmonization engine using direct allele comparison."""
     
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.harmonizer = AlleleHarmonizer()
         
         # Complement map for strand flipping
         self.complement_map = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
@@ -71,125 +59,118 @@ class HarmonizationEngine:
             df = df.dropna(subset=['CHROM', 'POS', 'REF', 'ALT'])
             
             logger.info(f"Read {len(df)} variants from {pvar_path}")
+
+            print(f"Sample PVAR data:\n{df.head()}")
+
             return df
             
         except Exception as e:
             logger.error(f"Failed to read PVAR file {pvar_path}: {e}")
             raise
     
-    def _create_variant_lookup(self, snp_list: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
+    def _prepare_snp_list(self, snp_list: pd.DataFrame) -> pd.DataFrame:
         """
-        Create comprehensive variant lookup with all possible representations.
-        
-        This is the key improvement from the old version - we pre-compute all 
-        possible variant orientations to enable exact matching.
+        Prepare SNP list DataFrame for merging.
         
         Args:
-            snp_list: SNP list DataFrame with chromosome, position, ref, alt columns
+            snp_list: Raw SNP list DataFrame
             
         Returns:
-            Dictionary mapping exact variant IDs to variant info and match type
+            Cleaned SNP list DataFrame
         """
-        variant_lookup = {}
+        df = snp_list.copy()
         
-        logger.info(f"Creating variant lookup for {len(snp_list)} SNP list variants")
+        # Standardize column names and data
+        df['chromosome'] = df['chromosome'].astype(str).str.strip().str.replace('chr', '').str.upper()
+        df['position'] = pd.to_numeric(df['position'], errors='coerce')
+        df['ref'] = df['ref'].astype(str).str.strip().str.upper()
+        df['alt'] = df['alt'].astype(str).str.strip().str.upper()
         
-        for _, snp_row in snp_list.iterrows():
-            chrom = str(snp_row['chromosome']).strip()
-            pos = str(snp_row['position']).strip()
-            ref = str(snp_row['ref']).strip().upper()
-            alt = str(snp_row['alt']).strip().upper()
-            
-            # Create base variant info
-            base_info = {
-                'snp_row': snp_row,
-                'snp_list_id': snp_row.get('variant_id', f"{chrom}:{pos}:{ref}:{alt}"),
-                'chromosome': chrom,
-                'position': int(pos),
-                'snp_list_a1': ref,
-                'snp_list_a2': alt
-            }
-            
-            # 1. Exact match: REF:ALT -> REF:ALT
-            exact_id = f"{chrom}:{pos}:{ref}:{alt}"
-            variant_lookup[exact_id] = {
-                **base_info,
-                'match_type': 'EXACT',
-                'harmonization_action': HarmonizationAction.EXACT,
-                'genotype_transform': None
-            }
-            
-            # 2. Swap match: REF:ALT -> ALT:REF (alleles swapped)
-            swap_id = f"{chrom}:{pos}:{alt}:{ref}"
-            variant_lookup[swap_id] = {
-                **base_info,
-                'match_type': 'SWAP', 
-                'harmonization_action': HarmonizationAction.SWAP,
-                'genotype_transform': '2-x'  # 0->2, 1->1, 2->0
-            }
-            
-            # 3. Flip match: REF:ALT -> FLIP(REF):FLIP(ALT) (strand flipped)
-            ref_flip = self.complement_map.get(ref, ref)
-            alt_flip = self.complement_map.get(alt, alt)
-            
-            flip_id = f"{chrom}:{pos}:{ref_flip}:{alt_flip}"
-            variant_lookup[flip_id] = {
-                **base_info,
-                'match_type': 'FLIP',
-                'harmonization_action': HarmonizationAction.FLIP, 
-                'genotype_transform': None  # Same genotypes, just flipped strand
-            }
-            
-            # 4. Flip+Swap match: REF:ALT -> FLIP(ALT):FLIP(REF) (both operations)
-            flip_swap_id = f"{chrom}:{pos}:{alt_flip}:{ref_flip}"
-            
-            # PATCH: Prevent complement-pair collisions
-            # If FLIP_SWAP produces the same ID as EXACT, skip it to preserve EXACT
-            if flip_swap_id == exact_id:
-                logger.debug(f"Skipping FLIP_SWAP for {flip_swap_id} - would overwrite EXACT match")
-            else:
-                variant_lookup[flip_swap_id] = {
-                    **base_info,
-                    'match_type': 'FLIP_SWAP',
-                    'harmonization_action': HarmonizationAction.FLIP_SWAP,
-                    'genotype_transform': '2-x'  # Both strand flip and allele swap
-                }
+        # Remove invalid rows
+        df = df.dropna(subset=['chromosome', 'position', 'ref', 'alt'])
         
-        logger.info(f"Created variant lookup with {len(variant_lookup)} total variant representations")
-        return variant_lookup
+        logger.info(f"Prepared {len(df)} SNP list variants for merging")
+        print(f"Sample SNP list data:\n{df.head()}")
+        
+        return df
     
-    def _create_pvar_variants(self, pvar_df: pd.DataFrame) -> List[Dict[str, Any]]:
+    def _merge_data(self, pvar_df: pd.DataFrame, snp_list: pd.DataFrame) -> pd.DataFrame:
         """
-        Create standardized variant representations from PVAR data.
+        Merge PVAR and SNP list data on chromosome and position.
         
         Args:
             pvar_df: PVAR DataFrame
+            snp_list: SNP list DataFrame
             
         Returns:
-            List of variant dictionaries with exact variant IDs
+            Merged DataFrame with both PVAR and SNP list information
         """
-        pvar_variants = []
+        # Prepare data for merge
+        pvar_merge = pvar_df[['CHROM', 'POS', 'ID', 'REF', 'ALT']].copy()
+        snp_merge = snp_list[['chromosome', 'position', 'variant_id', 'ref', 'alt']].copy()
         
-        for _, pvar_row in pvar_df.iterrows():
-            chrom = str(pvar_row['CHROM']).strip()
-            pos = str(pvar_row['POS']).strip()
-            ref = str(pvar_row['REF']).strip().upper()
-            alt = str(pvar_row['ALT']).strip().upper()
-            
-            # Create exact variant ID for matching
-            exact_variant_id = f"{chrom}:{pos}:{ref}:{alt}"
-            
-            pvar_variants.append({
-                'exact_variant_id': exact_variant_id,
-                'pvar_row': pvar_row,
-                'chromosome': chrom,
-                'position': int(pos),
-                'pgen_variant_id': str(pvar_row['ID']).strip(),
-                'pgen_a1': ref,
-                'pgen_a2': alt
-            })
+        # Rename columns for consistent merge keys
+        pvar_merge = pvar_merge.rename(columns={'CHROM': 'chromosome', 'POS': 'position'})
+        snp_merge = snp_merge.rename(columns={'ref': 'a1', 'alt': 'a2'})
         
-        return pvar_variants
+        # Merge on chromosome and position
+        merged_df = pd.merge(
+            pvar_merge, 
+            snp_merge,
+            on=['chromosome', 'position'],
+            how='inner',
+            suffixes=('_pvar', '_snp')
+        )
+        
+        logger.info(f"Merged data: {len(merged_df)} matching variants found")
+        print(f"Sample merged data:\n{merged_df.head()}")
+        
+        return merged_df
+    
+    def _harmonize_on_merged(self, merged_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Direct harmonization by comparing alleles in merged dataframe.
+        Based on the user's provided function.
+        """
+        results = []
+        
+        for _, row in merged_df.iterrows():
+            # PVAR alleles
+            pvar_ref = row['REF'].upper()
+            pvar_alt = row['ALT'].upper() 
+            
+            # SNP list alleles
+            snp_ref = row['a1'].upper()
+            snp_alt = row['a2'].upper()
+            
+            # Determine harmonization action
+            if pvar_ref == snp_ref and pvar_alt == snp_alt:
+                action = "EXACT"
+                transform = None
+            elif pvar_ref == snp_alt and pvar_alt == snp_ref:
+                action = "SWAP"
+                transform = "2-x"
+            elif pvar_ref == self.complement_map.get(snp_ref, snp_ref) and pvar_alt == self.complement_map.get(snp_alt, snp_alt):
+                action = "FLIP"
+                transform = None
+            elif pvar_ref == self.complement_map.get(snp_alt, snp_alt) and pvar_alt == self.complement_map.get(snp_ref, snp_ref):
+                action = "FLIP_SWAP" 
+                transform = "2-x"
+            else:
+                continue  # No valid transformation
+                
+            # Start with all columns from the merged row
+            result_row = row.to_dict()
+            
+            # Add harmonization results
+            result_row['harmonization_action'] = action
+            result_row['genotype_transform'] = transform
+            
+            results.append(result_row)
+        
+        return pd.DataFrame(results)
+
+    
     
     def harmonize_variants(
         self, 
@@ -197,71 +178,79 @@ class HarmonizationEngine:
         snp_list: pd.DataFrame
     ) -> List[HarmonizationRecord]:
         """
-        Harmonize variants between PVAR and SNP list using exact matching.
-        
-        This is the main improvement: instead of position-based lookup with quality scoring,
-        we use exact variant matching with all pre-computed representations.
+        Harmonize variants using merge-based approach.
         
         Args:
             pvar_df: DataFrame from PVAR file
             snp_list: Normalized SNP list DataFrame
             
         Returns:
-            List of harmonization records for ALL valid matches (no filtering)
+            List of harmonization records for all valid matches
         """
-        logger.info(f"Starting harmonization: {len(pvar_df)} PVAR variants vs {len(snp_list)} SNP list variants")
+        logger.info(f"Starting merge-based harmonization: {len(pvar_df)} PVAR variants vs {len(snp_list)} SNP list variants")
         
-        # Step 1: Create comprehensive variant lookup (key improvement from old version)
-        variant_lookup = self._create_variant_lookup(snp_list)
+        # Step 1: Prepare SNP list data
+        prepared_snp_list = self._prepare_snp_list(snp_list)
         
-        # Step 2: Create PVAR variant representations
-        pvar_variants = self._create_pvar_variants(pvar_df)
+        # Step 2: Merge PVAR and SNP list data
+        merged_df = self._merge_data(pvar_df, prepared_snp_list)
         
-        # Step 3: Find exact matches (no quality scoring!)
+        if merged_df.empty:
+            logger.warning("No variants found at matching positions")
+            return []
+        
+        # Step 3: Perform harmonization on merged data
+        harmonized_df = self._harmonize_on_merged(merged_df)
+        
+        if harmonized_df.empty:
+            logger.warning("No variants could be harmonized")
+            return []
+        
+        # Step 4: Convert to HarmonizationRecord objects
         records = []
-        matched_count = 0
+        action_counts = {}
         
-        for pvar_variant in pvar_variants:
-            exact_id = pvar_variant['exact_variant_id']
+        for _, row in harmonized_df.iterrows():
+            # Map string action to enum
+            action_str = row['harmonization_action']
+            if action_str == "EXACT":
+                action_enum = HarmonizationAction.EXACT
+            elif action_str == "SWAP":
+                action_enum = HarmonizationAction.SWAP
+            elif action_str == "FLIP":
+                action_enum = HarmonizationAction.FLIP
+            elif action_str == "FLIP_SWAP":
+                action_enum = HarmonizationAction.FLIP_SWAP
+            else:
+                logger.warning(f"Unknown harmonization action: {action_str}")
+                continue
             
-            # Check if this exact variant exists in our lookup
-            if exact_id in variant_lookup:
-                match_info = variant_lookup[exact_id]
-                
-                # Create harmonization record
-                record = HarmonizationRecord(
-                    snp_list_id=match_info['snp_list_id'],
-                    pgen_variant_id=pvar_variant['pgen_variant_id'],
-                    chromosome=match_info['chromosome'],
-                    position=match_info['position'],
-                    snp_list_a1=match_info['snp_list_a1'],
-                    snp_list_a2=match_info['snp_list_a2'],
-                    pgen_a1=pvar_variant['pgen_a1'],
-                    pgen_a2=pvar_variant['pgen_a2'],
-                    harmonization_action=match_info['harmonization_action'],
-                    genotype_transform=match_info['genotype_transform'],
-                    file_path="",  # Set by caller
-                    data_type="",  # Set by caller  
-                    ancestry=None  # Set by caller
-                )
-                
-                records.append(record)
-                matched_count += 1
-                
-                # Log detailed match info for debugging
-                logger.debug(f"Matched: {exact_id} -> {match_info['match_type']} -> {match_info['snp_list_id']}")
-        
-        logger.info(f"Harmonization complete: {matched_count} matches found")
-        
-        # Log summary by harmonization action
-        if records:
-            action_counts = {}
-            for record in records:
-                action = record.harmonization_action.value
-                action_counts[action] = action_counts.get(action, 0) + 1
+            # Track action counts
+            action_counts[action_str] = action_counts.get(action_str, 0) + 1
             
-            logger.info("Harmonization breakdown:")
-            for action, count in action_counts.items():
-                logger.info(f"  {action}: {count} variants")
+            # Create harmonization record
+            record = HarmonizationRecord(
+                snp_list_id=str(row['variant_id']),
+                pgen_variant_id=str(row['ID']),
+                chromosome=str(row['chromosome']),
+                position=int(row['position']),
+                snp_list_a1=str(row['a1']),
+                snp_list_a2=str(row['a2']),
+                pgen_a1=str(row['REF']),
+                pgen_a2=str(row['ALT']),
+                harmonization_action=action_enum,
+                genotype_transform=row['genotype_transform'],
+                file_path="",  # Set by caller
+                data_type="",  # Set by caller  
+                ancestry=None  # Set by caller
+            )
+            
+            records.append(record)
+        
+        # Log summary
+        logger.info(f"Merge-based harmonization complete: {len(records)} matches found")
+        logger.info("Harmonization breakdown:")
+        for action, count in action_counts.items():
+            logger.info(f"  {action}: {count} variants")
         
         return records
