@@ -36,7 +36,9 @@ async def prep_browser(
 
         final_gcs_paths = []
         for filename in final_files:
-            gcs_path = f"{request.out_dir}/{filename}"
+            folders = request.out_dir.strip(os.sep).split(os.sep)
+            mount_folder = os.sep.join(folders[-3:])
+            gcs_path = f"{mount_folder}/{filename}"
             final_gcs_paths.append(f"gs://{gcs_path}")
 
         return {
