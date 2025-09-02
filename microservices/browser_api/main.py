@@ -15,7 +15,7 @@ class BrowserRequest(BaseModel):
     release_num: int = 10 # Default release number
     master_path: str # Path to Master Key
     gt_path: str # GCS path to GenoTools outputs (JSON)
-    out_dir: str # Output directory for final outputs in gt_app_utils bucket
+    out_dir: str # Output directory for final outputs in genotools-server bucket
 
 @app.post("/prep_browser")
 async def prep_browser(

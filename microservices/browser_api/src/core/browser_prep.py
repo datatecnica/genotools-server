@@ -51,6 +51,9 @@ class BrowserPrep:
         clean_nba.rename(columns={'nba_prune_reason': 'prune_reason', 'nba_related': 'related', 'nba_label': 'label'}, inplace=True)
         # clean_wgs.rename(columns = {'wgs_prune_reason': 'prune_reason', 'wgs_label': 'label'}, inplace = True)
 
+        # Create duplicated column
+        clean_nba['dup'] = clean_nba["prune_reason"].str.contains("duplicate", case=False, na=False).astype(int)
+
         # Save files
         key_path = 'nba_app_key.csv'
         clean_nba.to_csv(f'{self.out_path}/{key_path}', index=False)
@@ -108,7 +111,7 @@ class BrowserPrep:
     def prune_steps(self) -> None:
         pre_QC_total = self.proj_samples['IID'].count()
 
-        sample_level = self.df_qc[self.df_qc.level == 'sample']
+        sample_level = self.df_qc[(self.df_qc.level == 'sample') & (self.df_qc.step != 'related_prune')]
         funnel_df = sample_level.groupby('step', as_index=False)['pruned_count'].sum()
         funnel_df.loc[-1] = {'pruned_count': 0, 'step': 'pre_QC'}
 
@@ -116,8 +119,7 @@ class BrowserPrep:
             'pre_QC': 'Pre-QC',
             'callrate_prune': 'Call Rate Prune',
             'sex_prune': 'Sex Prune',
-            'het_prune': 'Heterozygosity Prune',
-            'related_prune': 'Duplicated Prune'
+            'het_prune': 'Heterozygosity Prune'
         }
 
         # Convert 'step' to categorical with the defined order and sort
@@ -146,23 +148,25 @@ class BrowserPrep:
             'FIN': 'Finnish',
             'CAH': 'Complex Admixture History'
         }
+        first_deg = self.rel_samples[self.rel_samples.REL == 'first_deg'] # will include pairs
+        first_deg.drop_duplicates(subset = 'IID1', inplace = True)
+        first_deg['first_deg_count'] = 1
+        first_deg_summary = first_deg.groupby('ancestry', as_index=False)['first_deg_count'].sum()
 
-        dup_df = self.rel_samples[self.rel_samples.REL == 'duplicate']
-        dup_df.drop_duplicates(subset='IID1', inplace=True)
-        dup_df['duplicated_count'] = 1
-        dup_summary = dup_df.groupby('ancestry', as_index=False)['duplicated_count'].sum()
+        second_deg = self.rel_samples[self.rel_samples.REL == 'second_deg'] # will include pairs
+        second_deg.drop_duplicates(subset = 'IID1', inplace = True)
+        second_deg['second_deg_count'] = 1
+        second_deg_summary = second_deg.groupby('ancestry', as_index=False)['second_deg_count'].sum()
 
-        self.rel_samples['related_count'] = 1
-        rel_summary = self.rel_samples.groupby('ancestry', as_index=False)['related_count'].sum()
-
-        related_plot = pd.merge(rel_summary, dup_summary)
+        related_plot = pd.merge(first_deg_summary, second_deg_summary, how = 'outer')
+        related_plot.fillna(0, inplace = True)
         related_plot['label'] = related_plot['ancestry'].map(ancestry_dict)
-        related_plot.sort_values(by='ancestry', inplace=True)
-        related_plot.drop(columns='ancestry', inplace=True)
+        related_plot.sort_values(by = 'ancestry', inplace = True)
+        related_plot.drop(columns = 'ancestry', inplace = True)
 
-        related_plot.rename(columns={'label': 'Ancestry Category',
-                                     'related_count': 'Related Sample Count',
-                                     'duplicated_count': 'Duplicated Sample Count'}, inplace=True)
+        related_plot.rename(columns = {'label': 'Ancestry Category',
+                                    'first_deg_count': 'First Degree Relatedness Count',
+                                    'second_deg_count': 'Second Degree Relatedness Count'}, inplace = True)
 
         related_path = 'related_plot.csv'
         related_plot.to_csv(f'{self.out_path}/{related_path}', index=False)
