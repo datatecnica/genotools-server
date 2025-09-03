@@ -290,6 +290,10 @@ class VariantExtractor:
                     transformed_row['harmonization_action'] = action
                     transformed_row['snp_list_id'] = harm_info['snp_list_id']
                     
+                    # Add original PVAR alleles for transparency
+                    transformed_row['pgen_a1'] = harm_info['pgen_a1']
+                    transformed_row['pgen_a2'] = harm_info['pgen_a2']
+                    
                     transformed_rows.append(transformed_row)
         
         # Convert list of transformed rows back to DataFrame

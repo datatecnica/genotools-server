@@ -277,6 +277,8 @@ class TrawFormatter:
                                 'snp_list_id': row.get('snp_list_id', '.'),
                                 'chromosome': row.get('chromosome', '.'),
                                 'position': row.get('position', '.'),
+                                'original_a1': row.get('pgen_a1', '.'),
+                                'original_a2': row.get('pgen_a2', '.'),
                                 'counted_allele': row.get('counted_allele', '.'),
                                 'alt_allele': row.get('alt_allele', '.'),
                                 'harmonization_action': row.get('harmonization_action', '.'),
