@@ -22,6 +22,6 @@ class PipelineConfig:
         if self.browser_base_dir is None:
             self.browser_base_dir = f'{self.mnt_dir}/genotools-server/cohort_browser'
         if self.master_key_dir is None:
-            self.master_key_dir = f'{self.mnt_dir}/release{self.release}/clinical_data'
+            self.master_key_dir = f'{self.mnt_dir}/gp2tier2_vwb/release{self.release}/clinical_data'
         if self.gt_base_dir is None:
-            self.gt_base_dir = f'{self.mnt_dir}/release{self.release}/meta_data'
+            self.gt_base_dir = f'{self.mnt_dir}/gp2tier2_vwb/release{self.release}/meta_data'
