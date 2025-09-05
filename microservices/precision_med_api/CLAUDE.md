@@ -38,16 +38,17 @@ Process ~400 pathogenic SNPs across 242+ PLINK 2.0 files (>1M variants each) fro
 ### Technology Stack
 - **Core**: FastAPI, Pydantic v2, pgenlib (PLINK file processing)
 - **Storage**: Parquet files for caching and results
-- **Processing**: NumPy, Pandas, ThreadPoolExecutor for parallelization
+- **Processing**: NumPy, Pandas, ProcessPoolExecutor for true parallelization
 - **Future**: Celery + Redis for background jobs, PostgreSQL migration path
 
 ### Current Status
 - ✅ **Phase 1 Complete**: Data models, configuration, file discovery
 - ✅ **Phase 2 Complete**: Merge-based harmonization, extraction engine, coordination system
-- 🎯 **Phase 3 Ready**: Carrier detection, statistical analysis, reporting (NEXT FOCUS)
+- ✅ **Phase 3A Complete**: ProcessPool parallelization for concurrent file extraction
+- 🎯 **Phase 3B Ready**: Within-datatype combination, carrier detection, statistical analysis (NEXT FOCUS)
 - ⏳ **Phase 4 Planned**: REST API endpoints, background processing, monitoring
 
-### Phase 2 Achievements (Recently Completed)
+### Phase 2 Achievements (Completed)
 - ✅ Merge-based harmonization engine with real-time processing
 - ✅ Allele harmonization engine with strand flip detection
 - ✅ Multi-source extraction engine (NBA/WGS/Imputed)
@@ -56,9 +57,25 @@ Process ~400 pathogenic SNPs across 242+ PLINK 2.0 files (>1M variants each) fro
 - ✅ End-to-end pipeline integration and testing
 - ✅ Comprehensive test coverage for core components
 
+### Phase 3A Achievements (Recently Completed)
+- ✅ ProcessPoolExecutor parallelization replacing ThreadPoolExecutor
+- ✅ Process-isolated extraction worker for true concurrent processing
+- ✅ Resource management with optimal process count calculation  
+- ✅ Robust error handling with process failure isolation
+- ✅ Progress tracking with tqdm integration
+- ✅ Original allele transparency in variant summaries (pgen_a1/pgen_a2)
+- ✅ Backwards compatibility with existing test scripts
+
 ### File Paths
 ```
 Input:  ~/gcs_mounts/gp2tier2_vwb/release{10}/
 Cache:  ~/gcs_mounts/genotools_server/precision_med/cache/
 Output: ~/gcs_mounts/genotools_server/precision_med/output/
 ```
+
+### Development Environment Setup
+**IMPORTANT**: Always activate the virtual environment before running any commands:
+```bash
+source .venv/bin/activate
+```
+This ensures all required dependencies (pydantic, pandas, pgenlib, etc.) are available.

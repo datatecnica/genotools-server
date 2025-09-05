@@ -37,11 +37,34 @@ class HarmonizationEngine:
             raise FileNotFoundError(f"PVAR file not found: {pvar_path}")
         
         try:
-            # Read PVAR file (tab-separated)
-            df = pd.read_csv(pvar_path, sep='\t', low_memory=False, dtype=str)
+            # Skip VCF-style comment lines (starting with ##) and find actual header/data
+            skiprows = 0
+            with open(pvar_path, 'r') as f:
+                for line_num, line in enumerate(f):
+                    if line.startswith('##'):
+                        skiprows += 1
+                    else:
+                        first_data_line = line.strip()
+                        break
+                        
+            # Check if the first non-comment line contains headers (starts with #CHROM or has column names)
+            has_headers = (first_data_line.startswith('#CHROM') or 
+                          first_data_line.startswith('CHROM') or
+                          any(col in first_data_line.upper() for col in ['CHROM', 'POS', 'ID', 'REF', 'ALT']))
             
-            # Handle column names (remove # prefix if present)
-            df.columns = [col.lstrip('#') for col in df.columns]
+            if has_headers:
+                # Read with headers, skipping comment lines
+                df = pd.read_csv(pvar_path, sep='\t', skiprows=skiprows, low_memory=False, dtype=str)
+                # Handle column names (remove # prefix if present)
+                df.columns = [col.lstrip('#') for col in df.columns]
+            else:
+                # Read without headers and assign standard column names, skipping comment lines  
+                df = pd.read_csv(pvar_path, sep='\t', header=None, skiprows=skiprows, low_memory=False, dtype=str)
+                # Assign standard PVAR column names
+                if len(df.columns) >= 5:
+                    df.columns = ['CHROM', 'POS', 'ID', 'REF', 'ALT'] + [f'INFO_{i}' for i in range(len(df.columns)-5)]
+                else:
+                    raise ValueError(f"PVAR file has insufficient columns ({len(df.columns)}). Expected at least 5.")
             
             # Standardize column names
             expected_cols = ['CHROM', 'POS', 'ID', 'REF', 'ALT']

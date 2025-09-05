@@ -11,9 +11,10 @@ import numpy as np
 from typing import List, Dict, Optional, Any, Tuple
 from pathlib import Path
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 import time
 from datetime import datetime
+from tqdm import tqdm
 import uuid
 
 from ..models.analysis import DataType, AnalysisRequest
@@ -28,6 +29,70 @@ from .harmonizer import HarmonizationEngine
 logger = logging.getLogger(__name__)
 
 
+def extract_single_file_process_worker(
+    file_path: str,
+    data_type: str, 
+    snp_list_ids: List[str],
+    snp_list_df: pd.DataFrame,
+    settings: 'Settings'
+) -> pd.DataFrame:
+    """
+    Process-isolated extraction worker for ProcessPoolExecutor.
+    
+    Creates fresh instances of all required objects within the process
+    to ensure complete isolation and avoid serialization issues.
+    
+    Args:
+        file_path: Path to PLINK file to extract
+        data_type: Data type (NBA, WGS, IMPUTED)
+        snp_list_ids: List of variant IDs to extract
+        snp_list_df: SNP list DataFrame
+        settings: Settings object
+        
+    Returns:
+        DataFrame with extracted and harmonized genotypes
+    """
+    try:
+        # Import here to avoid circular imports in multiprocessing
+        from .extractor import VariantExtractor
+        
+        # Create fresh instances in this process
+        extractor = VariantExtractor(settings)
+        
+        # Perform extraction 
+        df = extractor.extract_single_file_harmonized(file_path, snp_list_ids, snp_list_df)
+        
+        if df.empty:
+            return df
+        
+        # Add metadata tagging
+        df['data_type'] = data_type
+        df['source_file'] = file_path
+        
+        # Parse ancestry from file path
+        if data_type in ["NBA", "IMPUTED"]:
+            ancestry = _parse_ancestry_from_path(file_path, settings.ANCESTRIES)
+            if ancestry:
+                df['ancestry'] = ancestry
+        
+        return df
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Process worker failed for {file_path}: {e}")
+        return pd.DataFrame()
+
+
+def _parse_ancestry_from_path(file_path: str, ancestries: List[str]) -> Optional[str]:
+    """Helper function to parse ancestry from file path."""
+    path_parts = file_path.split(os.sep)
+    for part in reversed(path_parts):
+        if part in ancestries:
+            return part
+    return None
+
+
 class ExtractionCoordinator:
     """Coordinates multi-source variant extraction with harmonization."""
     
@@ -35,13 +100,15 @@ class ExtractionCoordinator:
         self, 
         extractor: VariantExtractor, 
         transformer: GenotypeTransformer,
-        settings: Settings
+        settings: Settings,
+        use_process_pool: bool = True
     ):
         self.extractor = extractor
         self.transformer = transformer
         self.settings = settings
         self.formatter = TrawFormatter()
         self.harmonization_engine = HarmonizationEngine(settings)
+        self.use_process_pool = use_process_pool
     
     def load_snp_list(self, file_path: str) -> pd.DataFrame:
         """
@@ -247,7 +314,10 @@ class ExtractionCoordinator:
         
         all_results = []
         
-        if parallel and len(plan.data_types) > 1:
+        # Choose execution strategy
+        if parallel and self.use_process_pool:
+            return self._execute_with_process_pool(plan, snp_list_df, max_workers)
+        elif parallel and len(plan.data_types) > 1:
             # Execute data types in parallel
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_data_type = {
@@ -292,6 +362,79 @@ class ExtractionCoordinator:
         logger.info(f"Completed harmonized extraction in {execution_time:.1f}s: {len(combined_df)} variants")
         
         return combined_df
+    
+    def _execute_with_process_pool(
+        self, 
+        plan: ExtractionPlan, 
+        snp_list_df: pd.DataFrame, 
+        max_workers: int
+    ) -> pd.DataFrame:
+        """ProcessPool-based parallel extraction."""
+        start_time = time.time()
+        
+        # Flatten all files across all data types into single task list
+        all_tasks = []
+        for data_type in plan.data_types:
+            files = plan.get_files_for_data_type(data_type)
+            for file_path in files:
+                all_tasks.append((file_path, data_type))
+        
+        # Calculate optimal process count
+        optimal_workers = self._calculate_optimal_workers(len(all_tasks), max_workers)
+        logger.info(f"Starting ProcessPool extraction: {len(all_tasks)} files, {optimal_workers} processes")
+        
+        all_results = []
+        failed_extractions = []
+        
+        with ProcessPoolExecutor(max_workers=optimal_workers) as executor:
+            # Submit all tasks
+            future_to_task = {
+                executor.submit(
+                    extract_single_file_process_worker,
+                    file_path,
+                    data_type,
+                    plan.snp_list_ids,
+                    snp_list_df,
+                    self.settings
+                ): (file_path, data_type)
+                for file_path, data_type in all_tasks
+            }
+            
+            # Collect results with progress tracking
+            pbar = tqdm(total=len(all_tasks), desc="Extracting variants")
+            with pbar:
+                for future in as_completed(future_to_task):
+                    file_path, data_type = future_to_task[future]
+                    try:
+                        result_df = future.result()
+                        if not result_df.empty:
+                            all_results.append(result_df)
+                        pbar.update(1)
+                    except Exception as e:
+                        logger.error(f"Process extraction failed for {file_path}: {e}")
+                        failed_extractions.append((file_path, data_type, str(e)))
+                        pbar.update(1)
+        
+        # Log failures
+        if failed_extractions:
+            logger.warning(f"Failed to extract {len(failed_extractions)} files:")
+            for file_path, data_type, error in failed_extractions:
+                logger.warning(f"  {data_type}: {file_path} - {error}")
+        
+        # Combine all results
+        combined_df = self.extractor.merge_harmonized_genotypes(all_results) if all_results else pd.DataFrame()
+        
+        execution_time = time.time() - start_time
+        logger.info(f"ProcessPool extraction completed in {execution_time:.1f}s: {len(combined_df)} variants")
+        
+        return combined_df
+    
+    def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
+        """Calculate optimal process count based on system resources."""
+        cpu_count = os.cpu_count() or 4
+        # Don't exceed CPU count, but allow some overhead for I/O
+        optimal = min(total_files, max(1, cpu_count - 1), max_workers, 20)  # Cap at 20 processes
+        return optimal
     
     def _extract_data_type(
         self, 
