@@ -46,6 +46,8 @@ The codebase follows a modular architecture with clear separation of concerns:
 - `os`, `typing`, `functools.cached_property`
 - `pydantic` (BaseModel, Field, field_validator, ConfigDict)
 
+**Note**: Updated to Pydantic v2 ConfigDict syntax, eliminating deprecation warnings.
+
 ---
 
 ## Data Models (`app/models/`)
@@ -253,10 +255,12 @@ The codebase follows a modular architecture with clear separation of concerns:
 
 **Purpose**: Variant harmonization cache building and management.
 
+> **Note**: This module is currently **NOT actively used** in the main pipeline. The system now uses **merge-based real-time harmonization** instead of pre-built caches for better performance and simplicity.
+
 #### Main Classes:
 
 **`AlleleHarmonizer`**
-- **Purpose**: Core allele harmonization logic
+- **Purpose**: Core allele harmonization logic (still used by harmonizer.py)
 - **Key Methods**:
   - `complement_allele()`: Get complement for strand flipping
   - `check_strand_ambiguous()`: Check if allele pair is strand ambiguous
@@ -266,20 +270,16 @@ The codebase follows a modular architecture with clear separation of concerns:
   - `COMPLEMENT_MAP`: Base complements for strand flipping
   - `AMBIGUOUS_PAIRS`: Strand ambiguous allele pairs
 
-**`CacheBuilder`**
-- **Purpose**: Builds and manages variant harmonization caches
-- **Key Methods**:
-  - `build_harmonization_cache()`: Build cache for single PLINK file
-  - `match_variants_with_harmonization()`: Match PVAR variants to SNP list
-  - `save_cache()`, `load_cache()`: Cache file operations
-  - `validate_harmonization()`: Validate cache and return statistics
-  - `generate_harmonized_plink_files()`: Create harmonized PLINK files using PLINK2
-  - `build_all_harmonization_caches()`: Build caches for all files of a data type
-- **Private Methods**: PVAR file reading, quality scoring, PLINK2 integration
+**`CacheBuilder`** ⚠️ **DEPRECATED**
+- **Purpose**: Builds and manages variant harmonization caches (legacy)
+- **Status**: Available but not used in current "cache-free real-time" processing
+- **Key Methods**: Cache building, validation, and PLINK2 integration
+- **Migration Note**: Updated to use ProcessPoolExecutor instead of ThreadPoolExecutor
 
 #### Dependencies:
 - Standard: `os`, `pandas`, `numpy`, `typing`, `pathlib`, `logging`, `concurrent.futures`, `time`, `subprocess`, `tempfile`
 - Internal: `..models.harmonization`, `..models.analysis`, `..core.config`, `..utils.parquet_io`
+- **Updated**: Now uses ProcessPoolExecutor for consistency
 
 ### `/app/processing/coordinator.py`
 
@@ -288,20 +288,30 @@ The codebase follows a modular architecture with clear separation of concerns:
 #### Main Classes:
 
 **`ExtractionCoordinator`**
-- **Purpose**: Coordinates multi-source variant extraction with harmonization
+- **Purpose**: Coordinates multi-source variant extraction with ProcessPool parallelization
 - **Key Methods**:
   - `load_snp_list()`: Load and validate SNP list from file
   - `plan_extraction()`: Create extraction plan for variants and data types
-  - `execute_harmonized_extraction()`: Execute harmonized extraction according to plan
+  - `execute_harmonized_extraction()`: Execute harmonized extraction using ProcessPool
   - `generate_harmonization_summary()`: Generate comprehensive harmonization summary
-  - `export_results()`: Export extraction results in specified formats
   - `export_results_cache_free()`: Export using cache-free real-time harmonization
   - `run_full_extraction_pipeline()`: Complete pipeline from SNP list to output
+- **ProcessPool Methods**:
+  - `_execute_with_process_pool()`: ProcessPool orchestration with progress tracking
+  - `_calculate_optimal_workers()`: Resource management for optimal process count
 - **Private Methods**: SNP list validation, data type extraction, harmonization summary generation
 
+**`extract_single_file_process_worker()`** (Module-level function)
+- **Purpose**: Process-isolated worker function for ProcessPoolExecutor
+- **Key Features**: 
+  - Standalone function (not class method) for pickle serialization
+  - Creates fresh object instances within each process
+  - Handles PVAR parsing for both NBA (direct headers) and IMPUTED (VCF-style) formats
+
 #### Dependencies:
-- Standard: `os`, `pandas`, `numpy`, `typing`, `pathlib`, `logging`, `concurrent.futures`, `time`, `datetime`, `uuid`
+- Standard: `os`, `pandas`, `numpy`, `typing`, `pathlib`, `logging`, `concurrent.futures`, `time`, `datetime`, `uuid`, `tqdm`
 - Internal: Multiple models and processing modules
+- **Updated**: Pure ProcessPoolExecutor implementation, ThreadPoolExecutor removed
 
 ### `/app/processing/extractor.py`
 
@@ -312,15 +322,15 @@ The codebase follows a modular architecture with clear separation of concerns:
 **`VariantExtractor`**
 - **Purpose**: Extracts variants from PLINK files and applies harmonization transformations
 - **Key Methods**:
-  - `extract_single_file_harmonized()`: Extract variants from single file with harmonization
-  - `merge_harmonized_genotypes()`: Merge results from multiple sources
-  - `extract_with_cache()`: Extract using pre-built harmonization cache
-  - `extract_without_cache()`: Extract using real-time harmonization
+  - `extract_single_file_harmonized()`: Extract variants from single file with real-time harmonization
+  - `merge_harmonized_genotypes()`: Merge results from multiple sources with deduplication
+  - `extract_without_cache()`: Primary extraction method using merge-based harmonization
 - **Private Methods**: 
   - PLINK availability checking
   - PLINK2 extraction commands
   - TRAW file reading and processing
   - Genotype transformation application
+- **Legacy Methods**: `extract_with_cache()` (deprecated, cache-based approach not used)
 
 #### Dependencies:
 - Standard: `os`, `pandas`, `numpy`, `typing`, `pathlib`, `logging`, `concurrent.futures`, `subprocess`, `tempfile`, `time`
@@ -338,13 +348,17 @@ The codebase follows a modular architecture with clear separation of concerns:
   - Merges PVAR and SNP list data on chromosome and position
   - Direct allele comparison for harmonization decisions
   - Deterministic, reproducible results
+  - **Enhanced PVAR Parsing**: Handles both NBA (direct headers) and IMPUTED (VCF-style) formats
 - **Key Methods**:
-  - `read_pvar_file()`: Read PVAR file for PLINK file
+  - `read_pvar_file()`: Read PVAR file for PLINK file with auto-format detection
   - `harmonize_variants()`: Harmonize variants using merge-based approach
   - `_prepare_snp_list()`: Prepare SNP list DataFrame for merging
   - `_merge_data()`: Merge PVAR and SNP list on chromosome/position
   - `_harmonize_on_merged()`: Direct allele comparison on merged data
 - **Harmonization Logic**: EXACT (same alleles), SWAP (swapped alleles), FLIP (complement), FLIP_SWAP (complement + swap)
+- **File Format Support**: 
+  - NBA files: `#CHROM\tPOS\tID\tREF\tALT` header format
+  - IMPUTED files: VCF-style `##` comments followed by `#CHROM` header
 
 #### Dependencies:
 - Standard: `os`, `pandas`, `typing`, `logging`
@@ -366,6 +380,10 @@ The codebase follows a modular architecture with clear separation of concerns:
   - `export_multiple_formats()`: Export in multiple formats
   - `create_qc_report()`: Generate quality control report
   - `write_harmonization_report()`: Write harmonization statistics
+  - `create_variant_summary()`: Generate variant summary with original and harmonized alleles
+- **Enhanced Features**:
+  - **Original Allele Transparency**: Includes `original_a1` and `original_a2` columns in variant summaries
+  - **Pre/Post Harmonization Tracking**: Shows both PLINK file alleles and SNP list alleles
 - **Private Methods**: Sample column identification, format conversion
 
 #### Dependencies:
@@ -473,20 +491,9 @@ The codebase follows a modular architecture with clear separation of concerns:
 - `pytest`, `pandas`, `numpy`, `tempfile`, `os`, `unittest.mock`
 - Internal: `app.core.config`, `app.models.harmonization`
 
-### `/tests/test_cache.py`
+### ~~`/tests/test_cache.py`~~ ❌ **REMOVED**
 
-**Purpose**: Tests for variant cache building functionality.
-
-#### Test Classes:
-
-**`TestCacheBuilder`**
-- Tests cache building, harmonization matching, PVAR reading
-- Mock PVAR files, SNP list validation
-- Harmonization action detection
-
-#### Dependencies:
-- `pytest`, `pandas`, `numpy`, `tempfile`, `os`, `unittest.mock`
-- Internal: `app.processing.cache`, `app.models.harmonization`, `app.core.config`
+**Status**: Removed in test suite cleanup - CacheBuilder not used in current merge-based approach.
 
 ### `/tests/test_harmonization.py`
 
@@ -494,11 +501,21 @@ The codebase follows a modular architecture with clear separation of concerns:
 
 #### Test Classes:
 
-**`TestAlleleHarmonizer`**
+**`TestAlleleHarmonizer`** (9 tests)
 - Tests allele complement functions
-- Strand ambiguity detection
+- Strand ambiguity detection  
 - All possible allele representations
-- Harmonization action determination
+- Harmonization action determination (EXACT, SWAP, FLIP, FLIP_SWAP, AMBIGUOUS, INVALID)
+
+**`TestHarmonizationRecord`** (3 tests)
+- HarmonizationRecord model creation and validation
+- Field normalization and chromosome handling
+- Strand ambiguous variant detection
+
+**`TestHarmonizationStats`** (3 tests)
+- HarmonizationStats model creation and calculations
+- Statistics update from harmonization records
+- Summary dictionary generation with rates
 
 #### Dependencies:
 - `pytest`, `pandas`, `numpy`, `typing`
@@ -510,30 +527,44 @@ The codebase follows a modular architecture with clear separation of concerns:
 
 #### Test Classes:
 
-**`TestGenotypeTransformer`**
-- Tests transformation methods (identity, swap)
+**`TestGenotypeTransformer`** (16 tests)
+- Tests transformation methods (identity, swap, flip) 
 - Harmonization action-based transformations
-- Formula-based transformations
-- Missing data handling
+- Formula-based transformations ("2-x", "x")
+- Matrix and batch transformations
+- Missing data handling with numpy compatibility
+- Allele count calculations and frequency comparisons
+- DataFrame transformation and validation
+- Transformation summary statistics
 
 #### Dependencies:
 - `pytest`, `numpy`, `pandas`, `typing`
 - Internal: `app.processing.transformer`, `app.models.harmonization`
+- **Updated**: Fixed numpy compatibility issues with `equal_nan` parameter
 
-### `/tests/test_multi_allelic.py`
+### ~~`/tests/test_multi_allelic.py`~~ ❌ **REMOVED**
 
-**Purpose**: Tests for multi-allelic variant handling.
+**Status**: Removed in test suite cleanup - GenotypeExtractor class no longer exists.
 
-#### Test Classes:
+## Test Suite Summary
 
-**`TestMultiAllelicHandling`**
-- Tests V499L/V499M scenario (multiple SNP list variants mapping to same PLINK variant)
-- Multi-allelic site processing
-- Harmonization record handling for complex cases
+**Current Test Structure:**
+```
+tests/
+├── conftest.py          # Pytest configuration and fixtures
+├── test_harmonization.py    # Harmonization logic tests (15 tests) 
+└── test_transformer.py     # Genotype transformation tests (16 tests)
+```
 
-#### Dependencies:
-- `pytest`, `pandas`, `numpy`, `unittest.mock`
-- Internal: `app.processing.extractor`, `app.models.harmonization`
+**Total: 31 tests, all passing, zero warnings**
+
+**Test Execution:**
+```bash
+source .venv/bin/activate
+python -m pytest tests/ -v  # Run all tests
+python test_nba_pipeline.py        # NBA integration test
+python test_imputed_pipeline.py    # IMPUTED integration test
+```
 
 ---
 
@@ -541,16 +572,27 @@ The codebase follows a modular architecture with clear separation of concerns:
 
 ### `/test_nba_pipeline.py`
 
-**Purpose**: Test script for NBA harmonization/extraction pipeline.
+**Purpose**: Test script for NBA harmonization/extraction pipeline with ProcessPool.
 
 #### Functions:
 - `parse_args()`: Command line argument parsing
 - `main()`: Execute NBA pipeline test with AAC ancestry
 
 #### Features:
-- Configurable output paths
-- Configurable ancestry selection
+- Configurable output paths and ancestry selection
+- ProcessPool parallelization testing (default: parallel=False for debugging)
 - Full pipeline testing from SNP list to output
+- Performance monitoring and result validation
+
+### `/test_imputed_pipeline.py`
+
+**Purpose**: Test script for IMPUTED harmonization/extraction pipeline with ProcessPool.
+
+#### Features:
+- Tests ProcessPool with IMPUTED data (VCF-style headers)
+- Multiple ancestry support (AAC, AFR)
+- PVAR parsing validation for files with VCF comments
+- ProcessPool parallelization enabled by default
 
 #### Dependencies:
 - Standard: `sys`, `os`, `logging`, `argparse`, `pathlib`
@@ -561,22 +603,38 @@ The codebase follows a modular architecture with clear separation of concerns:
 ## Key System Features
 
 ### Harmonization Engine
-- **Allele Orientation**: Handles strand flips and allele swaps between SNP lists and PLINK files
+- **Merge-Based Approach**: Direct merging of PVAR and SNP list data for real-time harmonization
+- **Allele Orientation**: Handles strand flips (FLIP) and allele swaps (SWAP) between SNP lists and PLINK files
+- **File Format Support**: Auto-detects NBA (direct headers) vs IMPUTED (VCF-style) PVAR formats
 - **Multi-allelic Support**: Processes multiple variants at the same genomic position
-- **Quality Scoring**: Prioritizes matches based on variant ID quality and allele characteristics
-- **Cache System**: Pre-computes harmonization mappings for performance
+- **Original Allele Transparency**: Tracks both pre-harmonization and post-harmonization alleles
+- ~~**Cache System**: Pre-computes harmonization mappings~~ **DEPRECATED** - Real-time processing preferred
 
 ### Data Processing Pipeline
 - **Multi-source**: Supports NBA (11 files), WGS (1 file), and Imputed (242 files) data types
 - **Memory Efficient**: Streaming and chunked processing for large datasets
-- **Parallel Processing**: ThreadPoolExecutor for concurrent file processing
+- **ProcessPool Parallelization**: True parallelism with ProcessPoolExecutor for concurrent file processing
+- **Process Isolation**: Failed files don't affect other extractions
+- **Resource Management**: Optimal worker calculation prevents system overload
 - **Format Support**: TRAW, Parquet, CSV, and JSON output formats
+- **Progress Tracking**: Real-time progress monitoring with tqdm integration
 
 ### Performance Optimizations
-- **Variant Index Caching**: Parquet-based mapping for fast variant lookup
-- **Compression**: Snappy compression for Parquet files
-- **Partitioning**: Data partitioning by chromosome and ancestry
-- **Memory Management**: Optimized dtypes and streaming for large datasets
+- ~~**Variant Index Caching**: Parquet-based mapping~~ **DEPRECATED** - Merge-based approach faster
+- **Real-time Processing**: Direct PVAR/SNP list merging eliminates cache overhead
+- **ProcessPool Benefits**: True CPU parallelism, no GIL limitations
+- **Compression**: Snappy compression for Parquet output files
+- **Benchmark Results**: 
+  - NBA AAC: 18.5s (ProcessPool) vs 23s (sequential)
+  - IMPUTED: Successfully processes VCF headers, finds variants in chr1 (12), chr6 (5)
+
+### Recent Architecture Improvements
+- **✅ Pydantic v2 Migration**: All models updated to use ConfigDict, zero deprecation warnings
+- **✅ Pure ProcessPool**: Removed ThreadPool/ProcessPool dual-path complexity
+- **✅ Test Suite Cleanup**: Removed obsolete tests, maintained 31 passing tests
+- **✅ IMPUTED File Support**: Enhanced PVAR parsing for VCF-style headers
+- **✅ Original Allele Tracking**: Added transparency for pre-harmonization alleles
+- **✅ Simplified Architecture**: Single execution path, consistent parallelization strategy
 
 ### Quality Control
 - **Validation**: Comprehensive input validation and error handling
@@ -584,4 +642,18 @@ The codebase follows a modular architecture with clear separation of concerns:
 - **Reporting**: QC reports with missing rates, allele frequencies, and processing metadata
 - **Logging**: Structured logging throughout the pipeline
 
-This system processes ~400 pathogenic SNPs across massive genomic datasets, reducing extraction time from days to <10 minutes through intelligent caching and harmonization strategies.
+This system processes ~400 pathogenic SNPs across massive genomic datasets, reducing extraction time from days to <10 minutes through ProcessPool parallelization and merge-based real-time harmonization strategies.
+
+---
+
+## Additional Model Files
+
+### `/app/models/key_model.py` and `/app/models/snp_model.py`
+
+**Purpose**: Additional Pydantic models for clinical and SNP data.
+
+**Recent Updates**: 
+- ✅ **Pydantic v2 Migration**: Updated from `class Config` to `model_config = ConfigDict(populate_by_name=True)`
+- ✅ **Zero Warnings**: All deprecation warnings eliminated
+
+These models support clinical data integration and SNP metadata management for the broader GP2 genomics platform.
