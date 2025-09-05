@@ -11,7 +11,7 @@ import numpy as np
 from typing import List, Dict, Tuple, Optional, Any
 from pathlib import Path
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import time
 import subprocess
 import tempfile
@@ -749,7 +749,7 @@ class CacheBuilder:
                     tasks.append((pvar_paths[0], ancestry, cache_path))
             
             # Process in parallel
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            with ProcessPoolExecutor(max_workers=max_workers) as executor:
                 future_to_task = {
                     executor.submit(
                         self.build_harmonization_cache, 
@@ -779,7 +779,7 @@ class CacheBuilder:
                         tasks.append((pvar_paths[0], ancestry, cache_path))
             
             # Process in parallel
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            with ProcessPoolExecutor(max_workers=max_workers) as executor:
                 future_to_task = {
                     executor.submit(
                         self.build_harmonization_cache,

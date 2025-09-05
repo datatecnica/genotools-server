@@ -11,7 +11,7 @@ import numpy as np
 from typing import List, Dict, Optional, Any, Tuple
 from pathlib import Path
 import logging
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import time
 from datetime import datetime
 from tqdm import tqdm
@@ -100,15 +100,13 @@ class ExtractionCoordinator:
         self, 
         extractor: VariantExtractor, 
         transformer: GenotypeTransformer,
-        settings: Settings,
-        use_process_pool: bool = True
+        settings: Settings
     ):
         self.extractor = extractor
         self.transformer = transformer
         self.settings = settings
         self.formatter = TrawFormatter()
         self.harmonization_engine = HarmonizationEngine(settings)
-        self.use_process_pool = use_process_pool
     
     def load_snp_list(self, file_path: str) -> pd.DataFrame:
         """
@@ -298,7 +296,7 @@ class ExtractionCoordinator:
         max_workers: int = 4
     ) -> pd.DataFrame:
         """
-        Execute harmonized extraction according to plan.
+        Execute harmonized extraction according to plan using ProcessPool.
         
         Args:
             plan: ExtractionPlan with file paths and variants
@@ -312,36 +310,11 @@ class ExtractionCoordinator:
         start_time = time.time()
         logger.info(f"Starting harmonized extraction for {len(plan.snp_list_ids)} variants")
         
-        all_results = []
-        
-        # Choose execution strategy
-        if parallel and self.use_process_pool:
+        if parallel:
             return self._execute_with_process_pool(plan, snp_list_df, max_workers)
-        elif parallel and len(plan.data_types) > 1:
-            # Execute data types in parallel
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                future_to_data_type = {
-                    executor.submit(
-                        self._extract_data_type,
-                        data_type,
-                        plan.snp_list_ids,
-                        plan.get_files_for_data_type(data_type),
-                        snp_list_df
-                    ): data_type
-                    for data_type in plan.data_types
-                }
-                
-                for future in as_completed(future_to_data_type):
-                    data_type = future_to_data_type[future]
-                    try:
-                        result_df = future.result()
-                        if not result_df.empty:
-                            all_results.append(result_df)
-                            logger.info(f"Completed extraction for {data_type}: {len(result_df)} variants")
-                    except Exception as e:
-                        logger.error(f"Failed extraction for {data_type}: {e}")
         else:
             # Execute sequentially
+            all_results = []
             for data_type in plan.data_types:
                 try:
                     files = plan.get_files_for_data_type(data_type)
@@ -351,17 +324,17 @@ class ExtractionCoordinator:
                         logger.info(f"Completed extraction for {data_type}: {len(result_df)} variants")
                 except Exception as e:
                     logger.error(f"Failed extraction for {data_type}: {e}")
-        
-        # Merge results
-        if all_results:
-            combined_df = self.extractor.merge_harmonized_genotypes(all_results)
-        else:
-            combined_df = pd.DataFrame()
-        
-        execution_time = time.time() - start_time
-        logger.info(f"Completed harmonized extraction in {execution_time:.1f}s: {len(combined_df)} variants")
-        
-        return combined_df
+            
+            # Merge results
+            if all_results:
+                combined_df = self.extractor.merge_harmonized_genotypes(all_results)
+            else:
+                combined_df = pd.DataFrame()
+            
+            execution_time = time.time() - start_time
+            logger.info(f"Completed harmonized extraction in {execution_time:.1f}s: {len(combined_df)} variants")
+            
+            return combined_df
     
     def _execute_with_process_pool(
         self, 

@@ -11,7 +11,7 @@ import numpy as np
 from typing import List, Dict, Optional, Tuple, Any
 from pathlib import Path
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 import subprocess
 import tempfile
 import time
