@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class KeyRecord(BaseModel):
@@ -34,5 +34,4 @@ class KeyRecord(BaseModel):
     sample_type: Optional[str] = Field(default=None, description="Sample type")
     amppd_wgs: Optional[bool] = Field(default=None, description="AMP-PD WGS availability")
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)

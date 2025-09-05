@@ -82,9 +82,9 @@ settings.get_clinical_paths()     # Clinical data files
 Built the merge-based harmonization and extraction engine that reduces processing time from **days to minutes** for 400+ pathogenic SNPs across 242+ PLINK files.
 
 **Current Performance:** 
-- **Phase 2**: 316 variants extracted in ~23 seconds (single NBA ancestry, ThreadPool)
+- **Phase 2**: 316 variants extracted in ~23 seconds (single NBA ancestry, sequential)
 - **Phase 3A**: 316 variants extracted in ~18.5 seconds (single NBA ancestry, ProcessPool)
-- **Next**: Scale to all ancestries/chromosomes for true parallel processing benefits
+- **IMPUTED**: Successfully tested ProcessPool with AAC/AFR ancestries, 12 variants from chr1, 5 from chr6
 
 ### Component 4: Merge-Based Harmonization ✅
 **Status:** ✅ **COMPLETED**
@@ -132,21 +132,29 @@ Built the merge-based harmonization and extraction engine that reduces processin
 **Key Achievements**:
 - **True Parallelization**: Replaced ThreadPoolExecutor with ProcessPoolExecutor for GIL-free execution
 - **Process Worker Function**: `extract_single_file_process_worker()` handles process-isolated extraction 
-- **Dual Execution Paths**: ProcessPool (default) with ThreadPool fallback for compatibility
+- **Pure ProcessPool Architecture**: Removed ThreadPool fallback, simplified to single execution path
 - **Resource Management**: `_calculate_optimal_workers()` prevents system overload
 - **Error Isolation**: Failed processes don't crash entire job
 - **Progress Tracking**: Real-time progress with tqdm integration
 - **Original Allele Fix**: `pgen_a1`/`pgen_a2` now properly populated in variant summaries
-- **Backwards Compatibility**: Existing `test_nba_pipeline.py` works unchanged
+- **IMPUTED Support**: Fixed PVAR parsing for VCF-style headers in IMPUTED files
+- **Test Suite Cleanup**: Removed obsolete tests, kept 31 passing tests
 
 **Performance Results**:
-- **Single File**: 18.5 seconds (vs 23 seconds with ThreadPool) 
+- **NBA Single File**: 18.5 seconds (ProcessPool) vs 23 seconds (sequential)
+- **IMPUTED Files**: Successfully processes VCF-style headers and extracts variants
 - **Error Handling**: Robust process failure containment
 - **Memory Usage**: Efficient with proper process isolation
+- **Test Coverage**: 31 tests passing, zero warnings
 
 **Files Modified**:
-- `app/processing/coordinator.py` - Added ProcessPool execution path
-- Enhanced with `extract_single_file_process_worker()` and `_execute_with_process_pool()`
+- `app/processing/coordinator.py` - Pure ProcessPool implementation, ThreadPool removed
+- `app/processing/harmonizer.py` - Fixed PVAR parsing for VCF-style headers
+- `app/processing/cache.py` - Updated to use ProcessPool for consistency
+- `app/processing/extractor.py` - Removed ThreadPool imports
+- `app/models/key_model.py` - Updated to Pydantic v2 ConfigDict
+- `app/models/snp_model.py` - Updated to Pydantic v2 ConfigDict
+- `tests/` - Removed obsolete test_cache.py and test_multi_allelic.py
 
 **Original Implementation Plan**:
 

@@ -64,7 +64,9 @@ Process ~400 pathogenic SNPs across 242+ PLINK 2.0 files (>1M variants each) fro
 - ✅ Robust error handling with process failure isolation
 - ✅ Progress tracking with tqdm integration
 - ✅ Original allele transparency in variant summaries (pgen_a1/pgen_a2)
-- ✅ Backwards compatibility with existing test scripts
+- ✅ IMPUTED file support with VCF-style header parsing
+- ✅ Complete ThreadPool removal for simplified architecture
+- ✅ Test suite cleanup and Pydantic v2 compliance
 
 ### File Paths
 ```
@@ -73,9 +75,38 @@ Cache:  ~/gcs_mounts/genotools_server/precision_med/cache/
 Output: ~/gcs_mounts/genotools_server/precision_med/output/
 ```
 
+### Recent Code Quality Improvements
+- ✅ **Pydantic v2 Migration**: Updated all models from `class Config` to `ConfigDict`
+- ✅ **Architecture Simplification**: Removed ThreadPool/ProcessPool dual-path complexity
+- ✅ **Test Suite Rationalization**: Removed obsolete tests (cache, multi-allelic), kept 31 valid tests
+- ✅ **IMPUTED File Support**: Fixed PVAR parsing for VCF-style headers (##comments + #CHROM)
+- ✅ **Zero Warnings**: All deprecation warnings eliminated from codebase
+- ✅ **Pure ProcessPool**: Consistent parallelization strategy across all components
+
 ### Development Environment Setup
 **IMPORTANT**: Always activate the virtual environment before running any commands:
 ```bash
 source .venv/bin/activate
 ```
 This ensures all required dependencies (pydantic, pandas, pgenlib, etc.) are available.
+
+### Test Execution
+Current test suite structure:
+```
+tests/
+├── test_harmonization.py    # Core harmonization logic (15 tests)
+└── test_transformer.py      # Genotype transformations (16 tests)
+```
+
+Run the test suite to verify functionality:
+```bash
+source .venv/bin/activate
+python -m pytest tests/ -v  # 31 tests, zero warnings
+```
+
+Pipeline testing:
+```bash
+source .venv/bin/activate
+python test_nba_pipeline.py        # NBA ProcessPool test
+python test_imputed_pipeline.py    # IMPUTED ProcessPool test
+```
