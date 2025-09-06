@@ -51,7 +51,10 @@ class VariantExtractor:
         output_prefix: str
     ) -> Optional[str]:
         """
-        Extract variants using PLINK 2.0.
+        Extract variants using PLINK 2.0 with two-step memory optimization.
+        
+        Step 1: Extract variants to intermediate PGEN (memory efficient)
+        Step 2: Convert small PGEN to TRAW (low memory usage)
         
         Args:
             pgen_path: Path to PGEN file (without extension)
@@ -68,31 +71,59 @@ class VariantExtractor:
                 for var_id in variant_ids:
                     f.write(f"{var_id}\n")
             
-            # PLINK 2.0 command to extract variants
-            cmd = [
+            # Step 1: Extract variants to intermediate PGEN file (memory efficient)
+            intermediate_prefix = f"{output_prefix}_filtered"
+            cmd_step1 = [
                 'plink2',
                 '--pfile', pgen_path,
                 '--extract', variant_file,
+                '--make-pgen',
+                '--out', intermediate_prefix
+            ]
+            
+            logger.debug(f"Step 1: Extracting {len(variant_ids)} variants to intermediate PGEN")
+            result_step1 = subprocess.run(cmd_step1, capture_output=True, text=True, timeout=300)
+            
+            if result_step1.returncode != 0:
+                logger.error(f"PLINK 2.0 Step 1 (PGEN extraction) failed: {result_step1.stderr}")
+                return None
+            
+            # Step 2: Convert small filtered PGEN to TRAW (low memory usage)
+            cmd_step2 = [
+                'plink2',
+                '--pfile', intermediate_prefix,
                 '--export', 'A-transpose',
                 '--out', output_prefix
             ]
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            logger.debug(f"Step 2: Converting filtered PGEN to TRAW")
+            result_step2 = subprocess.run(cmd_step2, capture_output=True, text=True, timeout=300)
             
-            if result.returncode == 0:
+            if result_step2.returncode == 0:
                 traw_file = f"{output_prefix}.traw"
                 if os.path.exists(traw_file):
+                    logger.debug(f"Successfully extracted {len(variant_ids)} variants via two-step process")
                     return traw_file
             else:
-                logger.error(f"PLINK 2.0 extraction failed: {result.stderr}")
+                logger.error(f"PLINK 2.0 Step 2 (TRAW export) failed: {result_step2.stderr}")
             
         except Exception as e:
-            logger.error(f"Error running PLINK 2.0: {e}")
+            logger.error(f"Error running PLINK 2.0 two-step extraction: {e}")
         
         # Clean up temp files
-        for temp_file in [variant_file]:
+        temp_files = [
+            variant_file,
+            f"{intermediate_prefix}.pgen",
+            f"{intermediate_prefix}.pvar", 
+            f"{intermediate_prefix}.psam",
+            f"{intermediate_prefix}.log"
+        ]
+        for temp_file in temp_files:
             if os.path.exists(temp_file):
-                os.remove(temp_file)
+                try:
+                    os.remove(temp_file)
+                except:
+                    pass
         
         return None
     

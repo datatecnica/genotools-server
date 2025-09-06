@@ -73,12 +73,12 @@ def main():
         logger.info(f"Full output path: {args.output}")
         logger.info("ProcessPool parallelization ENABLED for testing")
         
-        # Run pipeline with ProcessPool enabled (AAC ancestry only for testing)
+        # Run pipeline with ProcessPool enabled
         results = coordinator.run_full_extraction_pipeline(
             snp_list_path=snp_list_path,
             data_types=[DataType.IMPUTED],
             output_dir=output_dir,
-            ancestries=['AAC'],  # Test with just AAC for speed
+            ancestries=ancestries,  # Use command line ancestries
             output_formats=['traw', 'parquet'],
             parallel=True,  # Enable ProcessPool parallelization
             max_workers=3,  # Use 3 workers for testing
