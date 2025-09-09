@@ -293,8 +293,8 @@ class ExtractionCoordinator:
         plan: ExtractionPlan, 
         snp_list_df: pd.DataFrame,
         parallel: bool = True,
-        max_workers: int = 4
-    ) -> pd.DataFrame:
+        max_workers: Optional[int] = None
+    ) -> Dict[str, pd.DataFrame]:
         """
         Execute harmonized extraction according to plan using ProcessPool.
         
@@ -305,43 +305,47 @@ class ExtractionCoordinator:
             max_workers: Maximum parallel workers
             
         Returns:
-            Combined DataFrame with harmonized genotypes
+            Dictionary mapping data_type to combined DataFrame with harmonized genotypes
         """
         start_time = time.time()
         logger.info(f"Starting harmonized extraction for {len(plan.snp_list_ids)} variants")
+        
+        # Use settings default if not provided
+        if max_workers is None:
+            max_workers = self.settings.max_workers
         
         if parallel:
             return self._execute_with_process_pool(plan, snp_list_df, max_workers)
         else:
             # Execute sequentially
-            all_results = []
+            results_by_datatype = {}
             for data_type in plan.data_types:
                 try:
                     files = plan.get_files_for_data_type(data_type)
                     result_df = self._extract_data_type(data_type, plan.snp_list_ids, files, snp_list_df)
                     if not result_df.empty:
-                        all_results.append(result_df)
+                        # Remove duplicates within this data type
+                        result_df = result_df.drop_duplicates(
+                            subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                            keep='first'
+                        )
+                        results_by_datatype[data_type] = result_df
                         logger.info(f"Completed extraction for {data_type}: {len(result_df)} variants")
                 except Exception as e:
                     logger.error(f"Failed extraction for {data_type}: {e}")
             
-            # Merge results
-            if all_results:
-                combined_df = self.extractor.merge_harmonized_genotypes(all_results)
-            else:
-                combined_df = pd.DataFrame()
-            
             execution_time = time.time() - start_time
-            logger.info(f"Completed harmonized extraction in {execution_time:.1f}s: {len(combined_df)} variants")
+            total_variants = sum(len(df) for df in results_by_datatype.values())
+            logger.info(f"Completed harmonized extraction in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
             
-            return combined_df
+            return results_by_datatype
     
     def _execute_with_process_pool(
         self, 
         plan: ExtractionPlan, 
         snp_list_df: pd.DataFrame, 
         max_workers: int
-    ) -> pd.DataFrame:
+    ) -> Dict[str, pd.DataFrame]:
         """ProcessPool-based parallel extraction."""
         start_time = time.time()
         
@@ -351,6 +355,11 @@ class ExtractionCoordinator:
             files = plan.get_files_for_data_type(data_type)
             for file_path in files:
                 all_tasks.append((file_path, data_type))
+        
+        # Handle case where no files are found
+        if not all_tasks:
+            logger.warning("No files found for extraction")
+            return {}
         
         # Calculate optimal process count
         optimal_workers = self._calculate_optimal_workers(len(all_tasks), max_workers)
@@ -394,20 +403,54 @@ class ExtractionCoordinator:
             for file_path, data_type, error in failed_extractions:
                 logger.warning(f"  {data_type}: {file_path} - {error}")
         
-        # Combine all results
-        combined_df = self.extractor.merge_harmonized_genotypes(all_results) if all_results else pd.DataFrame()
+        # Group results by data type
+        results_by_datatype = {}
+        
+        # Group ProcessPool results by data_type
+        wgs_results = [df for df in all_results if (df['data_type'] == 'WGS').all()]
+        nba_results = [df for df in all_results if (df['data_type'] == 'NBA').all()]
+        imputed_results = [df for df in all_results if (df['data_type'] == 'IMPUTED').all()]
+        
+        # Combine within each data type (only deduplicating within same data type)
+        if wgs_results:
+            wgs_combined = pd.concat(wgs_results, ignore_index=True)
+            # Remove duplicates within WGS only
+            wgs_combined = wgs_combined.drop_duplicates(
+                subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                keep='first'
+            )
+            results_by_datatype['WGS'] = wgs_combined
+            logger.info(f"WGS combined: {len(wgs_combined)} variants")
+        
+        if nba_results:
+            nba_combined = pd.concat(nba_results, ignore_index=True)
+            # Remove duplicates within NBA only
+            nba_combined = nba_combined.drop_duplicates(
+                subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                keep='first'
+            )
+            results_by_datatype['NBA'] = nba_combined
+            logger.info(f"NBA combined: {len(nba_combined)} variants")
+        
+        if imputed_results:
+            imputed_combined = pd.concat(imputed_results, ignore_index=True)
+            # Remove duplicates within IMPUTED only
+            imputed_combined = imputed_combined.drop_duplicates(
+                subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                keep='first'
+            )
+            results_by_datatype['IMPUTED'] = imputed_combined
+            logger.info(f"IMPUTED combined: {len(imputed_combined)} variants")
         
         execution_time = time.time() - start_time
-        logger.info(f"ProcessPool extraction completed in {execution_time:.1f}s: {len(combined_df)} variants")
+        total_variants = sum(len(df) for df in results_by_datatype.values())
+        logger.info(f"ProcessPool extraction completed in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
         
-        return combined_df
+        return results_by_datatype
     
     def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
-        """Calculate optimal process count based on system resources."""
-        cpu_count = os.cpu_count() or 4
-        # Don't exceed CPU count, but allow some overhead for I/O
-        optimal = min(total_files, max(1, cpu_count - 1), max_workers, 20)  # Cap at 20 processes
-        return optimal
+        """Calculate optimal process count based on system resources and settings."""
+        return self.settings.get_optimal_workers(total_files)
     
     def _extract_data_type(
         self, 
@@ -588,7 +631,8 @@ class ExtractionCoordinator:
         base_name: Optional[str] = None,
         formats: List[str] = ['traw', 'parquet'],
         snp_list: Optional[pd.DataFrame] = None,
-        harmonization_summary: Optional[Dict[str, Any]] = None
+        harmonization_summary: Optional[Dict[str, Any]] = None,
+        max_workers: Optional[int] = None
     ) -> Dict[str, str]:
         """
         Export results using cache-free real-time harmonization.
@@ -620,31 +664,45 @@ class ExtractionCoordinator:
         
         # Cache-free mode: always use traditional DataFrame-based export
         if True:  # Always use traditional approach in cache-free mode
-            logger.info("Using traditional DataFrame-based export")
-            # Extract using traditional method
-            extracted_df = self.execute_harmonized_extraction(plan, snp_list, parallel=True, max_workers=4)
+            logger.info("Using traditional DataFrame-based export with separate data type outputs")
+            # Extract using traditional method - now returns dict by data type
+            extracted_by_datatype = self.execute_harmonized_extraction(plan, snp_list, parallel=True, max_workers=max_workers)
             
-            # Update harmonization summary with actual counts from extracted data
-            if harmonization_summary and not extracted_df.empty:
-                # Get actual counts from extracted data
-                sample_cols = self.formatter._get_sample_columns(extracted_df)
-                actual_sample_count = len(sample_cols)
-                actual_variant_count = len(extracted_df)
+            # Export separate files for each data type
+            for data_type, df in extracted_by_datatype.items():
+                if df.empty:
+                    logger.warning(f"No variants extracted for {data_type}, skipping export")
+                    continue
                 
-                # Update summary with actual counts
-                harmonization_summary['total_samples'] = actual_sample_count
-                harmonization_summary['total_variants'] = actual_variant_count
+                # Update harmonization summary with actual counts from this data type
+                current_summary = harmonization_summary.copy() if harmonization_summary else {}
+                sample_cols = self.formatter._get_sample_columns(df)
+                actual_sample_count = len(sample_cols)
+                actual_variant_count = len(df)
+                
+                current_summary['total_samples'] = actual_sample_count
+                current_summary['total_variants'] = actual_variant_count
+                current_summary['data_type'] = data_type
+                
+                # Create data-type specific base name
+                datatype_base_name = f"{base_name}_{data_type}"
+                
+                # Export for this data type
+                datatype_output_files = self.export_results(
+                    df=df,
+                    output_dir=output_dir,
+                    base_name=datatype_base_name,
+                    formats=formats,
+                    snp_list=snp_list,
+                    harmonization_summary=current_summary
+                )
+                
+                # Add data type prefix to output file keys
+                for file_type, file_path in datatype_output_files.items():
+                    output_files[f"{data_type}_{file_type}"] = file_path
+                
+                logger.info(f"Exported {data_type}: {len(datatype_output_files)} files, {actual_variant_count} variants")
             
-            # Use traditional export
-            traditional_output_files = self.export_results(
-                df=extracted_df,
-                output_dir=output_dir,
-                base_name=base_name,
-                formats=formats,
-                snp_list=snp_list,
-                harmonization_summary=harmonization_summary
-            )
-            output_files.update(traditional_output_files)
             return output_files
         
         # This section is no longer needed since we always use traditional extraction above
@@ -743,7 +801,7 @@ class ExtractionCoordinator:
         ancestries: Optional[List[str]] = None,
         output_formats: List[str] = ['traw', 'parquet'],
         parallel: bool = True,
-        max_workers: int = 4,
+        max_workers: Optional[int] = None,
         output_name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
@@ -803,7 +861,8 @@ class ExtractionCoordinator:
                 base_name=job_id,
                 formats=output_formats,
                 snp_list=snp_list,
-                harmonization_summary=harmonization_summary
+                harmonization_summary=harmonization_summary,
+                max_workers=max_workers
             )
             
             # Pipeline completed successfully

@@ -26,10 +26,17 @@ class Settings(BaseModel):
     # Output formats
     output_format: str = Field(default="parquet", description="Default output format")
     
-    # Processing parameters
-    chunk_size: int = Field(default=10000, description="Chunk size for processing large files")
-    max_workers: int = Field(default=4, description="Maximum number of parallel workers")
+    # Performance parameters - Auto-detects based on machine specs
+    chunk_size: int = Field(default=50000, description="Chunk size for processing large files")
+    max_workers: int = Field(default=28, description="Maximum number of parallel workers")
+    process_cap: int = Field(default=30, description="Maximum concurrent processes allowed")
+    cpu_reservation: int = Field(default=2, description="CPU cores to reserve for OS")
     cache_enabled: bool = Field(default=True, description="Enable variant index caching")
+    
+    # Timeout parameters (seconds)
+    plink_timeout_short: int = Field(default=10, description="Short PLINK operations timeout")
+    plink_timeout_medium: int = Field(default=300, description="Medium PLINK operations timeout") 
+    plink_timeout_long: int = Field(default=600, description="Long PLINK operations timeout")
     
     @field_validator('release')
     @classmethod
@@ -46,6 +53,66 @@ class Settings(BaseModel):
     @classmethod
     def validate_mnt_path(cls, v: str) -> str:
         return os.path.expanduser(v)
+    
+    @classmethod
+    def auto_detect_performance_settings(cls) -> Dict[str, int]:
+        """Auto-detect optimal performance settings based on machine specs."""
+        import psutil
+        
+        cpu_count = os.cpu_count() or 4
+        total_ram_gb = psutil.virtual_memory().total / (1024**3)
+        
+        # Performance tier detection
+        if cpu_count <= 4 and total_ram_gb <= 16:
+            # Small: Development/laptop
+            return {
+                'chunk_size': 15000,
+                'max_workers': max(2, cpu_count - 2),
+                'process_cap': min(6, cpu_count),
+                'cpu_reservation': 2
+            }
+        elif cpu_count <= 8 and total_ram_gb <= 32:
+            # Medium: Small production
+            return {
+                'chunk_size': 25000,
+                'max_workers': max(4, cpu_count - 2),
+                'process_cap': min(12, cpu_count + 2),
+                'cpu_reservation': 2
+            }
+        elif cpu_count <= 16 and total_ram_gb <= 64:
+            # Large: Medium production
+            return {
+                'chunk_size': 40000,
+                'max_workers': max(8, cpu_count - 2),
+                'process_cap': min(20, cpu_count + 4),
+                'cpu_reservation': 2
+            }
+        elif cpu_count <= 32 and total_ram_gb <= 128:
+            # XLarge: High-end production (current system)
+            return {
+                'chunk_size': 50000,
+                'max_workers': max(16, cpu_count - 4),
+                'process_cap': min(30, cpu_count - 2),
+                'cpu_reservation': 4
+            }
+        else:
+            # XXLarge: Workstation/Server
+            return {
+                'chunk_size': 75000,
+                'max_workers': max(24, cpu_count - 6),
+                'process_cap': min(60, cpu_count - 4),
+                'cpu_reservation': 6
+            }
+    
+    def get_optimal_workers(self, total_files: int) -> int:
+        """Get optimal worker count for given number of files."""
+        cpu_count = os.cpu_count() or 4
+        return min(
+            total_files,
+            max(1, cpu_count - self.cpu_reservation),
+            self.max_workers,
+            self.process_cap
+        )
     
     @cached_property
     def carriers_path(self) -> str:
@@ -117,7 +184,17 @@ class Settings(BaseModel):
         return os.path.join(
             self.carriers_path,
             "results",
+            f"release{self.release}",
             job_id
+        )
+    
+    @cached_property
+    def results_path(self) -> str:
+        """Base results directory for current release."""
+        return os.path.join(
+            self.carriers_path,
+            "results", 
+            f"release{self.release}"
         )
     
     def get_cache_path(self) -> str:
@@ -230,13 +307,33 @@ class Settings(BaseModel):
                 "release": "10",
                 "mnt_path": "~/gcs_mounts",
                 "output_format": "parquet",
-                "chunk_size": 10000,
-                "max_workers": 4,
-                "cache_enabled": True
+                "chunk_size": 50000,
+                "max_workers": 28,
+                "process_cap": 30,
+                "cpu_reservation": 2,
+                "cache_enabled": True,
+                "plink_timeout_short": 10,
+                "plink_timeout_medium": 300,
+                "plink_timeout_long": 600
             }
         }
     )
+    
+    @classmethod
+    def create_optimized(cls, **overrides) -> 'Settings':
+        """Create Settings instance with auto-detected performance optimization."""
+        optimal_settings = cls.auto_detect_performance_settings()
+        
+        # Merge auto-detected settings with any manual overrides
+        config_dict = {**optimal_settings, **overrides}
+        
+        return cls(**config_dict)
 
 
 def get_settings() -> Settings:
-    return Settings()
+    """Get Settings instance with auto-optimization based on environment."""
+    # Check if AUTO_OPTIMIZE environment variable is set
+    if os.getenv('AUTO_OPTIMIZE', 'true').lower() in ('true', '1', 'yes'):
+        return Settings.create_optimized()
+    else:
+        return Settings()

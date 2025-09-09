@@ -83,8 +83,6 @@ class HarmonizationEngine:
             
             logger.info(f"Read {len(df)} variants from {pvar_path}")
 
-            print(f"Sample PVAR data:\n{df.head()}")
-
             return df
             
         except Exception as e:
@@ -113,7 +111,6 @@ class HarmonizationEngine:
         df = df.dropna(subset=['chromosome', 'position', 'ref', 'alt'])
         
         logger.info(f"Prepared {len(df)} SNP list variants for merging")
-        print(f"Sample SNP list data:\n{df.head()}")
         
         return df
     
@@ -146,8 +143,6 @@ class HarmonizationEngine:
         )
         
         logger.info(f"Merged data: {len(merged_df)} matching variants found")
-        print(f"Sample merged data:\n{merged_df.head()}")
-        
         return merged_df
     
     def _harmonize_on_merged(self, merged_df: pd.DataFrame) -> pd.DataFrame:

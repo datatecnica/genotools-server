@@ -297,7 +297,7 @@ The codebase follows a modular architecture with clear separation of concerns:
   - `export_results_cache_free()`: Export using cache-free real-time harmonization
   - `run_full_extraction_pipeline()`: Complete pipeline from SNP list to output
 - **ProcessPool Methods**:
-  - `_execute_with_process_pool()`: ProcessPool orchestration with progress tracking
+  - `_execute_with_process_pool()`: ProcessPool orchestration with cross-DataType combination and progress tracking
   - `_calculate_optimal_workers()`: Resource management for optimal process count
 - **Private Methods**: SNP list validation, data type extraction, harmonization summary generation
 
@@ -311,7 +311,7 @@ The codebase follows a modular architecture with clear separation of concerns:
 #### Dependencies:
 - Standard: `os`, `pandas`, `numpy`, `typing`, `pathlib`, `logging`, `concurrent.futures`, `time`, `datetime`, `uuid`, `tqdm`
 - Internal: Multiple models and processing modules
-- **Updated**: Pure ProcessPoolExecutor implementation, ThreadPoolExecutor removed
+- **Updated**: Pure ProcessPoolExecutor implementation with cross-DataType combination, ThreadPoolExecutor removed
 
 ### `/app/processing/extractor.py`
 
@@ -323,7 +323,7 @@ The codebase follows a modular architecture with clear separation of concerns:
 - **Purpose**: Extracts variants from PLINK files and applies harmonization transformations
 - **Key Methods**:
   - `extract_single_file_harmonized()`: Extract variants from single file with real-time harmonization
-  - `merge_harmonized_genotypes()`: Merge results from multiple sources with deduplication
+  - `merge_harmonized_genotypes()`: Cross-DataType merge with intelligent deduplication (WGS > NBA > IMPUTED priority)
   - `extract_without_cache()`: Primary extraction method using merge-based harmonization
 - **Private Methods**: 
   - PLINK availability checking
@@ -622,7 +622,7 @@ python test_imputed_pipeline.py    # IMPUTED integration test
 ### Performance Optimizations
 - ~~**Variant Index Caching**: Parquet-based mapping~~ **DEPRECATED** - Merge-based approach faster
 - **Real-time Processing**: Direct PVAR/SNP list merging eliminates cache overhead
-- **ProcessPool Benefits**: True CPU parallelism, no GIL limitations
+- **ProcessPool Benefits**: True CPU parallelism, no GIL limitations, cross-DataType combination
 - **Compression**: Snappy compression for Parquet output files
 - **Benchmark Results**: 
   - NBA AAC: 18.5s (ProcessPool) vs 23s (sequential)
@@ -630,7 +630,7 @@ python test_imputed_pipeline.py    # IMPUTED integration test
 
 ### Recent Architecture Improvements
 - **✅ Pydantic v2 Migration**: All models updated to use ConfigDict, zero deprecation warnings
-- **✅ Pure ProcessPool**: Removed ThreadPool/ProcessPool dual-path complexity
+- **✅ Pure ProcessPool**: Removed ThreadPool/ProcessPool dual-path complexity, unified cross-DataType combination
 - **✅ Test Suite Cleanup**: Removed obsolete tests, maintained 31 passing tests
 - **✅ IMPUTED File Support**: Enhanced PVAR parsing for VCF-style headers
 - **✅ Original Allele Tracking**: Added transparency for pre-harmonization alleles
@@ -642,7 +642,7 @@ python test_imputed_pipeline.py    # IMPUTED integration test
 - **Reporting**: QC reports with missing rates, allele frequencies, and processing metadata
 - **Logging**: Structured logging throughout the pipeline
 
-This system processes ~400 pathogenic SNPs across massive genomic datasets, reducing extraction time from days to <10 minutes through ProcessPool parallelization and merge-based real-time harmonization strategies.
+This system processes ~400 pathogenic SNPs across massive genomic datasets, reducing extraction time from days to <10 minutes through ProcessPool parallelization with cross-DataType combination and merge-based real-time harmonization strategies.
 
 ---
 

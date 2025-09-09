@@ -6,9 +6,9 @@
 - **Phase 1**: Foundation (Data models, config, file discovery)
 - **Phase 2**: Core Processing (Merge-based harmonization, extraction, coordination)  
 - **Phase 3A**: ProcessPool Parallelization (True concurrent processing)
+- **Phase 3B Component 7**: Cross-DataType Combination (unified merge with deduplication)
 
 ### 🎯 **Current Focus: Phase 3B**
-- **Component 7B**: Within-DataType Combination (merge results per data type)
 - **Component 8**: Carrier Detection (detector.py)
 - **Component 9**: Statistical Analysis & Reporting (statistics.py, reporting.py)
 
@@ -38,6 +38,7 @@ Process ~400 pathogenic SNPs across 254 PLINK files from three data sources:
 - **Resource Management**: Optimal worker calculation prevents overload
 - **IMPUTED File Support**: Fixed VCF-style header parsing
 - **Original Allele Transparency**: Track pre/post harmonization alleles
+- **Cross-DataType Combination**: Unified merge with intelligent deduplication (WGS > NBA > IMPUTED priority)
 
 ### **Performance Results** ✅
 - **NBA Processing**: 18.5s (ProcessPool) vs 23s (sequential)
@@ -54,25 +55,27 @@ Process ~400 pathogenic SNPs across 254 PLINK files from three data sources:
 
 ## 🎯 Phase 3B: Next Steps
 
-### **Component 7B: Within-DataType Combination**
-**Objective**: Merge ProcessPool results into unified datasets per data type
+### **Component 7: Cross-DataType Combination** ✅ **COMPLETED**
+**Objective**: Merge ProcessPool results into unified dataset across all data types
 
-**Implementation Plan**:
+**Current Implementation**:
 ```python
-# Group ProcessPool results by data_type
-nba_results = [df for df in all_results if df['data_type'] == 'NBA']
-wgs_results = [df for df in all_results if df['data_type'] == 'WGS']  
-imputed_results = [df for df in all_results if df['data_type'] == 'IMPUTED']
+# ProcessPool flattens all files across all data types
+all_tasks = []
+for data_type in plan.data_types:
+    files = plan.get_files_for_data_type(data_type)
+    for file_path in files:
+        all_tasks.append((file_path, data_type))
 
-# Combine within each data type
-nba_combined = pd.concat(nba_results, ignore_index=True)
-# Generate NBA_combined.parquet, NBA_combined.traw, etc.
+# All results combined with intelligent deduplication
+combined_df = self.extractor.merge_harmonized_genotypes(all_results)
 ```
 
-**Expected Outputs**:
-- `NBA_combined.*` (All 11 ancestries merged)
-- `WGS_combined.*` (Single file, renamed for consistency)
-- `IMPUTED_combined.*` (All 242 files merged)
+**Current Outputs** ✅:
+- **Unified Dataset**: Single combined DataFrame with all data types
+- **Intelligent Deduplication**: WGS > NBA > IMPUTED priority for overlapping variants
+- **Cross-DataType Merging**: No separate data-type files needed
+- **Metadata Preservation**: data_type, ancestry, source_file columns retained
 
 ### **Component 8: Carrier Detection**
 **Objective**: Identify carriers from combined datasets
@@ -109,7 +112,7 @@ nba_combined = pd.concat(nba_results, ignore_index=True)
 |--------|--------|---------|
 | All NBA Files | <2 minutes (parallel) | 🔄 Next |
 | All IMPUTED Files | <10 minutes (parallel) | 🔄 Next |
-| Combined Datasets | 3 unified data types | 🔄 Next |
+| Cross-DataType Combination | Unified dataset with deduplication | ✅ Complete |
 | Carrier Detection | Real-time analysis | 🔄 Next |
 
 ---
@@ -146,11 +149,11 @@ python test_imputed_pipeline.py    # IMPUTED test
 
 ## 🎯 Immediate Next Actions
 
-1. **Implement Component 7B**: Within-datatype combination logic
-2. **Test Combined Outputs**: Validate NBA_combined, IMPUTED_combined files
-3. **Scale ProcessPool**: Test with all ancestries and chromosomes
-4. **Optimize Memory**: Monitor resource usage during full-scale processing
-5. **Carrier Detection**: Begin Component 8 implementation
+1. **Carrier Detection**: Begin Component 8 implementation (detector.py)
+2. **Scale ProcessPool**: Test with all ancestries and chromosomes
+3. **Optimize Memory**: Monitor resource usage during full-scale processing
+4. **Statistical Analysis**: Implement Component 9 (statistics.py, reporting.py)
+5. **API Integration**: Connect carrier detection to FastAPI endpoints
 
 ---
 
@@ -158,15 +161,17 @@ python test_imputed_pipeline.py    # IMPUTED test
 
 ### **Technical Metrics**
 - ✅ ProcessPool implementation (Component 7A)
+- ✅ Cross-DataType combination (Component 7)
 - ✅ Zero deprecation warnings (Pydantic v2)
 - ✅ Test suite health (31 passing tests)
-- 🎯 Combined dataset generation (Component 7B)
+- 🎯 Carrier detection implementation (Component 8)
 - 🎯 Full pipeline <10 minutes (all 254 files)
 
 ### **Quality Metrics**
 - ✅ Process isolation and error handling
 - ✅ Original allele transparency
 - ✅ IMPUTED file format support
+- ✅ Cross-DataType deduplication with priority system
 - 🎯 Carrier detection accuracy
 - 🎯 Statistical analysis completeness
 

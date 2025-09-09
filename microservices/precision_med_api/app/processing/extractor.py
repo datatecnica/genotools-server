@@ -38,7 +38,7 @@ class VariantExtractor:
         """Check if PLINK 2.0 is available."""
         try:
             result = subprocess.run(['plink2', '--version'], 
-                                  capture_output=True, text=True, timeout=10)
+                                  capture_output=True, text=True, timeout=self.settings.plink_timeout_short)
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
             logger.warning("PLINK 2.0 not found, falling back to alternative extraction methods")
@@ -82,7 +82,7 @@ class VariantExtractor:
             ]
             
             logger.debug(f"Step 1: Extracting {len(variant_ids)} variants to intermediate PGEN")
-            result_step1 = subprocess.run(cmd_step1, capture_output=True, text=True, timeout=300)
+            result_step1 = subprocess.run(cmd_step1, capture_output=True, text=True, timeout=self.settings.plink_timeout_medium)
             
             if result_step1.returncode != 0:
                 logger.error(f"PLINK 2.0 Step 1 (PGEN extraction) failed: {result_step1.stderr}")
@@ -97,7 +97,7 @@ class VariantExtractor:
             ]
             
             logger.debug(f"Step 2: Converting filtered PGEN to TRAW")
-            result_step2 = subprocess.run(cmd_step2, capture_output=True, text=True, timeout=300)
+            result_step2 = subprocess.run(cmd_step2, capture_output=True, text=True, timeout=self.settings.plink_timeout_medium)
             
             if result_step2.returncode == 0:
                 traw_file = f"{output_prefix}.traw"
@@ -648,15 +648,15 @@ class VariantExtractor:
             logger.warning("No variants extracted from any data source")
             return pd.DataFrame()
     
-    def merge_harmonized_genotypes(self, dfs: List[pd.DataFrame]) -> pd.DataFrame:
+    def merge_harmonized_genotypes_within_datatype(self, dfs: List[pd.DataFrame]) -> pd.DataFrame:
         """
-        Merge harmonized genotypes from multiple sources.
+        Merge harmonized genotypes from multiple files within the same data type.
         
         Args:
-            dfs: List of DataFrames with harmonized genotypes
+            dfs: List of DataFrames with harmonized genotypes from same data type
             
         Returns:
-            Merged DataFrame
+            Merged DataFrame with within-data-type deduplication
         """
         if not dfs:
             return pd.DataFrame()
@@ -667,20 +667,13 @@ class VariantExtractor:
         # Concatenate all DataFrames
         merged_df = pd.concat(dfs, ignore_index=True)
         
-        # Remove duplicates based on variant and sample
-        # Priority: WGS > NBA > IMPUTED
-        data_type_priority = {'WGS': 3, 'NBA': 2, 'IMPUTED': 1}
-        merged_df['priority'] = merged_df['data_type'].map(data_type_priority)
-        
-        # Sort by priority and keep first occurrence for true duplicates
-        merged_df = merged_df.sort_values('priority', ascending=False)
+        # Remove duplicates within this data type only
         # Use SNP list ID, chromosome, position, and alleles to identify true duplicates
         # This prevents excluding different SNP list variants at the same position (e.g., V499L vs V499M)
         dedup_columns = ['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele']
         merged_df = merged_df.drop_duplicates(subset=dedup_columns, keep='first')
-        merged_df = merged_df.drop(columns=['priority'])
         
-        logger.info(f"Merged to {len(merged_df)} unique variants")
+        logger.info(f"Merged {len(dfs)} files to {len(merged_df)} unique variants within data type")
         return merged_df
     
     def validate_allele_consistency(self, df: pd.DataFrame) -> bool:
