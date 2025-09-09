@@ -82,16 +82,26 @@ def validate_pgen_files(base_path: str) -> bool:
 
 
 def list_available_files(data_type: DataType, release: str, 
-                        settings: Optional[Settings] = None) -> Dict[str, Any]:
+                        settings: Optional[Settings] = None,
+                        target_chromosomes: Optional[List[str]] = None) -> Dict[str, Any]:
     if not settings:
         settings = Settings(release=release)
+    
+    # Use target chromosomes if provided, otherwise use SNP-based filtering for IMPUTED,
+    # or all chromosomes as fallback
+    if target_chromosomes is None:
+        if data_type == DataType.IMPUTED:
+            target_chromosomes = settings.get_snp_chromosomes()
+        else:
+            target_chromosomes = settings.CHROMOSOMES
     
     result = {
         "data_type": data_type.value,
         "release": release,
         "available_files": [],
         "total_files": 0,
-        "total_size_mb": 0.0
+        "total_size_mb": 0.0,
+        "target_chromosomes": target_chromosomes if data_type == DataType.IMPUTED else None
     }
     
     if data_type == DataType.WGS:
@@ -139,7 +149,7 @@ def list_available_files(data_type: DataType, release: str,
             ancestry_files = []
             ancestry_size = 0.0
             
-            for chrom in settings.CHROMOSOMES:
+            for chrom in target_chromosomes:
                 try:
                     base_path = settings.get_imputed_path(ancestry, chrom)
                     pgen_set = PgenFileSet(base_path)
@@ -226,7 +236,11 @@ def find_matching_files(data_type: DataType, ancestries: Optional[List[str]],
     elif data_type == DataType.IMPUTED:
         # IMPUTED files split by both ancestry and chromosome
         target_ancestries = ancestries if ancestries else settings.ANCESTRIES
-        target_chromosomes = chromosomes if chromosomes else settings.CHROMOSOMES
+        # Use SNP-based chromosome filtering if no specific chromosomes requested
+        if chromosomes is None:
+            target_chromosomes = settings.get_snp_chromosomes()
+        else:
+            target_chromosomes = chromosomes
         
         for ancestry in target_ancestries:
             if ancestry not in settings.ANCESTRIES:

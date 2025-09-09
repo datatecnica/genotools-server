@@ -135,6 +135,28 @@ class ExtractionCoordinator:
             logger.error(f"Failed to load SNP list from {file_path}: {e}")
             raise
     
+    def get_target_chromosomes(self, snp_list: pd.DataFrame) -> List[str]:
+        """
+        Extract chromosomes that contain variants in the SNP list.
+        
+        Args:
+            snp_list: Validated SNP list DataFrame
+            
+        Returns:
+            List of chromosome strings that contain target variants
+        """
+        if snp_list.empty:
+            logger.warning("SNP list is empty, returning all chromosomes")
+            return self.settings.CHROMOSOMES
+        
+        # Get unique chromosomes from SNP list
+        target_chroms = sorted(snp_list['chromosome'].dropna().unique().tolist())
+        
+        logger.info(f"Target chromosomes from SNP list: {target_chroms}")
+        logger.info(f"Filtering from {len(self.settings.CHROMOSOMES)} to {len(target_chroms)} chromosomes")
+        
+        return target_chroms
+    
     def _validate_snp_list(self, snp_list: pd.DataFrame) -> pd.DataFrame:
         """Validate SNP list format and content."""
         if snp_list.empty:

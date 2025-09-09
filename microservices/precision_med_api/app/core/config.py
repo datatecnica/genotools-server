@@ -122,6 +122,39 @@ class Settings(BaseModel):
     def snp_list_path(self) -> str:
         return os.path.join(self.carriers_path, "summary_data", "precision_med_snp_list.csv")
     
+    def get_snp_chromosomes(self, snp_list_path: Optional[str] = None) -> List[str]:
+        """
+        Extract chromosome list from SNP list file.
+        
+        Args:
+            snp_list_path: Path to SNP list file. Uses default if None.
+            
+        Returns:
+            List of chromosomes that contain variants in the SNP list
+        """
+        import pandas as pd
+        
+        if snp_list_path is None:
+            snp_list_path = self.snp_list_path
+            
+        try:
+            # Load SNP list
+            snp_list = pd.read_csv(snp_list_path)
+            
+            # Extract chromosomes from hg38 coordinates  
+            if 'hg38' in snp_list.columns:
+                coords = snp_list['hg38'].str.split(':', expand=True)
+                if coords.shape[1] >= 1:
+                    chromosomes = coords[0].str.replace('chr', '').str.upper().dropna().unique()
+                    return sorted(chromosomes.tolist())
+            
+            # Fallback to all chromosomes if extraction fails
+            return self.CHROMOSOMES
+            
+        except Exception:
+            # Return all chromosomes if SNP list can't be loaded
+            return self.CHROMOSOMES
+    
     @cached_property
     def release_path(self) -> str:
         return os.path.join(self.mnt_path, "gp2tier2_vwb", f"release{self.release}")
@@ -143,7 +176,7 @@ class Settings(BaseModel):
             self.carriers_path,
             "wgs",
             "raw_genotypes",
-            f"R{self.release}_wgs_carriers_vars"
+            f"R{self.release}_wgs_carrier_vars"
         )
         return base_path
     
@@ -283,14 +316,23 @@ class Settings(BaseModel):
         
         return available
     
-    def list_available_chromosomes(self, ancestry: str) -> List[str]:
+    def list_available_chromosomes(self, ancestry: str, filter_by_snp_list: bool = True) -> List[str]:
         base_path = os.path.join(self.release_path, "imputed_genotypes", ancestry)
         
         if not os.path.exists(base_path):
             return []
         
+        # Use SNP-based chromosome filtering by default
+        chromosomes_to_check = self.get_snp_chromosomes() if filter_by_snp_list else self.CHROMOSOMES
+        
+        # Add validation logging for chromosome filtering
+        if filter_by_snp_list and len(chromosomes_to_check) < len(self.CHROMOSOMES):
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Chromosome filtering active: checking {len(chromosomes_to_check)} SNP-list chromosomes ({chromosomes_to_check}) for ancestry {ancestry}")
+        
         available = []
-        for chrom in self.CHROMOSOMES:
+        for chrom in chromosomes_to_check:
             # Check if any of the PLINK files exist for this chromosome
             pgen_file = os.path.join(
                 base_path,
@@ -298,6 +340,12 @@ class Settings(BaseModel):
             )
             if os.path.exists(pgen_file):
                 available.append(chrom)
+        
+        # Add validation warning if no chromosomes match
+        if not available and filter_by_snp_list:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"No available chromosomes found for ancestry {ancestry} after SNP-list filtering. Target chromosomes were: {chromosomes_to_check}")
         
         return available
     
