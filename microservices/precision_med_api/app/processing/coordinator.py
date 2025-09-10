@@ -135,27 +135,6 @@ class ExtractionCoordinator:
             logger.error(f"Failed to load SNP list from {file_path}: {e}")
             raise
     
-    def get_target_chromosomes(self, snp_list: pd.DataFrame) -> List[str]:
-        """
-        Extract chromosomes that contain variants in the SNP list.
-        
-        Args:
-            snp_list: Validated SNP list DataFrame
-            
-        Returns:
-            List of chromosome strings that contain target variants
-        """
-        if snp_list.empty:
-            logger.warning("SNP list is empty, returning all chromosomes")
-            return self.settings.CHROMOSOMES
-        
-        # Get unique chromosomes from SNP list
-        target_chroms = sorted(snp_list['chromosome'].dropna().unique().tolist())
-        
-        logger.info(f"Target chromosomes from SNP list: {target_chroms}")
-        logger.info(f"Filtering from {len(self.settings.CHROMOSOMES)} to {len(target_chroms)} chromosomes")
-        
-        return target_chroms
     
     def _validate_snp_list(self, snp_list: pd.DataFrame) -> pd.DataFrame:
         """Validate SNP list format and content."""
@@ -213,22 +192,6 @@ class ExtractionCoordinator:
         logger.info(f"Validated SNP list with {final_count} variants")
         return snp_list.reset_index(drop=True)
     
-    def validate_snp_list(self, snp_list: pd.DataFrame) -> bool:
-        """
-        Validate SNP list format and return validation status.
-        
-        Args:
-            snp_list: SNP list DataFrame
-            
-        Returns:
-            True if valid, False otherwise
-        """
-        try:
-            self._validate_snp_list(snp_list)
-            return True
-        except Exception as e:
-            logger.error(f"SNP list validation failed: {e}")
-            return False
     
     def plan_extraction(
         self, 
@@ -514,112 +477,6 @@ class ExtractionCoordinator:
         else:
             return pd.DataFrame()
     
-    def generate_harmonization_summary(
-        self, 
-        results: pd.DataFrame
-    ) -> Dict[str, Any]:
-        """
-        Generate comprehensive harmonization summary.
-        
-        Args:
-            results: Combined extraction results
-            
-        Returns:
-            Summary dictionary with statistics
-        """
-        if results.empty:
-            return {
-                "total_variants": 0,
-                "total_samples": 0,
-                "summary": "No variants extracted"
-            }
-        
-        # Get sample columns
-        sample_cols = self.formatter._get_sample_columns(results)
-        
-        summary = {
-            "total_variants": len(results),
-            "total_samples": len(sample_cols),
-            "unique_variants": results['snp_list_id'].nunique() if 'snp_list_id' in results.columns else len(results),
-            "extraction_timestamp": datetime.now().isoformat()
-        }
-        
-        # Harmonization action counts
-        if 'harmonization_action' in results.columns:
-            action_counts = results['harmonization_action'].value_counts().to_dict()
-            summary['harmonization_actions'] = action_counts
-            
-            # Calculate harmonization rates
-            total_with_action = sum(action_counts.values())
-            for action, count in action_counts.items():
-                summary[f'rate_{action.lower()}'] = count / total_with_action if total_with_action > 0 else 0
-        
-        # Data type breakdown
-        if 'data_type' in results.columns:
-            summary['by_data_type'] = results['data_type'].value_counts().to_dict()
-        
-        # Ancestry breakdown
-        if 'ancestry' in results.columns:
-            ancestry_counts = results['ancestry'].value_counts().to_dict()
-            summary['by_ancestry'] = ancestry_counts
-        
-        # Chromosome breakdown
-        if 'chromosome' in results.columns:
-            summary['by_chromosome'] = results['chromosome'].value_counts().to_dict()
-        
-        # Quality metrics
-        if sample_cols:
-            missing_rates = []
-            alt_freqs = []
-            
-            for _, row in results.iterrows():
-                # Calculate per-variant statistics
-                genotypes = [row[col] for col in sample_cols if pd.notna(row[col])]
-                if genotypes:
-                    # Convert to numeric, handling string genotypes
-                    try:
-                        genotypes = pd.to_numeric(genotypes, errors='coerce')
-                        genotypes = np.array(genotypes)
-                        valid_gts = genotypes[~np.isnan(genotypes)]
-                        
-                        # Missing rate
-                        missing_rate = 1 - (len(valid_gts) / len(genotypes))
-                        missing_rates.append(missing_rate)
-                        
-                        # Allele frequency
-                        if len(valid_gts) > 0:
-                            alt_count = np.sum(valid_gts == 2) * 2 + np.sum(valid_gts == 1)
-                            total_alleles = len(valid_gts) * 2
-                            alt_freq = alt_count / total_alleles if total_alleles > 0 else 0
-                            alt_freqs.append(alt_freq)
-                    except Exception as e:
-                        logger.warning(f"Failed to calculate statistics for variant: {e}")
-                        continue
-            
-            if missing_rates:
-                summary['quality_metrics'] = {
-                    'mean_missing_rate': np.mean(missing_rates),
-                    'max_missing_rate': np.max(missing_rates),
-                    'variants_high_missing': np.sum(np.array(missing_rates) > 0.1)
-                }
-            
-            if alt_freqs:
-                summary['allele_frequency_metrics'] = {
-                    'mean_alt_freq': np.mean(alt_freqs),
-                    'rare_variants': np.sum(np.array(alt_freqs) < 0.01),
-                    'common_variants': np.sum(np.array(alt_freqs) > 0.05)
-                }
-        
-        # Transformation summary (only if harmonization metadata is available)
-        if 'harmonization_action' in results.columns and 'genotype_transform' in results.columns:
-            transform_summary = self.transformer.get_transformation_summary(results)
-            summary['transformation_summary'] = transform_summary
-        else:
-            summary['transformation_summary'] = {
-                "note": "Transformation summary not available - harmonization metadata not present in final output"
-            }
-        
-        return summary
     
     def _generate_harmonization_summary_from_plan(self, plan: ExtractionPlan) -> Dict[str, Any]:
         """

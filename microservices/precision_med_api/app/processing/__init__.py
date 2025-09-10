@@ -18,6 +18,7 @@ Main components:
 
 from .cache import CacheBuilder, AlleleHarmonizer
 from .extractor import VariantExtractor
+from .harmonizer import HarmonizationEngine
 from .transformer import GenotypeTransformer
 from .output import TrawFormatter
 from .coordinator import ExtractionCoordinator
@@ -26,6 +27,7 @@ __all__ = [
     "CacheBuilder",
     "AlleleHarmonizer", 
     "VariantExtractor",
+    "HarmonizationEngine",
     "GenotypeTransformer",
     "TrawFormatter",
     "ExtractionCoordinator"
