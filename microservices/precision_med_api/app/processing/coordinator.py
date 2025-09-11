@@ -480,7 +480,7 @@ class ExtractionCoordinator:
     
     def _generate_harmonization_summary_from_plan(self, plan: ExtractionPlan) -> Dict[str, Any]:
         """
-        Generate harmonization summary from extraction plan in cache-free mode.
+        Generate harmonization summary from extraction plan.
         
         Args:
             plan: ExtractionPlan with file information
@@ -498,23 +498,23 @@ class ExtractionCoordinator:
             "by_ancestry": {},
             "by_chromosome": {},
             "harmonized_files_available": False,
-            "export_method": "cache_free_realtime"
+            "export_method": "realtime_harmonization"
         }
         
         return summary
     
-    def export_results_cache_free(
+    def export_results_realtime(
         self, 
         plan: ExtractionPlan,
         output_dir: str,
         base_name: Optional[str] = None,
-        formats: List[str] = ['traw', 'parquet'],
+        formats: List[str] = ['parquet'],
         snp_list: Optional[pd.DataFrame] = None,
         harmonization_summary: Optional[Dict[str, Any]] = None,
         max_workers: Optional[int] = None
     ) -> Dict[str, str]:
         """
-        Export results using cache-free real-time harmonization.
+        Export results using real-time harmonization.
         
         Args:
             plan: ExtractionPlan with file information
@@ -536,13 +536,8 @@ class ExtractionCoordinator:
         
         output_files = {}
         
-        # Cache-free mode: always use traditional extraction
-        
-        # Cache-free mode always uses traditional extraction
-        can_use_native_export = False
-        
-        # Cache-free mode: always use traditional DataFrame-based export
-        if True:  # Always use traditional approach in cache-free mode
+        # Always use traditional DataFrame-based export
+        if True:  # Always use traditional approach
             logger.info("Using traditional DataFrame-based export with separate data type outputs")
             # Extract using traditional method - now returns dict by data type
             extracted_by_datatype = self.execute_harmonized_extraction(plan, snp_list, parallel=True, max_workers=max_workers)
@@ -586,34 +581,8 @@ class ExtractionCoordinator:
         
         # This section is no longer needed since we always use traditional extraction above
         
-        # Always generate additional metadata files
-        try:
-            # Create QC report
-            qc_path = os.path.join(output_dir, f"{base_name}_qc_report.json")
-            
-            # If we have extracted_df, use it; otherwise create minimal QC report
-            if 'extracted_df' in locals() and not extracted_df.empty:
-                self.formatter.create_qc_report(extracted_df, qc_path)
-            else:
-                # Create basic QC report from harmonization summary
-                basic_qc = harmonization_summary.copy() if harmonization_summary else {}
-                basic_qc['generation_timestamp'] = datetime.now().isoformat()
-                basic_qc['export_method'] = 'cache_free'
-                
-                with open(qc_path, 'w') as f:
-                    import json
-                    json.dump(basic_qc, f, indent=2, default=str)
-            
-            output_files['qc_report'] = qc_path
-            
-            # Harmonization report
-            if harmonization_summary:
-                report_path = os.path.join(output_dir, f"{base_name}_harmonization_report.json")
-                self.formatter.write_harmonization_report(harmonization_summary, report_path)
-                output_files['harmonization_report'] = report_path
-                
-        except Exception as e:
-            logger.error(f"Failed to create additional files: {e}")
+        # Additional metadata files removed (QC report and harmonization report)
+        # All necessary information is available in variant summary and pipeline results
         
         logger.info(f"Exported {len(output_files)} files using native PLINK approach")
         return output_files
@@ -626,7 +595,7 @@ class ExtractionCoordinator:
         df: pd.DataFrame, 
         output_dir: str,
         base_name: Optional[str] = None,
-        formats: List[str] = ['traw', 'parquet'],
+        formats: List[str] = ['parquet'],
         snp_list: Optional[pd.DataFrame] = None,
         harmonization_summary: Optional[Dict[str, Any]] = None
     ) -> Dict[str, str]:
@@ -661,13 +630,7 @@ class ExtractionCoordinator:
             harmonization_stats=harmonization_summary
         )
         
-        # Create QC report
-        try:
-            qc_path = os.path.join(output_dir, f"{base_name}_qc_report.json")
-            self.formatter.create_qc_report(df, qc_path)
-            output_files['qc_report'] = qc_path
-        except Exception as e:
-            logger.error(f"Failed to create QC report: {e}")
+        # QC report removed - same information available in variant summary
         
         logger.info(f"Exported results to {len(output_files)} files in {output_dir}")
         return output_files
@@ -678,7 +641,6 @@ class ExtractionCoordinator:
         data_types: List[DataType],
         output_dir: str,
         ancestries: Optional[List[str]] = None,
-        output_formats: List[str] = ['traw', 'parquet'],
         parallel: bool = True,
         max_workers: Optional[int] = None,
         output_name: Optional[str] = None,
@@ -728,17 +690,17 @@ class ExtractionCoordinator:
             logger.info("Step 2: Creating extraction plan")
             plan = self.plan_extraction(snp_list_ids, data_types, ancestries)
             
-            # Step 3: Generate harmonization summary for cache-free mode
+            # Step 3: Generate harmonization summary
             logger.info("Step 3: Generating harmonization summary")
             harmonization_summary = self._generate_harmonization_summary_from_plan(plan)
             
-            # Step 4: Export results using cache-free extraction
+            # Step 4: Export results using real-time extraction
             logger.info("Step 4: Exporting results")
-            output_files = self.export_results_cache_free(
+            output_files = self.export_results_realtime(
                 plan=plan,
                 output_dir=output_dir,
                 base_name=job_id,
-                formats=output_formats,
+                formats=['parquet'],  # Only parquet format - contains all data
                 snp_list=snp_list,
                 harmonization_summary=harmonization_summary,
                 max_workers=max_workers

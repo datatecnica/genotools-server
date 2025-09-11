@@ -384,7 +384,7 @@ class VariantExtractor:
             logger.warning(f"No variants to extract from {pgen_path}")
             return pd.DataFrame()
         
-        # Use traditional raw extraction + harmonization (no pre-harmonized files in cache-free approach)
+        # Use traditional raw extraction + harmonization
         logger.info("Using real-time extraction with harmonization")
         pgen_variant_ids = plan_df['pgen_variant_id'].tolist()
         raw_df = self._extract_raw_genotypes(pgen_path, pgen_variant_ids)

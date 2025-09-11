@@ -24,7 +24,7 @@ class TrawFormatter:
     """Formats harmonized genotypes into PLINK TRAW format and reports."""
     
     def __init__(self):
-        self.output_formats = ['traw', 'csv', 'parquet', 'json']
+        self.output_formats = ['parquet']  # Only parquet format - contains all data
     
     def format_harmonized_genotypes(
         self, 
@@ -175,53 +175,7 @@ class TrawFormatter:
             raise
     
     
-    def write_harmonization_report(
-        self, 
-        harmonization_stats: Dict[str, Any], 
-        output_path: str,
-        detailed: bool = True
-    ) -> None:
-        """
-        Write harmonization report with statistics and metadata.
-        
-        Args:
-            harmonization_stats: Statistics from harmonization process
-            output_path: Output file path
-            detailed: Whether to include detailed breakdown
-        """
-        try:
-            # Ensure output directory exists
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            
-            # Create report structure
-            report = {
-                'generation_info': {
-                    'timestamp': datetime.now().isoformat(),
-                    'version': '1.0.0',
-                    'generator': 'precision_med_api'
-                },
-                'summary': harmonization_stats.get('summary', {}),
-                'harmonization_stats': harmonization_stats
-            }
-            
-            if detailed:
-                # Add detailed breakdown
-                report['detailed_stats'] = {
-                    'by_data_type': harmonization_stats.get('by_data_type', {}),
-                    'by_ancestry': harmonization_stats.get('by_ancestry', {}),
-                    'by_chromosome': harmonization_stats.get('by_chromosome', {}),
-                    'transformation_summary': harmonization_stats.get('transformation_summary', {})
-                }
-            
-            # Write JSON report
-            with open(output_path, 'w') as f:
-                json.dump(report, f, indent=2, default=str)
-            
-            logger.info(f"Wrote harmonization report to {output_path}")
-            
-        except Exception as e:
-            logger.error(f"Failed to write harmonization report {output_path}: {e}")
-            raise
+    # write_harmonization_report method removed - was generating empty dictionaries
     
     def write_variant_summary(
         self, 
@@ -243,58 +197,24 @@ class TrawFormatter:
                 # Get sample columns
                 sample_cols = self._get_sample_columns(df)
                 
-                # Calculate summary statistics per variant
+                # Create variant metadata summary (no population-specific statistics)
                 summaries = []
                 
                 for _, row in df.iterrows():
-                    # Get genotypes for this variant
-                    genotypes = []
-                    for col in sample_cols:
-                        if pd.notna(row[col]):
-                            genotypes.append(row[col])
-                    
-                    if genotypes:
-                        # Convert to numeric, handling string values like "NA"
-                        genotypes = pd.to_numeric(genotypes, errors='coerce')
-                        genotypes = np.array(genotypes)
-                        valid_gts = genotypes[~np.isnan(genotypes)]
-                        
-                        if len(valid_gts) > 0:
-                            # Calculate statistics
-                            n_samples = len(valid_gts)
-                            n_missing = len(genotypes) - n_samples
-                            
-                            n_00 = np.sum(valid_gts == 0)
-                            n_01 = np.sum(valid_gts == 1)
-                            n_11 = np.sum(valid_gts == 2)
-                            
-                            alt_allele_count = 2 * n_11 + n_01
-                            total_alleles = 2 * n_samples
-                            alt_freq = alt_allele_count / total_alleles if total_alleles > 0 else 0
-                            
-                            summary = {
-                                'variant_id': row.get('variant_id', '.'),
-                                'snp_list_id': row.get('snp_list_id', '.'),
-                                'chromosome': row.get('chromosome', '.'),
-                                'position': row.get('position', '.'),
-                                'original_a1': row.get('pgen_a1', '.'),
-                                'original_a2': row.get('pgen_a2', '.'),
-                                'counted_allele': row.get('counted_allele', '.'),
-                                'alt_allele': row.get('alt_allele', '.'),
-                                'harmonization_action': row.get('harmonization_action', '.'),
-                                'data_type': row.get('data_type', '.'),
-                                'ancestry': row.get('ancestry', '.'),
-                                'n_samples': n_samples,
-                                'n_missing': n_missing,
-                                'missing_rate': n_missing / len(genotypes),
-                                'n_00': n_00,
-                                'n_01': n_01,
-                                'n_11': n_11,
-                                'alt_allele_count': alt_allele_count,
-                                'alt_allele_freq': alt_freq,
-                                'hwe_p': self._calculate_hwe_p(n_00, n_01, n_11)
-                            }
-                            summaries.append(summary)
+                    summary = {
+                        'variant_id': row.get('variant_id', '.'),
+                        'snp_list_id': row.get('snp_list_id', '.'),
+                        'chromosome': row.get('chromosome', '.'),
+                        'position': row.get('position', '.'),
+                        'original_a1': row.get('pgen_a1', '.'),
+                        'original_a2': row.get('pgen_a2', '.'),
+                        'counted_allele': row.get('counted_allele', '.'),
+                        'alt_allele': row.get('alt_allele', '.'),
+                        'harmonization_action': row.get('harmonization_action', '.'),
+                        'data_type': row.get('data_type', '.'),
+                        'source_file': row.get('source_file', '.')
+                    }
+                    summaries.append(summary)
                 
                 summary_df = pd.DataFrame(summaries)
             
@@ -310,43 +230,7 @@ class TrawFormatter:
             logger.error(f"Failed to write variant summary {output_path}: {e}")
             raise
     
-    def _calculate_hwe_p(self, n_00: int, n_01: int, n_11: int) -> float:
-        """
-        Calculate Hardy-Weinberg equilibrium p-value.
-        
-        Uses chi-square test for HWE.
-        """
-        try:
-            total = n_00 + n_01 + n_11
-            if total == 0:
-                return 1.0
-            
-            # Calculate allele frequencies
-            p = (2 * n_00 + n_01) / (2 * total)  # Frequency of allele 1
-            q = 1 - p  # Frequency of allele 2
-            
-            # Expected counts under HWE
-            exp_00 = total * p * p
-            exp_01 = total * 2 * p * q
-            exp_11 = total * q * q
-            
-            # Chi-square statistic
-            chi_sq = 0
-            if exp_00 > 0:
-                chi_sq += (n_00 - exp_00) ** 2 / exp_00
-            if exp_01 > 0:
-                chi_sq += (n_01 - exp_01) ** 2 / exp_01
-            if exp_11 > 0:
-                chi_sq += (n_11 - exp_11) ** 2 / exp_11
-            
-            # Convert to p-value (1 degree of freedom)
-            from scipy.stats import chi2
-            p_value = 1 - chi2.cdf(chi_sq, df=1)
-            
-            return p_value
-            
-        except Exception:
-            return 1.0  # Return 1.0 if calculation fails
+    # _calculate_hwe_p method removed - population-specific statistics removed from variant summary
     
     def export_multiple_formats(
         self, 
@@ -414,11 +298,7 @@ class TrawFormatter:
             self.write_variant_summary(formatted_df, summary_path)
             output_files['variant_summary'] = summary_path
             
-            # Harmonization report
-            if harmonization_stats:
-                report_path = os.path.join(output_dir, f"{base_name}_harmonization_report.json")
-                self.write_harmonization_report(harmonization_stats, report_path)
-                output_files['harmonization_report'] = report_path
+            # Harmonization report removed - contained only empty dictionaries
             
             # TFAM file generation removed - TRAW format is self-contained with sample IDs
                 
@@ -428,81 +308,4 @@ class TrawFormatter:
         logger.info(f"Exported {len(output_files)} files to {output_dir}")
         return output_files
     
-    def create_qc_report(
-        self, 
-        df: pd.DataFrame, 
-        output_path: str
-    ) -> None:
-        """
-        Create quality control report for extracted variants.
-        
-        Args:
-            df: Harmonized genotype DataFrame
-            output_path: Output file path
-        """
-        try:
-            if df.empty:
-                qc_stats = {'total_variants': 0}
-            else:
-                sample_cols = self._get_sample_columns(df)
-                
-                qc_stats = {
-                    'total_variants': len(df),
-                    'total_samples': len(sample_cols),
-                    'data_types': df['data_type'].value_counts().to_dict() if 'data_type' in df.columns else {},
-                    'ancestries': df['ancestry'].value_counts().to_dict() if 'ancestry' in df.columns else {},
-                    'chromosomes': df['chromosome'].value_counts().to_dict() if 'chromosome' in df.columns else {},
-                    'harmonization_actions': df['harmonization_action'].value_counts().to_dict() if 'harmonization_action' in df.columns else {}
-                }
-                
-                # Calculate per-variant QC metrics
-                if sample_cols:
-                    missing_rates = []
-                    alt_freqs = []
-                    
-                    for _, row in df.iterrows():
-                        genotypes = [row[col] for col in sample_cols if pd.notna(row[col])]
-                        if genotypes:
-                            # Convert to numeric, handling string values like "NA"
-                            genotypes = pd.to_numeric(genotypes, errors='coerce')
-                            genotypes = np.array(genotypes)
-                            valid_gts = genotypes[~np.isnan(genotypes)]
-                            
-                            missing_rate = 1 - (len(valid_gts) / len(genotypes))
-                            missing_rates.append(missing_rate)
-                            
-                            if len(valid_gts) > 0:
-                                alt_count = np.sum(valid_gts == 2) * 2 + np.sum(valid_gts == 1)
-                                total_alleles = len(valid_gts) * 2
-                                alt_freq = alt_count / total_alleles if total_alleles > 0 else 0
-                                alt_freqs.append(alt_freq)
-                    
-                    if missing_rates:
-                        qc_stats['missing_rate_stats'] = {
-                            'mean': np.mean(missing_rates),
-                            'median': np.median(missing_rates),
-                            'max': np.max(missing_rates),
-                            'variants_with_high_missing': np.sum(np.array(missing_rates) > 0.1)
-                        }
-                    
-                    if alt_freqs:
-                        qc_stats['allele_freq_stats'] = {
-                            'mean': np.mean(alt_freqs),
-                            'median': np.median(alt_freqs),
-                            'min': np.min(alt_freqs),
-                            'max': np.max(alt_freqs),
-                            'rare_variants': np.sum(np.array(alt_freqs) < 0.01)
-                        }
-            
-            # Add timestamp
-            qc_stats['generation_timestamp'] = datetime.now().isoformat()
-            
-            # Write QC report
-            with open(output_path, 'w') as f:
-                json.dump(qc_stats, f, indent=2, default=str)
-            
-            logger.info(f"Wrote QC report to {output_path}")
-            
-        except Exception as e:
-            logger.error(f"Failed to write QC report {output_path}: {e}")
-            raise
+    # create_qc_report method removed - same information available in variant summary

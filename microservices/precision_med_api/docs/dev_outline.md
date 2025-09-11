@@ -129,7 +129,7 @@ combined_df = self.extractor.merge_harmonized_genotypes(all_results)
 ### **File Paths**
 ```
 Input:  ~/gcs_mounts/gp2tier2_vwb/release10/
-Output: ~/gcs_mounts/genotools_server/precision_med/output/
+Output: ~/gcs_mounts/genotools_server/precision_med/results/
 ```
 
 ### **Development Setup**

@@ -209,7 +209,6 @@ def main():
             data_types=data_type_enums,
             output_dir=output_dir,
             ancestries=args.ancestries,
-            output_formats=['traw', 'parquet', 'csv'],  # Generate multiple formats
             parallel=args.parallel,
             max_workers=args.max_workers,  # Use auto-detect if None
             output_name=custom_name

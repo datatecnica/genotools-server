@@ -115,34 +115,24 @@ Options:
 
 ### Directory Structure
 
-**Default Output**: `~/gcs_mounts/genotools_server/precision_med/results/release10/[job_name]/`
+**Default Output**: `~/gcs_mounts/genotools_server/precision_med/results/release10/`
 
 ```
-~/gcs_mounts/genotools_server/precision_med/results/release10/carriers_analysis/
-├── carriers_analysis_NBA.traw              # NBA genotypes (PLINK format)
-├── carriers_analysis_NBA.parquet           # NBA genotypes (efficient storage)
-├── carriers_analysis_NBA.csv               # NBA genotypes (human-readable)
-├── carriers_analysis_NBA_qc_report.json    # Quality control metrics
-├── carriers_analysis_NBA_harmonization_report.json
-├── carriers_analysis_WGS.traw              # WGS genotypes
-├── carriers_analysis_WGS.parquet
-├── carriers_analysis_WGS.csv
-├── carriers_analysis_WGS_qc_report.json
-├── carriers_analysis_IMPUTED.traw          # IMPUTED genotypes
-├── carriers_analysis_IMPUTED.parquet
-├── carriers_analysis_IMPUTED.csv
-├── carriers_analysis_IMPUTED_qc_report.json
-└── carriers_analysis_pipeline_results.json # Overall pipeline results
+~/gcs_mounts/genotools_server/precision_med/results/release10/
+├── release10_NBA.parquet                   # NBA genotypes (contains all data)
+├── release10_NBA_variant_summary.csv       # Per-variant statistics
+├── release10_WGS.parquet                   # WGS genotypes (contains all data)
+├── release10_WGS_variant_summary.csv
+├── release10_IMPUTED.parquet               # IMPUTED genotypes (contains all data)
+├── release10_IMPUTED_variant_summary.csv
+└── release10_pipeline_results.json         # Overall pipeline results
 ```
 
 ### Output Formats
 
 Each data type generates:
-- **`.traw`**: PLINK format for genomic analysis tools
-- **`.parquet`**: Efficient columnar storage for large datasets  
-- **`.csv`**: Human-readable format for manual inspection
-- **`_qc_report.json`**: Quality control metrics and statistics
-- **`_harmonization_report.json`**: Harmonization process statistics
+- **`.parquet`**: Efficient columnar storage containing all genotype and metadata
+- **`_variant_summary.csv`**: Variant metadata and harmonization information
 
 ## Configuration
 
@@ -323,7 +313,7 @@ For development guidelines and detailed implementation plans, see:
 ```
 Input:  ~/gcs_mounts/gp2tier2_vwb/release{10}/
 Cache:  ~/gcs_mounts/genotools_server/precision_med/cache/
-Output: ~/gcs_mounts/genotools_server/precision_med/output/
+Output: ~/gcs_mounts/genotools_server/precision_med/results/
 ```
 
 ## Contributing
