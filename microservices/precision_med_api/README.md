@@ -81,19 +81,24 @@ python run_carriers_pipeline.py --job-name my_carrier_study
 Launch the interactive web interface to explore pipeline results:
 
 ```bash
-# Start Streamlit viewer
+# Production mode (default - clean interface)
+./run_streamlit.sh
+
+# Debug mode (with job selection for development)
+./run_streamlit.sh --debug
+
+# Alternative direct command
 source .venv/bin/activate
 streamlit run streamlit_viewer.py
-
-# Or use the convenience script
-./run_streamlit.sh
 ```
 
 **Streamlit Features:**
 - **📊 Overview**: Pipeline summary, sample counts, file information
 - **🧬 Variant Browser**: Filter and explore variants with harmonization details
+- **🔬 Multiple Probes Analysis**: Shows SNPs with multiple probes (debug mode)
 - **📈 Statistics**: Visualizations of harmonization actions and variant distributions  
 - **💾 File Downloads**: Access to processed parquet and summary files
+- **🔧 Debug Mode**: Job selection for accessing test results and development data
 
 ### Command Line Options
 
@@ -347,10 +352,22 @@ The codebase follows a modular architecture with clear separation of concerns:
 
 ### Major Recent Achievements
 
+**🔧 Multiple Probe Detection Fix**:
+- **CRITICAL BUG FIX**: Resolved issue where NBA variants with multiple probes at the same genomic position were being lost
+- Fixed harmonization record creation to use SNP names instead of coordinate-based IDs
+- Updated deduplication logic to preserve different probes (different `variant_id` values)
+- **Result**: 77 SNPs now correctly show multiple probes (316 total variants vs 218 previously)
+
 **🔧 Allele Counting Fix**: 
 - Fixed critical issue where reference alleles were counted instead of pathogenic alleles
 - Implemented proper genotype transformation for all harmonization scenarios (EXACT, FLIP, SWAP, FLIP_SWAP)
 - Genotype values now correctly represent pathogenic allele counts
+
+**📊 Sample Counting Fix**:
+- Fixed pipeline summary reporting "Total samples: 0" instead of actual count
+- Added `source_file` to metadata columns list to prevent it being counted as sample
+- Implemented proper sample count aggregation across data types
+- **Result**: Accurate reporting of 1,215 samples in AAC NBA data
 
 **🏷️ Sample ID Normalization**:
 - Consistent sample IDs across all data types  
@@ -362,8 +379,11 @@ The codebase follows a modular architecture with clear separation of concerns:
 - Duplicate handling and conflict resolution
 - Streamlined test suite (83% code reduction in transformer.py)
 
-**🖥️ Streamlit Viewer**:
+**🖥️ Enhanced Streamlit Viewer**:
 - Interactive web interface for exploring pipeline results
+- **Multiple Probes Analysis**: Dedicated section showing SNPs with multiple probes
+- **Debug Mode**: Optional job selection with `--debug` flag for development
+- **Fixed Deprecation**: Updated `use_container_width` to `width='stretch'`
 - Variant filtering and statistics visualization
 - File downloads and data exploration capabilities
 

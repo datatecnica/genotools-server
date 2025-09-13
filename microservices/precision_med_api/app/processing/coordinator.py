@@ -305,7 +305,7 @@ class ExtractionCoordinator:
                     if not result_df.empty:
                         # Remove duplicates within this data type
                         result_df = result_df.drop_duplicates(
-                            subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                            subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                             keep='first'
                         )
                         results_by_datatype[data_type] = result_df
@@ -395,7 +395,7 @@ class ExtractionCoordinator:
             wgs_combined = pd.concat(wgs_results, ignore_index=True)
             # Remove duplicates within WGS only
             wgs_combined = wgs_combined.drop_duplicates(
-                subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                 keep='first'
             )
             # Reorder columns to ensure metadata comes before samples
@@ -407,7 +407,7 @@ class ExtractionCoordinator:
             nba_combined = pd.concat(nba_results, ignore_index=True)
             # Remove duplicates within NBA only
             nba_combined = nba_combined.drop_duplicates(
-                subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                 keep='first'
             )
             # Reorder columns to ensure metadata comes before samples
@@ -419,7 +419,7 @@ class ExtractionCoordinator:
             imputed_combined = pd.concat(imputed_results, ignore_index=True)
             # Remove duplicates within IMPUTED only
             imputed_combined = imputed_combined.drop_duplicates(
-                subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                 keep='first'
             )
             # Reorder columns to ensure metadata comes before samples
@@ -627,6 +627,7 @@ class ExtractionCoordinator:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
         
         output_files = {}
+        actual_counts = {'total_samples': 0, 'total_variants': 0, 'by_data_type': {}}
         
         # Always use traditional DataFrame-based export
         if True:  # Always use traditional approach
@@ -645,6 +646,14 @@ class ExtractionCoordinator:
                 sample_cols = self.formatter._get_sample_columns(df)
                 actual_sample_count = len(sample_cols)
                 actual_variant_count = len(df)
+                
+                # Aggregate actual counts (use max sample count across data types since samples are consistent)
+                actual_counts['total_samples'] = max(actual_counts['total_samples'], actual_sample_count)
+                actual_counts['total_variants'] += actual_variant_count
+                actual_counts['by_data_type'][data_type] = {
+                    'variants': actual_variant_count,
+                    'samples': actual_sample_count
+                }
                 
                 current_summary['total_samples'] = actual_sample_count
                 current_summary['total_variants'] = actual_variant_count
@@ -669,7 +678,7 @@ class ExtractionCoordinator:
                 
                 logger.info(f"Exported {data_type}: {len(datatype_output_files)} files, {actual_variant_count} variants")
             
-            return output_files
+            return output_files, actual_counts
         
         # This section is no longer needed since we always use traditional extraction above
         
@@ -776,7 +785,7 @@ class ExtractionCoordinator:
             # Step 1: Load and validate SNP list
             logger.info("Step 1: Loading SNP list")
             snp_list = self.load_snp_list(snp_list_path)
-            snp_list_ids = snp_list['variant_id'].tolist() if 'variant_id' in snp_list.columns else snp_list.index.tolist()
+            snp_list_ids = snp_list['snp_name'].tolist() if 'snp_name' in snp_list.columns else snp_list.index.tolist()
             
             # Step 2: Create extraction plan
             logger.info("Step 2: Creating extraction plan")
@@ -788,7 +797,7 @@ class ExtractionCoordinator:
             
             # Step 4: Export results using real-time extraction
             logger.info("Step 4: Exporting results")
-            output_files = self.export_pipeline_results(
+            output_files, actual_counts = self.export_pipeline_results(
                 plan=plan,
                 output_dir=output_dir,
                 base_name=job_id,
@@ -798,10 +807,18 @@ class ExtractionCoordinator:
                 max_workers=max_workers
             )
             
+            # Update harmonization summary with actual counts
+            updated_summary = harmonization_summary.copy() if harmonization_summary else {}
+            updated_summary.update({
+                'total_samples': actual_counts['total_samples'],
+                'total_variants': actual_counts['total_variants'],
+                'by_data_type': actual_counts['by_data_type']
+            })
+            
             # Pipeline completed successfully
             results['success'] = True
             results['output_files'] = output_files
-            results['summary'] = harmonization_summary
+            results['summary'] = updated_summary
             # Include only essential plan information, excluding estimates
             plan_info = {
                 'snp_list_ids': plan.snp_list_ids,
