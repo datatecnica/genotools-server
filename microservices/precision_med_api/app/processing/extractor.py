@@ -296,7 +296,7 @@ class VariantExtractor:
                     # Create a copy of the row for this SNP list variant
                     transformed_row = row.copy()
                     
-                    # Apply transformation to all sample columns
+                    # Apply harmonization genotype transformation (SWAP/FLIP_SWAP cases)
                     for col in sample_cols:
                         if pd.notna(row[col]):
                             # Convert to numeric first, handling string genotypes
@@ -313,9 +313,39 @@ class VariantExtractor:
                                 logger.warning(f"Failed to transform genotype {row[col]} for column {col}: {e}")
                                 transformed_row[col] = row[col]
                     
-                    # Update allele information to match SNP list
-                    transformed_row['counted_allele'] = harm_info['snp_list_a1']
-                    transformed_row['alt_allele'] = harm_info['snp_list_a2']
+                    # Now fix allele counting - transform genotypes to count ALT allele instead of REF
+                    if action in [HarmonizationAction.EXACT, HarmonizationAction.FLIP]:
+                        # For EXACT/FLIP: PLINK counts A1 (REF), we want to count A2 (ALT)
+                        # Need to flip genotypes: 0->2, 1->1, 2->0
+                        for col in sample_cols:
+                            if pd.notna(transformed_row[col]):
+                                try:
+                                    gt = pd.to_numeric(transformed_row[col], errors='coerce')
+                                    if pd.notna(gt):
+                                        # Flip genotype to count ALT instead of REF
+                                        flipped_gt = 2.0 - gt
+                                        transformed_row[col] = flipped_gt
+                                except Exception as e:
+                                    logger.warning(f"Failed to flip genotype {transformed_row[col]} for column {col}: {e}")
+                        
+                        # Update TRAW columns to reflect ALT counting
+                        transformed_row['COUNTED'] = harm_info['snp_list_a2']  # ALT allele (pathogenic)
+                        transformed_row['ALT'] = harm_info['snp_list_a1']      # REF allele
+                        
+                    elif action in [HarmonizationAction.SWAP, HarmonizationAction.FLIP_SWAP]:
+                        # For SWAP/FLIP_SWAP: After harmonization transform, PLINK A1 corresponds to SNP ALT
+                        # Genotypes already count the correct allele, just update labels
+                        transformed_row['COUNTED'] = harm_info['snp_list_a2']  # ALT allele (pathogenic) 
+                        transformed_row['ALT'] = harm_info['snp_list_a1']      # REF allele
+                        
+                    else:
+                        # INVALID or AMBIGUOUS - keep original PLINK alleles
+                        transformed_row['COUNTED'] = harm_info['pgen_a1']
+                        transformed_row['ALT'] = harm_info['pgen_a2']
+
+                    # Add metadata columns for transparency
+                    transformed_row['counted_allele'] = transformed_row['COUNTED']
+                    transformed_row['alt_allele'] = transformed_row['ALT']
                     
                     # Add harmonization metadata
                     transformed_row['harmonization_action'] = action

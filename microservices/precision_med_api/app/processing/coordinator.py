@@ -216,7 +216,6 @@ class ExtractionCoordinator:
         )
         
         total_files = 0
-        estimated_samples = 0
         
         for data_type in data_types:
             files = []
@@ -227,7 +226,6 @@ class ExtractionCoordinator:
                 wgs_path = self.settings.get_wgs_path() + ".pgen"
                 if os.path.exists(wgs_path):
                     files.append(wgs_path)
-                    estimated_samples += 50000  # Estimate
                 
             elif data_type == DataType.NBA:
                 # NBA files by ancestry
@@ -237,7 +235,6 @@ class ExtractionCoordinator:
                     if os.path.exists(nba_path):
                         files.append(nba_path)
                         source_ancestries.append(ancestry)
-                        estimated_samples += 5000  # Estimate per ancestry
                 
             elif data_type == DataType.IMPUTED:
                 # Imputed files by ancestry and chromosome
@@ -250,15 +247,12 @@ class ExtractionCoordinator:
                             files.append(imputed_path)
                             if ancestry not in source_ancestries:
                                 source_ancestries.append(ancestry)
-                
-                # Estimate samples for imputed (same samples across chromosomes)
-                estimated_samples += len(source_ancestries) * 10000  # Estimate per ancestry
             
             if files:
                 plan.add_data_source(data_type.value, files, source_ancestries)
                 total_files += len(files)
         
-        plan.expected_total_samples = estimated_samples
+        # Sample counts will be determined during actual extraction
         
         # Estimate execution time (rough)
         # Base time + per-file time + per-variant time
@@ -404,6 +398,8 @@ class ExtractionCoordinator:
                 subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                 keep='first'
             )
+            # Reorder columns to ensure metadata comes before samples
+            wgs_combined = self._reorder_dataframe_columns(wgs_combined)
             results_by_datatype['WGS'] = wgs_combined
             logger.info(f"WGS combined: {len(wgs_combined)} variants")
         
@@ -414,6 +410,8 @@ class ExtractionCoordinator:
                 subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                 keep='first'
             )
+            # Reorder columns to ensure metadata comes before samples
+            nba_combined = self._reorder_dataframe_columns(nba_combined)
             results_by_datatype['NBA'] = nba_combined
             logger.info(f"NBA combined: {len(nba_combined)} variants")
         
@@ -424,6 +422,8 @@ class ExtractionCoordinator:
                 subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                 keep='first'
             )
+            # Reorder columns to ensure metadata comes before samples
+            imputed_combined = self._reorder_dataframe_columns(imputed_combined)
             results_by_datatype['IMPUTED'] = imputed_combined
             logger.info(f"IMPUTED combined: {len(imputed_combined)} variants")
         
@@ -432,6 +432,97 @@ class ExtractionCoordinator:
         logger.info(f"ProcessPool extraction completed in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
         
         return results_by_datatype
+    
+    def _reorder_dataframe_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Reorder DataFrame columns to ensure metadata columns come before sample columns.
+        Also normalizes sample IDs to consistent format.
+        
+        Args:
+            df: DataFrame with potentially mixed column order
+            
+        Returns:
+            DataFrame with metadata columns first, then normalized sample columns
+        """
+        # Define metadata columns in desired order
+        METADATA_COLUMNS = [
+            'chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+            'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
+            'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry'
+        ]
+        
+        # Optional metadata that might be added later
+        OPTIONAL_METADATA = ['rsid', 'locus', 'snp_name']
+        
+        # Separate metadata from sample columns
+        metadata_present = [col for col in METADATA_COLUMNS if col in df.columns]
+        optional_present = [col for col in OPTIONAL_METADATA if col in df.columns]
+        
+        # All remaining columns are sample columns
+        all_metadata = set(metadata_present + optional_present)
+        sample_columns = [col for col in df.columns if col not in all_metadata]
+        
+        # Normalize sample IDs and create column mapping
+        column_mapping = {}
+        normalized_sample_columns = []
+        seen_normalized = set()
+        
+        for col in sample_columns:
+            normalized_col = self._normalize_sample_id(col)
+            
+            # Handle potential duplicates after normalization
+            if normalized_col in seen_normalized:
+                logger.warning(f"Duplicate sample ID after normalization: {col} -> {normalized_col}")
+                # Keep the first occurrence, skip duplicates
+                continue
+            
+            column_mapping[col] = normalized_col
+            normalized_sample_columns.append(normalized_col)
+            seen_normalized.add(normalized_col)
+        
+        # Sort normalized sample columns for consistency
+        normalized_sample_columns = sorted(normalized_sample_columns)
+        
+        # Final order: required metadata + optional metadata + normalized samples
+        ordered_columns = metadata_present + optional_present + normalized_sample_columns
+        
+        # Create new DataFrame with renamed columns
+        df_renamed = df.copy()
+        df_renamed = df_renamed.rename(columns=column_mapping)
+        
+        # Reorder the DataFrame
+        return df_renamed[ordered_columns]
+    
+    def _normalize_sample_id(self, sample_id: str) -> str:
+        """
+        Normalize sample IDs to consistent format.
+        
+        Handles:
+        - WGS duplicated IDs: BBDP_000005_BBDP_000005 -> BBDP_000005
+        - NBA/IMPUTED prefixes: 0_BBDP_000005 -> BBDP_000005
+        
+        Args:
+            sample_id: Original sample ID
+            
+        Returns:
+            Normalized sample ID
+        """
+        # Remove '0_' prefix from NBA/IMPUTED data
+        if sample_id.startswith('0_'):
+            sample_id = sample_id[2:]
+        
+        # Fix WGS duplicated IDs: BBDP_000005_BBDP_000005 -> BBDP_000005
+        if '_' in sample_id:
+            parts = sample_id.split('_')
+            # Check if it's a duplicated pattern (at least 4 parts, first half == second half)
+            if len(parts) >= 4 and len(parts) % 2 == 0:
+                mid = len(parts) // 2
+                first_half = '_'.join(parts[:mid])
+                second_half = '_'.join(parts[mid:])
+                if first_half == second_half:
+                    sample_id = first_half
+        
+        return sample_id
     
     def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
         """Calculate optimal process count based on system resources and settings."""
@@ -473,7 +564,9 @@ class ExtractionCoordinator:
         
         # Combine all results
         if all_dfs:
-            return pd.concat(all_dfs, ignore_index=True)
+            combined_df = pd.concat(all_dfs, ignore_index=True)
+            # Reorder columns to ensure metadata comes before samples
+            return self._reorder_dataframe_columns(combined_df)
         else:
             return pd.DataFrame()
     
@@ -490,7 +583,6 @@ class ExtractionCoordinator:
         """
         summary = {
             "total_variants": len(plan.snp_list_ids),
-            "total_samples": plan.expected_total_samples,
             "unique_variants": len(plan.snp_list_ids),
             "extraction_timestamp": datetime.now().isoformat(),
             "harmonization_actions": {},
@@ -503,7 +595,7 @@ class ExtractionCoordinator:
         
         return summary
     
-    def export_results_realtime(
+    def export_pipeline_results(
         self, 
         plan: ExtractionPlan,
         output_dir: str,
@@ -514,7 +606,7 @@ class ExtractionCoordinator:
         max_workers: Optional[int] = None
     ) -> Dict[str, str]:
         """
-        Export results using real-time harmonization.
+        Export pipeline results for all data types.
         
         Args:
             plan: ExtractionPlan with file information
@@ -696,7 +788,7 @@ class ExtractionCoordinator:
             
             # Step 4: Export results using real-time extraction
             logger.info("Step 4: Exporting results")
-            output_files = self.export_results_realtime(
+            output_files = self.export_pipeline_results(
                 plan=plan,
                 output_dir=output_dir,
                 base_name=job_id,

@@ -11,16 +11,20 @@ This microservice processes ~400 pathogenic SNPs across 242+ PLINK 2.0 files (>1
 - **Imputed**: 242 files (11 ancestries × 22 chromosomes)
 
 ### Technical Solution
+- **Correct Allele Counting**: Fixed allele assignment to count pathogenic variants instead of reference alleles
 - **Merge-Based Harmonization**: Direct merging of PVAR and SNP list data with real-time allele comparison
-- **Allele Harmonization**: Handle strand flips and allele swaps to ensure correct genotype extraction
+- **Advanced Genotype Transformation**: Handles all harmonization scenarios (EXACT, FLIP, SWAP, FLIP_SWAP) with proper genotype flipping
+- **Sample ID Normalization**: Consistent sample IDs across data types (removes '0_' prefixes, fixes WGS duplicates)
+- **Column Organization**: Metadata columns come first, followed by sorted sample columns
 - **Memory-Efficient Processing**: Stream processing and memory mapping to stay under 8GB RAM
 - **ProcessPool Parallelization**: True concurrent processing with optimal worker allocation
-- **Output**: Harmonized genotypes in PLINK TRAW format for downstream analysis
+- **Streamlit Viewer**: Interactive web interface for exploring pipeline results
 
 ### Performance Targets
 - Reduce variant extraction from **days to <10 minutes** for 400 variants across all files
 - Support concurrent analysis of 10+ jobs
 - Real-time harmonization without pre-processing delays
+- **Achieved**: Correct pathogenic allele counting with proper genotype interpretation
 
 ## Installation
 
@@ -72,6 +76,25 @@ python run_carriers_pipeline.py --output /tmp/my_analysis/carriers_test
 python run_carriers_pipeline.py --job-name my_carrier_study
 ```
 
+### Streamlit Viewer
+
+Launch the interactive web interface to explore pipeline results:
+
+```bash
+# Start Streamlit viewer
+source .venv/bin/activate
+streamlit run streamlit_viewer.py
+
+# Or use the convenience script
+./run_streamlit.sh
+```
+
+**Streamlit Features:**
+- **📊 Overview**: Pipeline summary, sample counts, file information
+- **🧬 Variant Browser**: Filter and explore variants with harmonization details
+- **📈 Statistics**: Visualizations of harmonization actions and variant distributions  
+- **💾 File Downloads**: Access to processed parquet and summary files
+
 ### Command Line Options
 
 ```bash
@@ -119,20 +142,36 @@ Options:
 
 ```
 ~/gcs_mounts/genotools_server/precision_med/results/release10/
-├── release10_NBA.parquet                   # NBA genotypes (contains all data)
-├── release10_NBA_variant_summary.csv       # Per-variant statistics
-├── release10_WGS.parquet                   # WGS genotypes (contains all data)
+├── release10_NBA.parquet                   # NBA genotypes with normalized sample IDs
+├── release10_NBA_variant_summary.csv       # Per-variant harmonization metadata  
+├── release10_WGS.parquet                   # WGS genotypes with normalized sample IDs
 ├── release10_WGS_variant_summary.csv
-├── release10_IMPUTED.parquet               # IMPUTED genotypes (contains all data)
+├── release10_IMPUTED.parquet               # IMPUTED genotypes with normalized sample IDs
 ├── release10_IMPUTED_variant_summary.csv
-└── release10_pipeline_results.json         # Overall pipeline results
+└── release10_pipeline_results.json         # Overall pipeline execution summary
 ```
 
 ### Output Formats
 
 Each data type generates:
-- **`.parquet`**: Efficient columnar storage containing all genotype and metadata
-- **`_variant_summary.csv`**: Variant metadata and harmonization information
+- **`.parquet`**: Optimized columnar storage with normalized sample IDs and correct allele counting
+- **`_variant_summary.csv`**: Harmonization metadata (Note: redundant with parquet metadata)
+
+### Key Output Features
+
+**✅ Correct Allele Counting**: Genotype values represent counts of **pathogenic alleles**
+- `0` = No pathogenic alleles
+- `1` = Heterozygous carrier (1 pathogenic allele)
+- `2` = Homozygous carrier (2 pathogenic alleles)
+
+**✅ Normalized Sample IDs**: Consistent format across all data types
+- NBA: `0_SAMPLE_001234` → `SAMPLE_001234`
+- WGS: `SAMPLE_001234_SAMPLE_001234` → `SAMPLE_001234`
+- IMPUTED: `0_SAMPLE_001234` → `SAMPLE_001234`
+
+**✅ Organized Columns**: Metadata columns first, then alphabetically sorted samples
+- Metadata: `chromosome`, `variant_id`, `position`, `counted_allele`, `alt_allele`, `harmonization_action`, etc.
+- Samples: `SAMPLE_001234`, `SAMPLE_001235`, `SAMPLE_001236`, `SAMPLE_001237`, etc.
 
 ## Configuration
 
@@ -197,19 +236,23 @@ The system automatically detects your machine tier and optimizes accordingly:
 ### Unit Tests
 
 ```bash
-# Run all tests
+# Run all tests (streamlined test suite)
 source .venv/bin/activate
-python -m pytest tests/ -v
+python -m pytest tests/ -v  # 3 tests, zero warnings
 
 # Run specific test modules
-python -m pytest tests/test_harmonization.py -v
 python -m pytest tests/test_transformer.py -v
 ```
+
+**Test Coverage:**
+- ✅ Genotype transformation logic (identity, swap, formula-based)
+- ✅ Streamlined test suite with only essential tests
+- ✅ Zero deprecation warnings
 
 ### Pipeline Tests
 
 ```bash
-# Test individual data types
+# Test individual data types with real data
 python test_nba_pipeline.py        # NBA ProcessPool test
 python test_imputed_pipeline.py    # IMPUTED ProcessPool test
 ```
@@ -251,11 +294,14 @@ The codebase follows a modular architecture with clear separation of concerns:
 - `ExtractionCoordinator` class
 - Multi-source extraction planning
 - ProcessPool parallelization
+- Sample ID normalization and column organization
 - Pipeline execution and result aggregation
 
 **`app/processing/extractor.py`** - Variant extraction engine
 - `VariantExtractor` class
 - PLINK 2.0 integration
+- Corrected allele counting (pathogenic vs reference)
+- Advanced genotype transformation for all harmonization scenarios
 - Real-time harmonization
 - Fallback simulation for testing
 
@@ -294,8 +340,32 @@ The codebase follows a modular architecture with clear separation of concerns:
 - ✅ **Phase 1 Complete**: Data models, configuration, file discovery
 - ✅ **Phase 2 Complete**: Merge-based harmonization, extraction engine, coordination system
 - ✅ **Phase 3A Complete**: ProcessPool parallelization for concurrent file extraction
-- 🎯 **Phase 3B Ready**: Within-datatype combination, carrier detection, statistical analysis (NEXT FOCUS)
+- ✅ **Phase 3B Complete**: Correct allele counting, sample ID normalization, column organization
+- ✅ **Streamlit Viewer**: Interactive web interface for pipeline result exploration
+- 🎯 **Data Quality**: Carrier detection, statistical analysis, redundancy reduction (CURRENT FOCUS)
 - ⏳ **Phase 4 Planned**: REST API endpoints, background processing, monitoring
+
+### Major Recent Achievements
+
+**🔧 Allele Counting Fix**: 
+- Fixed critical issue where reference alleles were counted instead of pathogenic alleles
+- Implemented proper genotype transformation for all harmonization scenarios (EXACT, FLIP, SWAP, FLIP_SWAP)
+- Genotype values now correctly represent pathogenic allele counts
+
+**🏷️ Sample ID Normalization**:
+- Consistent sample IDs across all data types  
+- Fixed WGS duplicated IDs: `SAMPLE_001234_SAMPLE_001234` → `SAMPLE_001234`
+- Removed NBA/IMPUTED prefixes: `0_SAMPLE_001234` → `SAMPLE_001234`
+
+**📊 Data Organization**:
+- Column reordering: metadata columns first, then sorted sample columns
+- Duplicate handling and conflict resolution
+- Streamlined test suite (83% code reduction in transformer.py)
+
+**🖥️ Streamlit Viewer**:
+- Interactive web interface for exploring pipeline results
+- Variant filtering and statistics visualization
+- File downloads and data exploration capabilities
 
 ### Technology Stack
 - **Core**: FastAPI, Pydantic v2, pgenlib (PLINK file processing)
