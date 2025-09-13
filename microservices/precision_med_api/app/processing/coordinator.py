@@ -135,27 +135,6 @@ class ExtractionCoordinator:
             logger.error(f"Failed to load SNP list from {file_path}: {e}")
             raise
     
-    def get_target_chromosomes(self, snp_list: pd.DataFrame) -> List[str]:
-        """
-        Extract chromosomes that contain variants in the SNP list.
-        
-        Args:
-            snp_list: Validated SNP list DataFrame
-            
-        Returns:
-            List of chromosome strings that contain target variants
-        """
-        if snp_list.empty:
-            logger.warning("SNP list is empty, returning all chromosomes")
-            return self.settings.CHROMOSOMES
-        
-        # Get unique chromosomes from SNP list
-        target_chroms = sorted(snp_list['chromosome'].dropna().unique().tolist())
-        
-        logger.info(f"Target chromosomes from SNP list: {target_chroms}")
-        logger.info(f"Filtering from {len(self.settings.CHROMOSOMES)} to {len(target_chroms)} chromosomes")
-        
-        return target_chroms
     
     def _validate_snp_list(self, snp_list: pd.DataFrame) -> pd.DataFrame:
         """Validate SNP list format and content."""
@@ -213,22 +192,6 @@ class ExtractionCoordinator:
         logger.info(f"Validated SNP list with {final_count} variants")
         return snp_list.reset_index(drop=True)
     
-    def validate_snp_list(self, snp_list: pd.DataFrame) -> bool:
-        """
-        Validate SNP list format and return validation status.
-        
-        Args:
-            snp_list: SNP list DataFrame
-            
-        Returns:
-            True if valid, False otherwise
-        """
-        try:
-            self._validate_snp_list(snp_list)
-            return True
-        except Exception as e:
-            logger.error(f"SNP list validation failed: {e}")
-            return False
     
     def plan_extraction(
         self, 
@@ -253,7 +216,6 @@ class ExtractionCoordinator:
         )
         
         total_files = 0
-        estimated_samples = 0
         
         for data_type in data_types:
             files = []
@@ -264,7 +226,6 @@ class ExtractionCoordinator:
                 wgs_path = self.settings.get_wgs_path() + ".pgen"
                 if os.path.exists(wgs_path):
                     files.append(wgs_path)
-                    estimated_samples += 50000  # Estimate
                 
             elif data_type == DataType.NBA:
                 # NBA files by ancestry
@@ -274,7 +235,6 @@ class ExtractionCoordinator:
                     if os.path.exists(nba_path):
                         files.append(nba_path)
                         source_ancestries.append(ancestry)
-                        estimated_samples += 5000  # Estimate per ancestry
                 
             elif data_type == DataType.IMPUTED:
                 # Imputed files by ancestry and chromosome
@@ -287,15 +247,12 @@ class ExtractionCoordinator:
                             files.append(imputed_path)
                             if ancestry not in source_ancestries:
                                 source_ancestries.append(ancestry)
-                
-                # Estimate samples for imputed (same samples across chromosomes)
-                estimated_samples += len(source_ancestries) * 10000  # Estimate per ancestry
             
             if files:
                 plan.add_data_source(data_type.value, files, source_ancestries)
                 total_files += len(files)
         
-        plan.expected_total_samples = estimated_samples
+        # Sample counts will be determined during actual extraction
         
         # Estimate execution time (rough)
         # Base time + per-file time + per-variant time
@@ -348,7 +305,7 @@ class ExtractionCoordinator:
                     if not result_df.empty:
                         # Remove duplicates within this data type
                         result_df = result_df.drop_duplicates(
-                            subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                            subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                             keep='first'
                         )
                         results_by_datatype[data_type] = result_df
@@ -438,9 +395,11 @@ class ExtractionCoordinator:
             wgs_combined = pd.concat(wgs_results, ignore_index=True)
             # Remove duplicates within WGS only
             wgs_combined = wgs_combined.drop_duplicates(
-                subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                 keep='first'
             )
+            # Reorder columns to ensure metadata comes before samples
+            wgs_combined = self._reorder_dataframe_columns(wgs_combined)
             results_by_datatype['WGS'] = wgs_combined
             logger.info(f"WGS combined: {len(wgs_combined)} variants")
         
@@ -448,9 +407,11 @@ class ExtractionCoordinator:
             nba_combined = pd.concat(nba_results, ignore_index=True)
             # Remove duplicates within NBA only
             nba_combined = nba_combined.drop_duplicates(
-                subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                 keep='first'
             )
+            # Reorder columns to ensure metadata comes before samples
+            nba_combined = self._reorder_dataframe_columns(nba_combined)
             results_by_datatype['NBA'] = nba_combined
             logger.info(f"NBA combined: {len(nba_combined)} variants")
         
@@ -458,9 +419,11 @@ class ExtractionCoordinator:
             imputed_combined = pd.concat(imputed_results, ignore_index=True)
             # Remove duplicates within IMPUTED only
             imputed_combined = imputed_combined.drop_duplicates(
-                subset=['snp_list_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
                 keep='first'
             )
+            # Reorder columns to ensure metadata comes before samples
+            imputed_combined = self._reorder_dataframe_columns(imputed_combined)
             results_by_datatype['IMPUTED'] = imputed_combined
             logger.info(f"IMPUTED combined: {len(imputed_combined)} variants")
         
@@ -469,6 +432,97 @@ class ExtractionCoordinator:
         logger.info(f"ProcessPool extraction completed in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
         
         return results_by_datatype
+    
+    def _reorder_dataframe_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Reorder DataFrame columns to ensure metadata columns come before sample columns.
+        Also normalizes sample IDs to consistent format.
+        
+        Args:
+            df: DataFrame with potentially mixed column order
+            
+        Returns:
+            DataFrame with metadata columns first, then normalized sample columns
+        """
+        # Define metadata columns in desired order
+        METADATA_COLUMNS = [
+            'chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+            'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
+            'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry'
+        ]
+        
+        # Optional metadata that might be added later
+        OPTIONAL_METADATA = ['rsid', 'locus', 'snp_name']
+        
+        # Separate metadata from sample columns
+        metadata_present = [col for col in METADATA_COLUMNS if col in df.columns]
+        optional_present = [col for col in OPTIONAL_METADATA if col in df.columns]
+        
+        # All remaining columns are sample columns
+        all_metadata = set(metadata_present + optional_present)
+        sample_columns = [col for col in df.columns if col not in all_metadata]
+        
+        # Normalize sample IDs and create column mapping
+        column_mapping = {}
+        normalized_sample_columns = []
+        seen_normalized = set()
+        
+        for col in sample_columns:
+            normalized_col = self._normalize_sample_id(col)
+            
+            # Handle potential duplicates after normalization
+            if normalized_col in seen_normalized:
+                logger.warning(f"Duplicate sample ID after normalization: {col} -> {normalized_col}")
+                # Keep the first occurrence, skip duplicates
+                continue
+            
+            column_mapping[col] = normalized_col
+            normalized_sample_columns.append(normalized_col)
+            seen_normalized.add(normalized_col)
+        
+        # Sort normalized sample columns for consistency
+        normalized_sample_columns = sorted(normalized_sample_columns)
+        
+        # Final order: required metadata + optional metadata + normalized samples
+        ordered_columns = metadata_present + optional_present + normalized_sample_columns
+        
+        # Create new DataFrame with renamed columns
+        df_renamed = df.copy()
+        df_renamed = df_renamed.rename(columns=column_mapping)
+        
+        # Reorder the DataFrame
+        return df_renamed[ordered_columns]
+    
+    def _normalize_sample_id(self, sample_id: str) -> str:
+        """
+        Normalize sample IDs to consistent format.
+        
+        Handles:
+        - WGS duplicated IDs: BBDP_000005_BBDP_000005 -> BBDP_000005
+        - NBA/IMPUTED prefixes: 0_BBDP_000005 -> BBDP_000005
+        
+        Args:
+            sample_id: Original sample ID
+            
+        Returns:
+            Normalized sample ID
+        """
+        # Remove '0_' prefix from NBA/IMPUTED data
+        if sample_id.startswith('0_'):
+            sample_id = sample_id[2:]
+        
+        # Fix WGS duplicated IDs: BBDP_000005_BBDP_000005 -> BBDP_000005
+        if '_' in sample_id:
+            parts = sample_id.split('_')
+            # Check if it's a duplicated pattern (at least 4 parts, first half == second half)
+            if len(parts) >= 4 and len(parts) % 2 == 0:
+                mid = len(parts) // 2
+                first_half = '_'.join(parts[:mid])
+                second_half = '_'.join(parts[mid:])
+                if first_half == second_half:
+                    sample_id = first_half
+        
+        return sample_id
     
     def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
         """Calculate optimal process count based on system resources and settings."""
@@ -510,120 +564,16 @@ class ExtractionCoordinator:
         
         # Combine all results
         if all_dfs:
-            return pd.concat(all_dfs, ignore_index=True)
+            combined_df = pd.concat(all_dfs, ignore_index=True)
+            # Reorder columns to ensure metadata comes before samples
+            return self._reorder_dataframe_columns(combined_df)
         else:
             return pd.DataFrame()
     
-    def generate_harmonization_summary(
-        self, 
-        results: pd.DataFrame
-    ) -> Dict[str, Any]:
-        """
-        Generate comprehensive harmonization summary.
-        
-        Args:
-            results: Combined extraction results
-            
-        Returns:
-            Summary dictionary with statistics
-        """
-        if results.empty:
-            return {
-                "total_variants": 0,
-                "total_samples": 0,
-                "summary": "No variants extracted"
-            }
-        
-        # Get sample columns
-        sample_cols = self.formatter._get_sample_columns(results)
-        
-        summary = {
-            "total_variants": len(results),
-            "total_samples": len(sample_cols),
-            "unique_variants": results['snp_list_id'].nunique() if 'snp_list_id' in results.columns else len(results),
-            "extraction_timestamp": datetime.now().isoformat()
-        }
-        
-        # Harmonization action counts
-        if 'harmonization_action' in results.columns:
-            action_counts = results['harmonization_action'].value_counts().to_dict()
-            summary['harmonization_actions'] = action_counts
-            
-            # Calculate harmonization rates
-            total_with_action = sum(action_counts.values())
-            for action, count in action_counts.items():
-                summary[f'rate_{action.lower()}'] = count / total_with_action if total_with_action > 0 else 0
-        
-        # Data type breakdown
-        if 'data_type' in results.columns:
-            summary['by_data_type'] = results['data_type'].value_counts().to_dict()
-        
-        # Ancestry breakdown
-        if 'ancestry' in results.columns:
-            ancestry_counts = results['ancestry'].value_counts().to_dict()
-            summary['by_ancestry'] = ancestry_counts
-        
-        # Chromosome breakdown
-        if 'chromosome' in results.columns:
-            summary['by_chromosome'] = results['chromosome'].value_counts().to_dict()
-        
-        # Quality metrics
-        if sample_cols:
-            missing_rates = []
-            alt_freqs = []
-            
-            for _, row in results.iterrows():
-                # Calculate per-variant statistics
-                genotypes = [row[col] for col in sample_cols if pd.notna(row[col])]
-                if genotypes:
-                    # Convert to numeric, handling string genotypes
-                    try:
-                        genotypes = pd.to_numeric(genotypes, errors='coerce')
-                        genotypes = np.array(genotypes)
-                        valid_gts = genotypes[~np.isnan(genotypes)]
-                        
-                        # Missing rate
-                        missing_rate = 1 - (len(valid_gts) / len(genotypes))
-                        missing_rates.append(missing_rate)
-                        
-                        # Allele frequency
-                        if len(valid_gts) > 0:
-                            alt_count = np.sum(valid_gts == 2) * 2 + np.sum(valid_gts == 1)
-                            total_alleles = len(valid_gts) * 2
-                            alt_freq = alt_count / total_alleles if total_alleles > 0 else 0
-                            alt_freqs.append(alt_freq)
-                    except Exception as e:
-                        logger.warning(f"Failed to calculate statistics for variant: {e}")
-                        continue
-            
-            if missing_rates:
-                summary['quality_metrics'] = {
-                    'mean_missing_rate': np.mean(missing_rates),
-                    'max_missing_rate': np.max(missing_rates),
-                    'variants_high_missing': np.sum(np.array(missing_rates) > 0.1)
-                }
-            
-            if alt_freqs:
-                summary['allele_frequency_metrics'] = {
-                    'mean_alt_freq': np.mean(alt_freqs),
-                    'rare_variants': np.sum(np.array(alt_freqs) < 0.01),
-                    'common_variants': np.sum(np.array(alt_freqs) > 0.05)
-                }
-        
-        # Transformation summary (only if harmonization metadata is available)
-        if 'harmonization_action' in results.columns and 'genotype_transform' in results.columns:
-            transform_summary = self.transformer.get_transformation_summary(results)
-            summary['transformation_summary'] = transform_summary
-        else:
-            summary['transformation_summary'] = {
-                "note": "Transformation summary not available - harmonization metadata not present in final output"
-            }
-        
-        return summary
     
     def _generate_harmonization_summary_from_plan(self, plan: ExtractionPlan) -> Dict[str, Any]:
         """
-        Generate harmonization summary from extraction plan in cache-free mode.
+        Generate harmonization summary from extraction plan.
         
         Args:
             plan: ExtractionPlan with file information
@@ -633,7 +583,6 @@ class ExtractionCoordinator:
         """
         summary = {
             "total_variants": len(plan.snp_list_ids),
-            "total_samples": plan.expected_total_samples,
             "unique_variants": len(plan.snp_list_ids),
             "extraction_timestamp": datetime.now().isoformat(),
             "harmonization_actions": {},
@@ -641,23 +590,23 @@ class ExtractionCoordinator:
             "by_ancestry": {},
             "by_chromosome": {},
             "harmonized_files_available": False,
-            "export_method": "cache_free_realtime"
+            "export_method": "realtime_harmonization"
         }
         
         return summary
     
-    def export_results_cache_free(
+    def export_pipeline_results(
         self, 
         plan: ExtractionPlan,
         output_dir: str,
         base_name: Optional[str] = None,
-        formats: List[str] = ['traw', 'parquet'],
+        formats: List[str] = ['parquet'],
         snp_list: Optional[pd.DataFrame] = None,
         harmonization_summary: Optional[Dict[str, Any]] = None,
         max_workers: Optional[int] = None
     ) -> Dict[str, str]:
         """
-        Export results using cache-free real-time harmonization.
+        Export pipeline results for all data types.
         
         Args:
             plan: ExtractionPlan with file information
@@ -678,14 +627,10 @@ class ExtractionCoordinator:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
         
         output_files = {}
+        actual_counts = {'total_samples': 0, 'total_variants': 0, 'by_data_type': {}}
         
-        # Cache-free mode: always use traditional extraction
-        
-        # Cache-free mode always uses traditional extraction
-        can_use_native_export = False
-        
-        # Cache-free mode: always use traditional DataFrame-based export
-        if True:  # Always use traditional approach in cache-free mode
+        # Always use traditional DataFrame-based export
+        if True:  # Always use traditional approach
             logger.info("Using traditional DataFrame-based export with separate data type outputs")
             # Extract using traditional method - now returns dict by data type
             extracted_by_datatype = self.execute_harmonized_extraction(plan, snp_list, parallel=True, max_workers=max_workers)
@@ -701,6 +646,14 @@ class ExtractionCoordinator:
                 sample_cols = self.formatter._get_sample_columns(df)
                 actual_sample_count = len(sample_cols)
                 actual_variant_count = len(df)
+                
+                # Aggregate actual counts (use max sample count across data types since samples are consistent)
+                actual_counts['total_samples'] = max(actual_counts['total_samples'], actual_sample_count)
+                actual_counts['total_variants'] += actual_variant_count
+                actual_counts['by_data_type'][data_type] = {
+                    'variants': actual_variant_count,
+                    'samples': actual_sample_count
+                }
                 
                 current_summary['total_samples'] = actual_sample_count
                 current_summary['total_variants'] = actual_variant_count
@@ -725,38 +678,12 @@ class ExtractionCoordinator:
                 
                 logger.info(f"Exported {data_type}: {len(datatype_output_files)} files, {actual_variant_count} variants")
             
-            return output_files
+            return output_files, actual_counts
         
         # This section is no longer needed since we always use traditional extraction above
         
-        # Always generate additional metadata files
-        try:
-            # Create QC report
-            qc_path = os.path.join(output_dir, f"{base_name}_qc_report.json")
-            
-            # If we have extracted_df, use it; otherwise create minimal QC report
-            if 'extracted_df' in locals() and not extracted_df.empty:
-                self.formatter.create_qc_report(extracted_df, qc_path)
-            else:
-                # Create basic QC report from harmonization summary
-                basic_qc = harmonization_summary.copy() if harmonization_summary else {}
-                basic_qc['generation_timestamp'] = datetime.now().isoformat()
-                basic_qc['export_method'] = 'cache_free'
-                
-                with open(qc_path, 'w') as f:
-                    import json
-                    json.dump(basic_qc, f, indent=2, default=str)
-            
-            output_files['qc_report'] = qc_path
-            
-            # Harmonization report
-            if harmonization_summary:
-                report_path = os.path.join(output_dir, f"{base_name}_harmonization_report.json")
-                self.formatter.write_harmonization_report(harmonization_summary, report_path)
-                output_files['harmonization_report'] = report_path
-                
-        except Exception as e:
-            logger.error(f"Failed to create additional files: {e}")
+        # Additional metadata files removed (QC report and harmonization report)
+        # All necessary information is available in variant summary and pipeline results
         
         logger.info(f"Exported {len(output_files)} files using native PLINK approach")
         return output_files
@@ -769,7 +696,7 @@ class ExtractionCoordinator:
         df: pd.DataFrame, 
         output_dir: str,
         base_name: Optional[str] = None,
-        formats: List[str] = ['traw', 'parquet'],
+        formats: List[str] = ['parquet'],
         snp_list: Optional[pd.DataFrame] = None,
         harmonization_summary: Optional[Dict[str, Any]] = None
     ) -> Dict[str, str]:
@@ -804,13 +731,7 @@ class ExtractionCoordinator:
             harmonization_stats=harmonization_summary
         )
         
-        # Create QC report
-        try:
-            qc_path = os.path.join(output_dir, f"{base_name}_qc_report.json")
-            self.formatter.create_qc_report(df, qc_path)
-            output_files['qc_report'] = qc_path
-        except Exception as e:
-            logger.error(f"Failed to create QC report: {e}")
+        # QC report removed - same information available in variant summary
         
         logger.info(f"Exported results to {len(output_files)} files in {output_dir}")
         return output_files
@@ -821,7 +742,6 @@ class ExtractionCoordinator:
         data_types: List[DataType],
         output_dir: str,
         ancestries: Optional[List[str]] = None,
-        output_formats: List[str] = ['traw', 'parquet'],
         parallel: bool = True,
         max_workers: Optional[int] = None,
         output_name: Optional[str] = None,
@@ -865,32 +785,40 @@ class ExtractionCoordinator:
             # Step 1: Load and validate SNP list
             logger.info("Step 1: Loading SNP list")
             snp_list = self.load_snp_list(snp_list_path)
-            snp_list_ids = snp_list['variant_id'].tolist() if 'variant_id' in snp_list.columns else snp_list.index.tolist()
+            snp_list_ids = snp_list['snp_name'].tolist() if 'snp_name' in snp_list.columns else snp_list.index.tolist()
             
             # Step 2: Create extraction plan
             logger.info("Step 2: Creating extraction plan")
             plan = self.plan_extraction(snp_list_ids, data_types, ancestries)
             
-            # Step 3: Generate harmonization summary for cache-free mode
+            # Step 3: Generate harmonization summary
             logger.info("Step 3: Generating harmonization summary")
             harmonization_summary = self._generate_harmonization_summary_from_plan(plan)
             
-            # Step 4: Export results using cache-free extraction
+            # Step 4: Export results using real-time extraction
             logger.info("Step 4: Exporting results")
-            output_files = self.export_results_cache_free(
+            output_files, actual_counts = self.export_pipeline_results(
                 plan=plan,
                 output_dir=output_dir,
                 base_name=job_id,
-                formats=output_formats,
+                formats=['parquet'],  # Only parquet format - contains all data
                 snp_list=snp_list,
                 harmonization_summary=harmonization_summary,
                 max_workers=max_workers
             )
             
+            # Update harmonization summary with actual counts
+            updated_summary = harmonization_summary.copy() if harmonization_summary else {}
+            updated_summary.update({
+                'total_samples': actual_counts['total_samples'],
+                'total_variants': actual_counts['total_variants'],
+                'by_data_type': actual_counts['by_data_type']
+            })
+            
             # Pipeline completed successfully
             results['success'] = True
             results['output_files'] = output_files
-            results['summary'] = harmonization_summary
+            results['summary'] = updated_summary
             # Include only essential plan information, excluding estimates
             plan_info = {
                 'snp_list_ids': plan.snp_list_ids,

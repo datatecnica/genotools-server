@@ -164,8 +164,8 @@ class AnalysisMetadata(BaseModel):
                 "errors": [],
                 "warnings": ["Missing clinical data for 10 samples"],
                 "processing_stats": {
-                    "cache_hits": 350,
-                    "cache_misses": 50,
+                    "harmonized_variants": 350,
+                    "failed_variants": 50,
                     "memory_peak_gb": 8.5
                 }
             }

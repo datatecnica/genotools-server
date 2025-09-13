@@ -161,8 +161,8 @@ def sample_genotype_data():
             'chr3:500000:G:A'
         ],
         'position': [100000, 200000, 300000, 400000, 500000],
-        'counted_allele': ['A', 'T', 'C', 'A', 'G'],
-        'alt_allele': ['C', 'G', 'G', 'T', 'A'],
+        'counted_allele': ['C', 'G', 'G', 'T', 'A'],  # Now counts ALT allele (allele of interest)
+        'alt_allele': ['A', 'T', 'C', 'A', 'G'],      # REF allele
         'harmonization_action': ['EXACT', 'FLIP', 'SWAP', 'AMBIGUOUS', 'FLIP_SWAP'],
         'snp_list_id': [
             'chr1:100000:A:C',
@@ -274,8 +274,8 @@ def sample_traw_data():
         'SNP': ['1:100000:A:C', '1:200000:T:G', '2:300000:C:G'],
         'CM': [0, 0, 0],
         'POS': [100000, 200000, 300000],
-        'COUNTED': ['A', 'T', 'C'],
-        'ALT': ['C', 'G', 'G'],
+        'COUNTED': ['C', 'G', 'G'],  # Now counts ALT allele (allele of interest)
+        'ALT': ['A', 'T', 'C'],      # REF allele
         'SAMPLE_000001': [0, 1, 2],
         'SAMPLE_000002': [1, 0, 1],
         'SAMPLE_000003': [2, 2, 0]
