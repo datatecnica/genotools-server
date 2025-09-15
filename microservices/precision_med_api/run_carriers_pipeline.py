@@ -73,6 +73,12 @@ def parse_args():
         default=True,
         help='Use performance optimizations (default: True)'
     )
+    parser.add_argument(
+        '--skip-extraction',
+        action='store_true',
+        default=False,
+        help='Skip extraction phase if results already exist (default: False)'
+    )
     return parser.parse_args()
 
 
@@ -88,6 +94,17 @@ def print_system_info():
     logger.info(f"CPU cores: {cpu_count}")
     logger.info(f"Total RAM: {memory_gb:.1f} GB")
     logger.info(f"Available RAM: {psutil.virtual_memory().available / (1024**3):.1f} GB")
+
+def check_extraction_results_exist(output_dir: str, job_name: str, data_types: List[str]) -> bool:
+    """Check if extraction results already exist for all requested data types."""
+    required_files = []
+    for data_type in data_types:
+        parquet_file = os.path.join(output_dir, f"{job_name}_{data_type}.parquet")
+        required_files.append(parquet_file)
+
+    # Check if all files exist and have non-zero size
+    all_exist = all(os.path.exists(f) and os.path.getsize(f) > 0 for f in required_files)
+    return all_exist
 
 def analyze_results(results: dict, logger):
     """Analyze and report pipeline results."""
@@ -199,32 +216,76 @@ def main():
         logger.info(f"⚡ Parallel: {args.parallel}")
         logger.info(f"👥 Max workers: {args.max_workers or 'auto-detect'}")
         logger.info(f"🔧 Using {'config-based' if args.output is None else 'custom'} output location")
+        logger.info(f"📋 Skip extraction: {args.skip_extraction}")
+
+        # Check if we should skip extraction
+        if args.skip_extraction:
+            if check_extraction_results_exist(output_dir, custom_name, args.data_types):
+                logger.info("✅ Extraction results found. Skipping extraction phase...")
+                logger.info("📁 Existing files will be used for any postprocessing")
+
+                # Create a minimal results structure for existing files
+                output_files = {}
+                for data_type in args.data_types:
+                    parquet_file = os.path.join(output_dir, f"{custom_name}_{data_type}.parquet")
+                    output_files[f"{data_type}_parquet"] = parquet_file
+
+                results = {
+                    'success': True,
+                    'job_id': custom_name,
+                    'execution_time_seconds': 0.0,
+                    'output_files': output_files,
+                    'summary': {'note': 'Skipped extraction - used existing results'},
+                    'skipped_extraction': True
+                }
+            else:
+                logger.warning("⚠️ Skip extraction requested but no valid results found.")
+                logger.info("🚀 Running full extraction pipeline...")
+                start_time = time.time()
+                results = coordinator.run_full_extraction_pipeline(
+                    snp_list_path=snp_list_path,
+                    data_types=data_type_enums,
+                    output_dir=output_dir,
+                    ancestries=args.ancestries,
+                    parallel=args.parallel,
+                    max_workers=args.max_workers,  # Use auto-detect if None
+                    output_name=custom_name
+                )
+        else:
+            # Normal pipeline execution (will overwrite existing results)
+            logger.info("\n🚀 Starting carriers pipeline extraction...")
+            start_time = time.time()
+            results = coordinator.run_full_extraction_pipeline(
+                snp_list_path=snp_list_path,
+                data_types=data_type_enums,
+                output_dir=output_dir,
+                ancestries=args.ancestries,
+                parallel=args.parallel,
+                max_workers=args.max_workers,  # Use auto-detect if None
+                output_name=custom_name
+            )
         
-        # Start pipeline
-        logger.info("\n🚀 Starting carriers pipeline extraction...")
-        start_time = time.time()
-        
-        results = coordinator.run_full_extraction_pipeline(
-            snp_list_path=snp_list_path,
-            data_types=data_type_enums,
-            output_dir=output_dir,
-            ancestries=args.ancestries,
-            parallel=args.parallel,
-            max_workers=args.max_workers,  # Use auto-detect if None
-            output_name=custom_name
-        )
-        
-        end_time = time.time()
-        logger.info(f"⏱️  Total pipeline time: {end_time - start_time:.1f}s")
+        # Calculate timing only if extraction was run
+        if not results.get('skipped_extraction', False):
+            end_time = time.time()
+            logger.info(f"⏱️  Total pipeline time: {end_time - start_time:.1f}s")
+        else:
+            logger.info("⏱️  Extraction skipped - no timing measured")
         
         # Analyze and report results
         success = analyze_results(results, logger)
         
         if success:
-            logger.info("\n🎯 Carriers Pipeline Complete!")
-            logger.info("   📁 Generated separate NBA/WGS/IMPUTED datasets")
-            logger.info("   🧬 Genotype data ready for carrier analysis")
-            logger.info("   📊 Quality reports and harmonization summaries available")
+            if results.get('skipped_extraction', False):
+                logger.info("\n🎯 Carriers Pipeline Complete (Extraction Skipped)!")
+                logger.info("   📁 Used existing NBA/WGS/IMPUTED datasets")
+                logger.info("   🧬 Genotype data ready for carrier analysis")
+                logger.info("   💡 Use without --skip-extraction to regenerate extraction data")
+            else:
+                logger.info("\n🎯 Carriers Pipeline Complete!")
+                logger.info("   📁 Generated separate NBA/WGS/IMPUTED datasets")
+                logger.info("   🧬 Genotype data ready for carrier analysis")
+                logger.info("   📊 Quality reports and harmonization summaries available")
         
         return 0 if success else 1
         

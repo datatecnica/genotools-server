@@ -74,6 +74,9 @@ python run_carriers_pipeline.py --output /tmp/my_analysis/carriers_test
 
 # Custom job name (uses config-based location)
 python run_carriers_pipeline.py --job-name my_carrier_study
+
+# Skip extraction for rapid postprocessing development (reuses existing results)
+python run_carriers_pipeline.py --job-name my_carrier_study --skip-extraction
 ```
 
 ### Streamlit Viewer
@@ -117,6 +120,7 @@ Options:
   --max-workers INTEGER     Maximum workers (default: auto-detect)
   --optimize / --no-optimize
                             Use performance optimizations (default: True)
+  --skip-extraction         Skip extraction phase if results already exist (default: False)
 ```
 
 ## Data Types Supported
@@ -238,6 +242,12 @@ The system automatically detects your machine tier and optimizes accordingly:
    python run_carriers_pipeline.py
    ```
 
+4. **Development Mode (0.0s - skip extraction)**:
+   ```bash
+   # Skip extraction if results already exist (for rapid postprocessing development)
+   python run_carriers_pipeline.py --job-name existing_analysis --skip-extraction
+   ```
+
 ### Unit Tests
 
 ```bash
@@ -351,6 +361,13 @@ The codebase follows a modular architecture with clear separation of concerns:
 - ⏳ **Phase 4 Planned**: REST API endpoints, background processing, monitoring
 
 ### Major Recent Achievements
+
+**🚀 Skip-Extraction Development Mode** ✅ **NEW**:
+- **DEVELOPER FEATURE**: Added `--skip-extraction` argument for rapid postprocessing development
+- Automatically detects existing parquet files and reuses them (0.0s vs 17.5s+ execution)
+- Graceful fallback to full extraction when results don't exist
+- **Impact**: Enables fast iteration on postprocessing logic without 45-minute re-runs
+- **Usage**: `python run_carriers_pipeline.py --job-name my_analysis --skip-extraction`
 
 **🔧 Multiple Probe Detection Fix**:
 - **CRITICAL BUG FIX**: Resolved issue where NBA variants with multiple probes at the same genomic position were being lost
