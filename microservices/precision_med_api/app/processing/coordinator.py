@@ -592,8 +592,7 @@ class ExtractionCoordinator:
             "by_data_type": {},
             "by_ancestry": {},
             "by_chromosome": {},
-            "harmonized_files_available": False,
-            "export_method": "realtime_harmonization"
+            "harmonized_files_available": False
         }
         
         return summary
