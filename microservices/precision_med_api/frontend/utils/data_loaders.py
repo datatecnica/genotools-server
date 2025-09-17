@@ -173,7 +173,61 @@ class FileInfoLoader(DataLoader):
             if files:  # Only add data type if files exist
                 file_info[data_type] = files
 
+        # Check for probe selection report
+        probe_report_path = os.path.join(release_path, f"{job_name}_probe_selection.json")
+        if os.path.exists(probe_report_path):
+            stat = os.stat(probe_report_path)
+            size_bytes = stat.st_size
+
+            if size_bytes < 1024:
+                size_display = f"{size_bytes} B"
+            elif size_bytes < 1024 * 1024:
+                size_display = f"{size_bytes / 1024:.1f} KB"
+            else:
+                size_display = f"{size_bytes / (1024 * 1024):.1f} MB"
+
+            file_info["PROBE_VALIDATION"] = {
+                "Probe Selection Report": {
+                    "path": probe_report_path,
+                    "size_mb": size_bytes / (1024 * 1024),
+                    "size_display": size_display
+                }
+            }
+
         return file_info
+
+
+class ProbeValidationLoader(DataLoader):
+    """Loader for probe validation reports."""
+
+    @st.cache_data(ttl=300)
+    def load(_self, config: 'FrontendConfig', release: str, job_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Load probe validation report data.
+
+        Args:
+            config: Frontend configuration
+            release: Release identifier
+            job_name: Job name
+
+        Returns:
+            Probe validation report data or None if not available
+        """
+        try:
+            release_path = os.path.join(os.path.dirname(config.results_base_path), release)
+            probe_report_path = os.path.join(release_path, f"{job_name}_probe_selection.json")
+
+            if not os.path.exists(probe_report_path):
+                return None
+
+            with open(probe_report_path, 'r') as f:
+                data = json.load(f)
+
+            return data
+
+        except Exception as e:
+            logger.error(f"Failed to load probe validation data: {e}")
+            return None
 
 
 class DataLoaderFactory:
@@ -184,7 +238,8 @@ class DataLoaderFactory:
         'jobs': JobDiscoveryLoader,
         'pipeline_results': PipelineResultsLoader,
         'sample_counts': SampleCountsLoader,
-        'file_info': FileInfoLoader
+        'file_info': FileInfoLoader,
+        'probe_validation': ProbeValidationLoader
     }
 
     @classmethod

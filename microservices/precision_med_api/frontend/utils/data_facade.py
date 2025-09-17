@@ -2,7 +2,7 @@
 Data facade providing simplified interface for complex data operations.
 """
 
-from typing import List
+from typing import List, Optional, Dict, Any
 from frontend.config import FrontendConfig
 from frontend.models.frontend_models import OverviewData
 from frontend.utils.data_loaders import DataLoaderFactory
@@ -98,3 +98,18 @@ class DataFacade:
             release, job_name, config=self.config
         )
         return list(file_info.keys())
+
+    def get_probe_validation_data(self, release: str, job_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get probe validation analysis data.
+
+        Args:
+            release: Release identifier
+            job_name: Job name identifier
+
+        Returns:
+            Dict containing probe validation report data, or None if not available
+        """
+        return self.factory.get_loader('probe_validation').load(
+            self.config, release, job_name
+        )

@@ -30,7 +30,7 @@ def setup_app_config() -> FrontendConfig:
     return FrontendConfig.create()
 
 
-def setup_sidebar(config: FrontendConfig) -> Tuple[str, str]:
+def setup_sidebar(config: FrontendConfig) -> Tuple[str, str, str]:
     """
     Set up sidebar navigation with release and job selection.
 
@@ -38,7 +38,7 @@ def setup_sidebar(config: FrontendConfig) -> Tuple[str, str]:
         config: Frontend configuration
 
     Returns:
-        Tuple of (selected_release, selected_job)
+        Tuple of (selected_release, selected_job, selected_page)
     """
     st.sidebar.header("📁 Data Selection")
     app_state = get_app_state()
@@ -105,7 +105,32 @@ def setup_sidebar(config: FrontendConfig) -> Tuple[str, str]:
         selected_job = selected_release
         app_state.selected_job = selected_job
 
-    return selected_release, selected_job
+    # Page navigation
+    st.sidebar.header("📊 Navigation")
+    page_options = ["Release Overview", "Probe Validation"]
+
+    # Check if probe validation data is available
+    probe_data_available = data_facade.get_probe_validation_data(selected_release, selected_job) is not None
+
+    if not probe_data_available:
+        page_options = ["Release Overview"]
+        if hasattr(app_state, 'selected_page') and app_state.selected_page == "Probe Validation":
+            app_state.selected_page = "Release Overview"
+
+    if not hasattr(app_state, 'selected_page'):
+        app_state.selected_page = "Release Overview"
+
+    selected_page = st.sidebar.selectbox(
+        "Select Page",
+        page_options,
+        index=page_options.index(app_state.selected_page) if app_state.selected_page in page_options else 0
+    )
+    app_state.selected_page = selected_page
+
+    if not probe_data_available and len(page_options) == 1:
+        st.sidebar.info("🔬 **Probe Validation**\nRequires probe selection analysis data")
+
+    return selected_release, selected_job, selected_page
 
 
 def render_main_header(release: str, job_name: str, config: FrontendConfig) -> None:
@@ -132,17 +157,23 @@ def render_main_header(release: str, job_name: str, config: FrontendConfig) -> N
                 st.text(f"Available Data Types: {', '.join(config.data_types)}")
 
 
-def render_main_content(release: str, job_name: str, config: FrontendConfig) -> None:
+def render_main_content(release: str, job_name: str, selected_page: str, config: FrontendConfig) -> None:
     """
     Render main content area with overview section.
 
     Args:
         release: Selected release
         job_name: Selected job name
+        selected_page: Selected page name
         config: Frontend configuration
     """
-    # Overview section
-    overview.render_overview_with_validation(release, job_name, config)
+    if selected_page == "Release Overview":
+        # Overview section
+        overview.render_overview_with_validation(release, job_name, config)
+    elif selected_page == "Probe Validation":
+        # Probe validation section
+        from frontend.pages.probe_validation import render_probe_validation_page
+        render_probe_validation_page(release, job_name, config)
 
 
 def handle_errors() -> None:
@@ -170,7 +201,7 @@ def main():
         render_main_header("", "", config)  # Will be updated after sidebar setup
 
         # Setup sidebar navigation and get selections
-        release, job_name = setup_sidebar(config)
+        release, job_name, selected_page = setup_sidebar(config)
 
         # Validate selections before proceeding
         data_facade = DataFacade(config)
@@ -180,13 +211,13 @@ def main():
             return
 
         # Render main content
-        render_main_content(release, job_name, config)
+        render_main_content(release, job_name, selected_page, config)
 
         # Footer information
         if config.debug_mode:
-            st.caption(f"Release Overview | Debug Mode | {release} | {job_name}")
+            st.caption(f"{selected_page} | Debug Mode | {release} | {job_name}")
         else:
-            st.caption("Release Overview | Precision Medicine Carriers Pipeline")
+            st.caption(f"{selected_page} | Precision Medicine Carriers Pipeline")
 
     except Exception as e:
         st.error("Application Initialization Error")

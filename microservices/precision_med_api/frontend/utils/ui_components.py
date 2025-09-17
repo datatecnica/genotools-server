@@ -139,6 +139,182 @@ class PipelineDetailsRenderer(ComponentRenderer):
 
 
 
+class ProbeValidationSummaryRenderer(ComponentRenderer):
+    """Strategy for rendering probe validation summary metrics."""
+
+    def render(self, data: Dict[str, Any]) -> None:
+        """
+        Render probe validation summary metrics.
+
+        Args:
+            data: Probe validation report data
+        """
+        if not data:
+            st.warning("No probe validation data available")
+            return
+
+        summary = data.get('summary', {})
+        methodology = data.get('methodology_comparison', {})
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            total_mutations = summary.get('total_mutations_analyzed', 0)
+            st.metric("Mutations Analyzed", total_mutations)
+
+        with col2:
+            multiple_probes = summary.get('mutations_with_multiple_probes', 0)
+            st.metric("Multiple Probe Mutations", multiple_probes)
+
+        with col3:
+            total_comparisons = summary.get('total_probe_comparisons', 0)
+            st.metric("Probe Comparisons", total_comparisons)
+
+        with col4:
+            agreement_rate = methodology.get('agreement_rate', 0.0)
+            st.metric("Method Agreement", f"{agreement_rate:.1%}")
+
+
+class ProbeValidationTableRenderer(ComponentRenderer):
+    """Strategy for rendering probe validation analysis table."""
+
+    def render(self, data: Dict[str, Any]) -> None:
+        """
+        Render probe validation analysis table.
+
+        Args:
+            data: Probe validation report data
+        """
+        if not data:
+            st.warning("No probe validation data available")
+            return
+
+        probe_comparisons = data.get('probe_comparisons', [])
+        if not probe_comparisons:
+            st.info("No probe comparisons available")
+            return
+
+        # Build table data
+        table_rows = []
+        for mutation_analysis in probe_comparisons:
+            mutation = mutation_analysis.get('mutation', 'Unknown')
+            probes = mutation_analysis.get('probes', [])
+
+            for probe in probes:
+                diagnostic = probe.get('diagnostic_metrics', {})
+                concordance = probe.get('concordance_metrics', {})
+
+                table_rows.append({
+                    "Mutation": mutation,
+                    "Probe ID": probe.get('variant_id', 'Unknown'),
+                    "Probe Type": probe.get('probe_type', 'Unknown'),
+                    "Sensitivity": f"{diagnostic.get('sensitivity', 0):.3f}",
+                    "Specificity": f"{diagnostic.get('specificity', 0):.3f}",
+                    "Overall Concordance": f"{concordance.get('overall_concordance', 0):.3f}",
+                    "Carrier Sensitivity": f"{concordance.get('carrier_sensitivity', 0):.3f}",
+                    "Quality Score": f"{concordance.get('quality_score', 0):.3f}"
+                })
+
+        if table_rows:
+            df = pd.DataFrame(table_rows)
+
+            # Add filtering
+            st.subheader("Probe Performance Analysis")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                mutation_filter = st.selectbox(
+                    "Filter by Mutation",
+                    ["All"] + list(df["Mutation"].unique()),
+                    key="probe_mutation_filter"
+                )
+            with col2:
+                probe_type_filter = st.selectbox(
+                    "Filter by Probe Type",
+                    ["All"] + list(df["Probe Type"].unique()),
+                    key="probe_type_filter"
+                )
+
+            # Apply filters
+            filtered_df = df.copy()
+            if mutation_filter != "All":
+                filtered_df = filtered_df[filtered_df["Mutation"] == mutation_filter]
+            if probe_type_filter != "All":
+                filtered_df = filtered_df[filtered_df["Probe Type"] == probe_type_filter]
+
+            st.dataframe(filtered_df, width='stretch', hide_index=True)
+        else:
+            st.warning("No probe data available for table")
+
+
+class ProbeValidationVisualizationRenderer(ComponentRenderer):
+    """Strategy for rendering probe validation visualizations."""
+
+    def render(self, data: Dict[str, Any]) -> None:
+        """
+        Render probe validation visualizations.
+
+        Args:
+            data: Probe validation report data
+        """
+        if not data:
+            st.warning("No probe validation data available")
+            return
+
+        probe_comparisons = data.get('probe_comparisons', [])
+        methodology = data.get('methodology_comparison', {})
+
+        # Performance scatter plot
+        st.subheader("Probe Performance Overview")
+
+        if probe_comparisons:
+            plot_data = []
+            for mutation_analysis in probe_comparisons:
+                mutation = mutation_analysis.get('mutation', 'Unknown')
+                probes = mutation_analysis.get('probes', [])
+
+                for probe in probes:
+                    diagnostic = probe.get('diagnostic_metrics', {})
+                    concordance = probe.get('concordance_metrics', {})
+
+                    plot_data.append({
+                        'Mutation': mutation,
+                        'Probe ID': probe.get('variant_id', 'Unknown'),
+                        'Sensitivity': diagnostic.get('sensitivity', 0),
+                        'Specificity': diagnostic.get('specificity', 0),
+                        'Overall Concordance': concordance.get('overall_concordance', 0),
+                        'Quality Score': concordance.get('quality_score', 0)
+                    })
+
+            if plot_data:
+                plot_df = pd.DataFrame(plot_data)
+
+                # Sensitivity vs Specificity scatter plot
+                st.subheader("Performance Scatter Plot")
+
+                # Show summary table instead of complex scatter plot for now
+                summary_cols = ['Mutation', 'Probe ID', 'Sensitivity', 'Specificity', 'Quality Score']
+                display_df = plot_df[summary_cols].copy()
+                display_df['Sensitivity'] = display_df['Sensitivity'].apply(lambda x: f"{x:.3f}")
+                display_df['Specificity'] = display_df['Specificity'].apply(lambda x: f"{x:.3f}")
+                display_df['Quality Score'] = display_df['Quality Score'].apply(lambda x: f"{x:.3f}")
+
+                st.dataframe(display_df, width='stretch', hide_index=True)
+
+        # Method disagreement analysis
+        if methodology.get('disagreement_analysis'):
+            st.subheader("Method Disagreement Analysis")
+
+            disagreements = methodology['disagreement_analysis']
+            if disagreements:
+                disagreement_df = pd.DataFrame(disagreements)
+
+                st.write(f"**Total Disagreements:** {len(disagreements)}")
+                st.dataframe(disagreement_df, width='stretch', hide_index=True)
+            else:
+                st.success("No disagreements found between diagnostic and concordance methods")
+
+
 class UIComponentFactory:
     """Factory for creating UI component renderers."""
 
@@ -146,7 +322,10 @@ class UIComponentFactory:
         'metrics': MetricsRenderer,
         'sample_breakdown': SampleBreakdownRenderer,
         'file_info': FileInfoRenderer,
-        'pipeline_details': PipelineDetailsRenderer
+        'pipeline_details': PipelineDetailsRenderer,
+        'probe_validation_summary': ProbeValidationSummaryRenderer,
+        'probe_validation_table': ProbeValidationTableRenderer,
+        'probe_validation_visualization': ProbeValidationVisualizationRenderer
     }
 
     @classmethod
