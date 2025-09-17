@@ -4,17 +4,19 @@
 
 ### ✅ **Completed Phases**
 - **Phase 1**: Foundation (Data models, config, file discovery)
-- **Phase 2**: Core Processing (Merge-based harmonization, extraction, coordination)  
+- **Phase 2**: Core Processing (Merge-based harmonization, extraction, coordination)
 - **Phase 3A**: ProcessPool Parallelization (True concurrent processing)
 - **Phase 3B**: Data Quality & Organization (Correct allele counting, sample ID normalization, column organization)
 - **Phase 3C**: Streamlit Viewer (Interactive web interface for result exploration)
+- **Phase 3D**: Critical Bug Fixes (Multiple probe detection, sample counting accuracy)
+- **Phase 4**: Postprocessing (Advanced analysis on extracted data)
+- **Phase 4A**: Probe Selection Method (NBA probe quality analysis and selection against WGS ground truth)
 
-### 🎯 **Current Focus: Data Quality Optimization** ✅ **MAJOR FIXES COMPLETED**
-- ✅ **Multiple Probe Detection**: Fixed critical bug where NBA variants with multiple probes were lost
-- ✅ **Sample Counting**: Fixed pipeline summary reporting accurate sample counts  
-- ✅ **Enhanced Streamlit Viewer**: Added multiple probes analysis and debug mode
-- **Component A**: Redundancy Reduction (eliminate variant_summary.csv files, consolidate metadata)
-- **Component B**: Enhanced Carrier Detection and Statistical Analysis
+### 🎯 **Current Focus: Phase 4 Postprocessing** ✅ **PHASE 4A COMPLETED**
+- ✅ **Phase 3 Core Pipeline**: Multiple probe detection, sample counting, enhanced Streamlit viewer
+- ✅ **Phase 4A Postprocessing**: Probe selection method with NBA/WGS quality validation
+- **Phase 4B (Next)**: Variant Subset Preparation (per-locus metrics, cross-dataset measures)
+- **Phase 5 (Future)**: Frontend Development (API endpoints, web interface)
 
 ---
 
@@ -106,42 +108,79 @@ Process ~400 pathogenic SNPs across 254 PLINK files from three data sources:
 - **Deprecation Fix**: Updated `use_container_width` to `width='stretch'` 
 - **Production/Debug Split**: Clean interface for users, full access for developers
 
+### **Phase 4: Postprocessing** ✅ **PHASE 4A COMPLETED**
+
+### **Phase 4A: Probe Selection Method** ✅ **COMPLETED**
+
+**NBA Probe Quality Analysis** ✅
+- **Objective**: Validate NBA probe performance against WGS ground truth data for optimal probe selection
+- **Problem**: Multiple NBA probes exist for the same genomic position with varying quality/accuracy
+- **Solution**: Dual-metric analysis system comparing NBA probes to WGS data as ground truth
+
+**Implementation Features** ✅
+- **Automatic Detection**: Identifies mutations with multiple NBA probes via `snp_list_id` grouping
+- **Dual Validation Approaches**:
+  - **Diagnostic Classification**: Treats carrier detection as binary classification (sensitivity/specificity focus)
+  - **Genotype Concordance**: Exact genotype-level agreement analysis (0/1/2 comparison with transition matrix)
+- **Consensus Recommendations**: Combines both approaches with confidence scoring and disagreement analysis
+- **Quality Thresholds**: Configurable sensitivity (80%), specificity (95%), and concordance (90%) thresholds
+
+**Key Components** ✅
+- **ProbeSelector** (`app/processing/probe_selector.py`): Core analysis engine with diagnostic/concordance metrics
+- **ProbeRecommendationEngine** (`app/processing/probe_recommender.py`): Strategy-based probe selection with consensus analysis
+- **Integration**: Seamless integration with pipeline via `--enable-probe-selection` (default: enabled)
+- **Output**: Comprehensive JSON reports with per-mutation analysis and methodology comparison
+
+**Clinical Impact** ✅
+- **Evidence-Based Selection**: Quantitative metrics support optimal probe choices for carrier screening
+- **Quality Assurance**: Identifies poor-performing probes that may need exclusion from clinical analysis
+- **Methodology Validation**: Agreement analysis between diagnostic and concordance approaches
+- **Precision Medicine**: Improves diagnostic accuracy by selecting highest-quality probes
+
+**Usage** ✅
+```bash
+# Automatic (default behavior)
+python run_carriers_pipeline.py
+
+# On existing results
+python run_carriers_pipeline.py --skip-extraction --enable-probe-selection
+
+# Explicit control
+python run_carriers_pipeline.py --no-probe-selection  # disable
+```
+
+**Output Files** ✅
+- `{job_name}_probe_selection.json`: Comprehensive probe analysis report with recommendations
+
 ---
 
-## 🎯 Current Focus: Data Quality Optimization
+## 🎯 Next Phases: Advanced Analysis & Optimization
 
-### **Component A: Pipeline Optimization** ✅ **COMPLETED**
-**Objective**: Improve development workflow and data pipeline efficiency
+### **Phase 4B: Variant Subset Preparation** 🔄 **NEXT**
+**Objective**: Prepare variant subsets with comprehensive metrics and cross-dataset analysis
 
-**Skip-Extraction Implementation** ✅ **NEW**
-- **Problem**: 45-minute extraction phase blocks rapid postprocessing development
-- **Solution**: Added `--skip-extraction` argument to reuse existing harmonization/extraction results
-- **Features**:
-  - Automatic detection of existing parquet files for job/data-type combinations
-  - Graceful fallback to full extraction when results don't exist
-  - Clean separation of expensive extraction phase from fast postprocessing phase
-  - 0.0s execution time for cached results vs 17.5s+ for new extractions
-- **Impact**: Enables rapid iteration on postprocessing logic without re-running harmonization
-- **Usage**: `python run_carriers_pipeline.py --job-name my_analysis --skip-extraction`
+**Planned Features**:
+- **Per-Locus Metrics**: Variant-level statistics across all datasets (allele frequencies, carrier counts, quality scores)
+- **Cross-Dataset Measures**: Compare variant detection and quality across NBA/WGS/IMPUTED sources
+- **Population Stratification**: Ancestry-specific variant analysis and carrier frequency calculations
+- **Quality Control Metrics**: Hardy-Weinberg equilibrium testing, call rate analysis, genotype concordance
+- **Variant Annotation**: Integration of clinical significance, gene context, and pathogenicity scores
+- **Subset Generation**: Create filtered variant sets based on quality thresholds and clinical relevance
 
-**Remaining Redundancy Reduction Tasks** 🔄 **NEXT**
-- **Complete Overlap**: 9 columns duplicated between parquet and variant_summary.csv
-- **Redundant Files**: variant_summary.csv provides no unique value over parquet metadata
-- **Legacy Columns**: COUNTED/ALT vs counted_allele/alt_allele (now consistent)
+### **Phase 5: Frontend Development** 🎯 **FUTURE**
+**Objective**: Build production-ready API and web interface for genomic analysis
 
-**Proposed Further Optimizations**:
-1. **Eliminate variant_summary.csv files** (saves 25% storage, reduces complexity)
-2. **Add SNP metadata to parquet** (rsid, locus, snp_name for enriched context)
-3. **Single source of truth**: All variant data in optimized parquet files
+**Phase 5A: API Development** 🔄 **PLANNED**
+- **FastAPI Endpoints**: RESTful API for variant querying, analysis submission, and result retrieval
+- **Authentication**: User management and secure access to genomic data
+- **Background Processing**: Celery + Redis for long-running analysis jobs
+- **Result Caching**: Optimized storage and retrieval of analysis results
 
-### **Component B: Enhanced Analysis** 🎯 **NEXT**
-**Objective**: Advanced carrier detection and statistical analysis
-
-**Features**:
-- **Correct Carrier Detection**: Based on fixed pathogenic allele counting
-- **Cross-DataType Analysis**: Leveraging normalized sample IDs
-- **Population Genetics**: Hardy-Weinberg equilibrium, allele frequencies
-- **Clinical Integration**: Variant annotation and interpretation
+**Phase 5B: Web Interface** 🔄 **PLANNED**
+- **Interactive Dashboard**: Advanced web UI replacing Streamlit prototype
+- **Variant Explorer**: Production-grade variant browsing with filtering and visualization
+- **Analysis Workflow**: Guided interface for carrier screening and variant subset creation
+- **Result Visualization**: Advanced charts, plots, and statistical summaries
 
 ---
 
@@ -218,11 +257,14 @@ streamlit run streamlit_viewer.py
 
 ### **Key Files Updated**
 ```
-run_carriers_pipeline.py         # Added --skip-extraction for rapid development iteration
+run_carriers_pipeline.py         # Added --skip-extraction, --enable-probe-selection flags
 app/processing/harmonizer.py       # Fixed multiple probe detection with SNP name mapping
-app/processing/coordinator.py      # Fixed sample counting, deduplication, SNP ID usage
+app/processing/coordinator.py      # Fixed sample counting, deduplication, probe selection integration
 app/processing/output.py           # Added source_file to metadata columns
 app/processing/extractor.py        # Fixed allele counting & genotype transformation
+app/processing/probe_selector.py   # NEW: NBA probe quality analysis against WGS ground truth
+app/processing/probe_recommender.py # NEW: Probe selection recommendations with consensus analysis
+app/models/probe_validation.py     # NEW: Probe analysis data models and metrics
 streamlit_viewer.py               # Enhanced with multiple probes analysis & debug mode
 run_streamlit.sh                  # Added debug mode support
 tests/test_transformer.py          # Streamlined to essential tests only
@@ -234,11 +276,19 @@ docs/dev_outline.md              # Updated development status
 
 ## 🎯 Immediate Next Actions
 
-1. **Redundancy Reduction**: Implement elimination of variant_summary.csv files
-2. **SNP Metadata Integration**: Add rsid, locus, snp_name to parquet files from SNP list
-3. **Enhanced Carrier Analysis**: Implement population-level carrier detection using correct allele counts
-4. **Statistical Analysis**: Hardy-Weinberg equilibrium, allele frequency calculations
-5. **Performance Validation**: Test full pipeline with all data types and verify data quality improvements
+### **Phase 4B: Variant Subset Preparation** (Immediate Priority)
+1. **Per-Locus Statistics**: Calculate variant-level metrics (allele frequencies, carrier counts, call rates) across all datasets
+2. **Cross-Dataset Quality Comparison**: Compare variant detection quality and concordance across NBA/WGS/IMPUTED sources
+3. **Population Stratification**: Generate ancestry-specific variant analysis and carrier frequency calculations
+4. **Quality Control Implementation**: Hardy-Weinberg equilibrium testing, genotype concordance, and filtering thresholds
+5. **Variant Annotation Integration**: Add clinical significance, gene context, and pathogenicity metadata
+6. **Subset Generation Tools**: Create filtered variant sets based on quality and clinical relevance criteria
+
+### **Phase 5: Frontend Development** (Future Priority)
+7. **API Endpoints**: Develop FastAPI endpoints for variant querying and analysis submission
+8. **Web Interface**: Build production-grade dashboard replacing Streamlit prototype
+9. **Authentication & Security**: Implement user management and secure genomic data access
+10. **Background Processing**: Set up Celery + Redis for long-running analysis workflows
 
 ---
 
@@ -253,10 +303,11 @@ docs/dev_outline.md              # Updated development status
 - ✅ Sample ID normalization across data types
 - ✅ Column organization (metadata first, sorted samples)
 - ✅ Enhanced Streamlit viewer with debug mode and multiple probes analysis
+- ✅ **Probe Selection Method** (NBA probe quality validation against WGS ground truth)
 - ✅ Zero deprecation warnings (Streamlit and Pydantic v2)
 - ✅ Streamlined test suite (3 essential tests)
 - 🎯 File redundancy elimination
-- 🎯 Enhanced carrier detection with correct allele counts
+- 🎯 Variant subset preparation with per-locus metrics and cross-dataset analysis
 
 ### **Quality Metrics**
 - ✅ Process isolation and error handling
@@ -269,16 +320,20 @@ docs/dev_outline.md              # Updated development status
 - ✅ Consistent sample ID format across NBA/WGS/IMPUTED data types
 - ✅ User-friendly Streamlit interface with multiple probes analysis
 - ✅ **Production/Debug interface split** for optimal user experience
+- ✅ **Probe Quality Validation** with dual-metric analysis (diagnostic + concordance)
+- ✅ **Evidence-Based Probe Selection** with consensus recommendations and confidence scoring
 - 🎯 Storage optimization (25% reduction via consolidation)
-- 🎯 Population-level carrier frequency analysis
+- 🎯 Per-locus metrics and cross-dataset quality measures
 
 ### **Impact Assessment**
-The recent critical bug fixes represent a **major milestone** in pipeline development:
+The recent critical bug fixes and probe selection implementation represent a **major milestone** in pipeline development:
 - **Data Completeness**: Fixed multiple probe detection ensuring 77 SNPs show all their probes (98 additional variants recovered)
 - **Accuracy**: Pipeline summaries now correctly report 1,215 samples instead of misleading "0"
 - **Correctness**: Fixed fundamental allele counting issue affecting all downstream analysis
 - **Consistency**: Normalized sample IDs enable seamless cross-data-type integration
 - **Usability**: Enhanced Streamlit interface with multiple probes analysis and production/debug modes
 - **Maintainability**: Streamlined codebase with 83% reduction in unused code
+- **Clinical Quality**: Evidence-based probe selection with WGS ground truth validation ensures optimal diagnostic accuracy
+- **Methodology Validation**: Dual-metric analysis (diagnostic + concordance) provides comprehensive probe quality assessment
 
-This comprehensive update ensures the pipeline now captures **all available genomic data** and produces **scientifically accurate** carrier frequency data ready for population genetics analysis and clinical interpretation.
+This comprehensive update ensures the pipeline now captures **all available genomic data**, produces **scientifically accurate** carrier frequency data, and provides **evidence-based probe selection** ready for population genetics analysis and clinical interpretation.
