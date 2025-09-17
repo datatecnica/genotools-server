@@ -18,6 +18,7 @@ This microservice processes ~400 pathogenic SNPs across 242+ PLINK 2.0 files (>1
 - **Column Organization**: Metadata columns come first, followed by sorted sample columns
 - **Memory-Efficient Processing**: Stream processing and memory mapping to stay under 8GB RAM
 - **ProcessPool Parallelization**: True concurrent processing with optimal worker allocation
+- **Probe Selection Method**: NBA probe quality validation against WGS ground truth with dual-metric analysis
 - **Streamlit Viewer**: Interactive web interface for exploring pipeline results
 
 ### Performance Targets
@@ -77,6 +78,10 @@ python run_carriers_pipeline.py --job-name my_carrier_study
 
 # Skip extraction for rapid postprocessing development (reuses existing results)
 python run_carriers_pipeline.py --job-name my_carrier_study --skip-extraction
+
+# Enable/disable probe selection analysis (enabled by default)
+python run_carriers_pipeline.py --enable-probe-selection  # explicit enable
+python run_carriers_pipeline.py --no-probe-selection      # disable
 ```
 
 ### Streamlit Viewer
@@ -121,6 +126,8 @@ Options:
   --optimize / --no-optimize
                             Use performance optimizations (default: True)
   --skip-extraction         Skip extraction phase if results already exist (default: False)
+  --enable-probe-selection  Enable probe quality analysis and selection (default: True)
+  --no-probe-selection      Disable probe selection analysis
 ```
 
 ## Data Types Supported
@@ -157,6 +164,7 @@ Options:
 ├── release10_WGS_variant_summary.csv
 ├── release10_IMPUTED.parquet               # IMPUTED genotypes with normalized sample IDs
 ├── release10_IMPUTED_variant_summary.csv
+├── release10_probe_selection.json          # Probe quality analysis and recommendations
 └── release10_pipeline_results.json         # Overall pipeline execution summary
 ```
 
@@ -181,6 +189,22 @@ Each data type generates:
 **✅ Organized Columns**: Metadata columns first, then alphabetically sorted samples
 - Metadata: `chromosome`, `variant_id`, `position`, `counted_allele`, `alt_allele`, `harmonization_action`, etc.
 - Samples: `SAMPLE_001234`, `SAMPLE_001235`, `SAMPLE_001236`, `SAMPLE_001237`, etc.
+
+### Probe Selection Analysis
+
+**✅ Quality Validation**: When multiple NBA probes exist for the same genomic position, the pipeline automatically validates probe quality against WGS ground truth data.
+
+**Dual-Metric Analysis**:
+- **Diagnostic Classification**: Evaluates probes as binary classifiers (carrier vs non-carrier) with sensitivity/specificity metrics
+- **Genotype Concordance**: Compares exact genotype calls (0/1/2) with overall concordance and transition matrices
+
+**Output (`*_probe_selection.json`)**:
+- **Per-Mutation Analysis**: Quality metrics for each probe with recommended selections
+- **Consensus Recommendations**: Combined diagnostic and concordance approach with confidence scoring
+- **Methodology Comparison**: Agreement rates between approaches and disagreement analysis
+- **Clinical Impact**: Evidence-based probe selection for optimal carrier screening accuracy
+
+**Requirements**: Both NBA and WGS data types must be included for probe selection analysis.
 
 ## Configuration
 
@@ -303,6 +327,11 @@ The codebase follows a modular architecture with clear separation of concerns:
 - `Variant` class with genomic coordinates
 - `InheritancePattern` enum
 
+**`app/models/probe_validation.py`** - Probe selection models
+- `DiagnosticMetrics` and `ConcordanceMetrics` classes
+- `ProbeAnalysisResult` and `ProbeRecommendation` models
+- `ProbeSelectionReport` with comprehensive analysis results
+
 ### Processing Pipeline (`app/processing/`)
 
 **`app/processing/coordinator.py`** - High-level orchestration
@@ -338,6 +367,18 @@ The codebase follows a modular architecture with clear separation of concerns:
 - QC reports and harmonization statistics
 - Hardy-Weinberg equilibrium calculations
 
+**`app/processing/probe_selector.py`** - Probe quality analysis
+- `ProbeSelector` class
+- NBA probe validation against WGS ground truth
+- Diagnostic classification metrics (sensitivity/specificity)
+- Genotype concordance analysis with transition matrices
+
+**`app/processing/probe_recommender.py`** - Probe selection recommendations
+- `ProbeRecommendationEngine` class
+- Configurable selection strategies (diagnostic, concordance, consensus)
+- Quality thresholds and confidence scoring
+- Methodology comparison and disagreement analysis
+
 ### Utilities (`app/utils/`)
 
 **`app/utils/parquet_io.py`** - Parquet I/O operations
@@ -357,8 +398,9 @@ The codebase follows a modular architecture with clear separation of concerns:
 - ✅ **Phase 3A Complete**: ProcessPool parallelization for concurrent file extraction
 - ✅ **Phase 3B Complete**: Correct allele counting, sample ID normalization, column organization
 - ✅ **Streamlit Viewer**: Interactive web interface for pipeline result exploration
-- 🎯 **Data Quality**: Carrier detection, statistical analysis, redundancy reduction (CURRENT FOCUS)
-- ⏳ **Phase 4 Planned**: REST API endpoints, background processing, monitoring
+- ✅ **Phase 4A Complete**: Probe Selection Method - NBA probe quality validation against WGS ground truth
+- 🎯 **Phase 4B**: Enhanced Carrier Analysis - population-level statistics and cross-datatype validation (CURRENT FOCUS)
+- ⏳ **Phase 5 Planned**: Pipeline optimization, REST API endpoints, background processing, monitoring
 
 ### Major Recent Achievements
 

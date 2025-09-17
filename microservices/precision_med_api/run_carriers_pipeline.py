@@ -79,6 +79,18 @@ def parse_args():
         default=False,
         help='Skip extraction phase if results already exist (default: False)'
     )
+    parser.add_argument(
+        '--enable-probe-selection',
+        action='store_true',
+        default=True,
+        help='Enable probe quality analysis and selection (default: True)'
+    )
+    parser.add_argument(
+        '--no-probe-selection',
+        action='store_true',
+        default=False,
+        help='Disable probe selection analysis'
+    )
     return parser.parse_args()
 
 
@@ -205,7 +217,10 @@ def main():
         
         # Convert data type strings to enum
         data_type_enums = [DataType[dt] for dt in args.data_types]
-        
+
+        # Handle probe selection flag logic
+        enable_probe_selection = args.enable_probe_selection and not args.no_probe_selection
+
         logger.info("=== Pipeline Configuration ===")
         logger.info(f"📊 Data types: {args.data_types}")
         logger.info(f"🌍 Ancestries ({len(args.ancestries)}): {args.ancestries}")
@@ -217,6 +232,7 @@ def main():
         logger.info(f"👥 Max workers: {args.max_workers or 'auto-detect'}")
         logger.info(f"🔧 Using {'config-based' if args.output is None else 'custom'} output location")
         logger.info(f"📋 Skip extraction: {args.skip_extraction}")
+        logger.info(f"🔬 Probe selection: {enable_probe_selection}")
 
         # Check if we should skip extraction
         if args.skip_extraction:
@@ -229,6 +245,17 @@ def main():
                 for data_type in args.data_types:
                     parquet_file = os.path.join(output_dir, f"{custom_name}_{data_type}.parquet")
                     output_files[f"{data_type}_parquet"] = parquet_file
+
+                # Run probe selection on existing results if enabled
+                if enable_probe_selection:
+                    logger.info("🔬 Running probe selection analysis on existing results...")
+                    probe_selection_results = coordinator.run_probe_selection_postprocessing(
+                        output_dir=output_dir,
+                        output_name=custom_name,
+                        data_types=data_type_enums
+                    )
+                    if probe_selection_results:
+                        output_files.update(probe_selection_results)
 
                 results = {
                     'success': True,
@@ -249,7 +276,8 @@ def main():
                     ancestries=args.ancestries,
                     parallel=args.parallel,
                     max_workers=args.max_workers,  # Use auto-detect if None
-                    output_name=custom_name
+                    output_name=custom_name,
+                    enable_probe_selection=enable_probe_selection
                 )
         else:
             # Normal pipeline execution (will overwrite existing results)
@@ -262,7 +290,8 @@ def main():
                 ancestries=args.ancestries,
                 parallel=args.parallel,
                 max_workers=args.max_workers,  # Use auto-detect if None
-                output_name=custom_name
+                output_name=custom_name,
+                enable_probe_selection=enable_probe_selection
             )
         
         # Calculate timing only if extraction was run

@@ -19,12 +19,15 @@ import uuid
 
 from ..models.analysis import DataType, AnalysisRequest
 from ..models.harmonization import ExtractionPlan, HarmonizationStats
+from ..models.probe_validation import ProbeSelectionReport
 from ..core.config import Settings
 from ..utils.paths import PgenFileSet
 from .extractor import VariantExtractor
 from .transformer import GenotypeTransformer
 from .output import TrawFormatter
 from .harmonizer import HarmonizationEngine
+from .probe_selector import ProbeSelector
+from .probe_recommender import ProbeRecommendationEngine
 
 logger = logging.getLogger(__name__)
 
@@ -589,8 +592,7 @@ class ExtractionCoordinator:
             "by_data_type": {},
             "by_ancestry": {},
             "by_chromosome": {},
-            "harmonized_files_available": False,
-            "export_method": "realtime_harmonization"
+            "harmonized_files_available": False
         }
         
         return summary
@@ -737,7 +739,7 @@ class ExtractionCoordinator:
         return output_files
     
     def run_full_extraction_pipeline(
-        self, 
+        self,
         snp_list_path: str,
         data_types: List[DataType],
         output_dir: str,
@@ -745,20 +747,21 @@ class ExtractionCoordinator:
         parallel: bool = True,
         max_workers: Optional[int] = None,
         output_name: Optional[str] = None,
+        enable_probe_selection: bool = True,
     ) -> Dict[str, Any]:
         """
         Run complete extraction pipeline from SNP list to final output.
-        
+
         Args:
             snp_list_path: Path to SNP list file
             data_types: Data types to extract from
             output_dir: Output directory
             ancestries: Optional ancestry filter
-            output_formats: Output formats
             parallel: Use parallel processing
             max_workers: Maximum parallel workers
             output_name: Custom name for output files (default: auto-generated)
-            
+            enable_probe_selection: Enable probe quality analysis and selection (default: True)
+
         Returns:
             Dictionary with pipeline results and metadata
         """
@@ -832,7 +835,21 @@ class ExtractionCoordinator:
             results['end_time'] = datetime.now().isoformat()
             
             logger.info(f"Pipeline completed successfully in {pipeline_time:.1f}s: {job_id}")
-            
+
+            # Run probe selection postprocessing if enabled
+            if enable_probe_selection:
+                logger.info("🔬 Running probe selection analysis...")
+                probe_selection_results = self.run_probe_selection_postprocessing(
+                    output_dir=output_dir,
+                    output_name=job_id,
+                    data_types=data_types
+                )
+                if probe_selection_results:
+                    results['output_files'].update(probe_selection_results)
+                    logger.info("✅ Probe selection analysis completed")
+                else:
+                    logger.warning("⚠️ Probe selection analysis did not generate results")
+
         except Exception as e:
             logger.error(f"Pipeline failed: {e}")
             results['errors'].append(str(e))
@@ -852,5 +869,102 @@ class ExtractionCoordinator:
             
         except Exception as e:
             logger.error(f"Failed to save pipeline results: {e}")
-        
+
         return results
+
+    def run_probe_selection_postprocessing(
+        self,
+        output_dir: str,
+        output_name: str,
+        data_types: List[DataType]
+    ) -> Optional[Dict[str, str]]:
+        """
+        Run probe selection analysis on existing parquet files.
+
+        Args:
+            output_dir: Directory containing parquet files
+            output_name: Base name for files (e.g., 'release10')
+            data_types: Data types to analyze
+
+        Returns:
+            Dictionary mapping output file types to file paths, or None if failed
+        """
+        try:
+            # Check if NBA and WGS data are available (required for probe selection)
+            if DataType.NBA not in data_types or DataType.WGS not in data_types:
+                logger.warning("Probe selection requires both NBA and WGS data types")
+                return None
+
+            nba_parquet_path = os.path.join(output_dir, f"{output_name}_NBA.parquet")
+            wgs_parquet_path = os.path.join(output_dir, f"{output_name}_WGS.parquet")
+
+            # Verify files exist
+            if not os.path.exists(nba_parquet_path):
+                logger.warning(f"NBA parquet file not found: {nba_parquet_path}")
+                return None
+            if not os.path.exists(wgs_parquet_path):
+                logger.warning(f"WGS parquet file not found: {wgs_parquet_path}")
+                return None
+
+            logger.info(f"Running probe selection analysis: NBA={nba_parquet_path}, WGS={wgs_parquet_path}")
+
+            # Initialize probe selector and recommender
+            probe_selector = ProbeSelector(self.settings)
+            probe_recommender = ProbeRecommendationEngine(strategy="consensus")
+
+            # Run probe analysis
+            probe_analysis_by_mutation, summary = probe_selector.analyze_probes(
+                nba_parquet_path=nba_parquet_path,
+                wgs_parquet_path=wgs_parquet_path
+            )
+
+            if not probe_analysis_by_mutation:
+                logger.warning("No multiple-probe mutations found for analysis")
+                return None
+
+            # Extract mutation metadata from NBA data for recommendations
+            nba_df = pd.read_parquet(nba_parquet_path)
+            mutation_metadata = {}
+            for _, row in nba_df.iterrows():
+                snp_list_id = row['snp_list_id']
+                if snp_list_id not in mutation_metadata:
+                    mutation_metadata[snp_list_id] = {
+                        'snp_list_id': snp_list_id,
+                        'chromosome': row['chromosome'],
+                        'position': row['position'],
+                        'wgs_cases': 0  # Will be filled by actual WGS data analysis
+                    }
+
+            # Generate recommendations
+            mutation_analyses, methodology_comparison = probe_recommender.recommend_probes(
+                probe_analysis_by_mutation=probe_analysis_by_mutation,
+                mutation_metadata=mutation_metadata
+            )
+
+            # Create comprehensive report
+            report = ProbeSelectionReport(
+                job_id=output_name,
+                summary=summary,
+                probe_comparisons=mutation_analyses,
+                methodology_comparison=methodology_comparison
+            )
+
+            # Save JSON report
+            report_path = os.path.join(output_dir, f"{output_name}_probe_selection.json")
+            with open(report_path, 'w') as f:
+                import json
+                json.dump(report.model_dump(), f, indent=2, default=str)
+
+            logger.info(f"Probe selection report saved: {report_path}")
+            logger.info(f"Analyzed {summary.mutations_with_multiple_probes} mutations with multiple probes")
+            logger.info(f"Method agreement rate: {methodology_comparison.agreement_rate:.3f}")
+
+            return {
+                "probe_selection_report": report_path
+            }
+
+        except Exception as e:
+            logger.error(f"Probe selection analysis failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
