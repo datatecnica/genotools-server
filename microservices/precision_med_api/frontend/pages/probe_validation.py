@@ -45,7 +45,7 @@ def render_probe_validation_page(release: str, job_name: str, config: FrontendCo
                 "- Both NBA and WGS data types\n"
                 "- Multiple NBA probes per genomic position\n"
                 "- Overlapping samples between datasets\n\n"
-                "Run the pipeline with `--enable-probe-selection` to generate this data."
+                "Run the pipeline without `--skip-probe-selection` to generate this data."
             )
             return
 

@@ -80,16 +80,10 @@ def parse_args():
         help='Skip extraction phase if results already exist (default: False)'
     )
     parser.add_argument(
-        '--enable-probe-selection',
-        action='store_true',
-        default=True,
-        help='Enable probe quality analysis and selection (default: True)'
-    )
-    parser.add_argument(
-        '--no-probe-selection',
+        '--skip-probe-selection',
         action='store_true',
         default=False,
-        help='Disable probe selection analysis'
+        help='Skip probe selection phase if results already exist (default: False)'
     )
     return parser.parse_args()
 
@@ -218,8 +212,8 @@ def main():
         # Convert data type strings to enum
         data_type_enums = [DataType[dt] for dt in args.data_types]
 
-        # Handle probe selection flag logic
-        enable_probe_selection = args.enable_probe_selection and not args.no_probe_selection
+        # Handle probe selection logic - enabled by default unless skipped
+        enable_probe_selection = not args.skip_probe_selection
 
         logger.info("=== Pipeline Configuration ===")
         logger.info(f"📊 Data types: {args.data_types}")

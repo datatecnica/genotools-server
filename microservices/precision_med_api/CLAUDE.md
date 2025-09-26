@@ -57,9 +57,9 @@ python run_carriers_pipeline.py --job-name existing_analysis --skip-extraction
 # Quick validation (5-10 minutes)
 python run_carriers_pipeline.py --ancestries AAC AFR
 
-# Enable/disable probe selection (enabled by default)
-python run_carriers_pipeline.py --enable-probe-selection
-python run_carriers_pipeline.py --no-probe-selection
+# Probe selection (enabled by default, can be skipped)
+python run_carriers_pipeline.py                        # probe selection enabled
+python run_carriers_pipeline.py --skip-probe-selection # skip probe selection
 ```
 
 ## Frontend Interface

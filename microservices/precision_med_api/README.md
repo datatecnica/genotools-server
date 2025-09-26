@@ -79,9 +79,9 @@ python run_carriers_pipeline.py --job-name my_carrier_study
 # Skip extraction for rapid postprocessing development (reuses existing results)
 python run_carriers_pipeline.py --job-name my_carrier_study --skip-extraction
 
-# Enable/disable probe selection analysis (enabled by default)
-python run_carriers_pipeline.py --enable-probe-selection  # explicit enable
-python run_carriers_pipeline.py --no-probe-selection      # disable
+# Probe selection analysis (enabled by default)
+python run_carriers_pipeline.py                        # probe selection enabled
+python run_carriers_pipeline.py --skip-probe-selection # skip probe selection
 ```
 
 ### Streamlit Viewer
@@ -126,8 +126,7 @@ Options:
   --optimize / --no-optimize
                             Use performance optimizations (default: True)
   --skip-extraction         Skip extraction phase if results already exist (default: False)
-  --enable-probe-selection  Enable probe quality analysis and selection (default: True)
-  --no-probe-selection      Disable probe selection analysis
+  --skip-probe-selection    Skip probe selection phase if results already exist (default: False)
 ```
 
 ## Data Types Supported

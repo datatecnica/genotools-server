@@ -128,7 +128,7 @@ Process ~400 pathogenic SNPs across 254 PLINK files from three data sources:
 **Key Components** ✅
 - **ProbeSelector** (`app/processing/probe_selector.py`): Core analysis engine with diagnostic/concordance metrics
 - **ProbeRecommendationEngine** (`app/processing/probe_recommender.py`): Strategy-based probe selection with consensus analysis
-- **Integration**: Seamless integration with pipeline via `--enable-probe-selection` (default: enabled)
+- **Integration**: Seamless integration with pipeline (enabled by default, can use `--skip-probe-selection`)
 - **Output**: Comprehensive JSON reports with per-mutation analysis and methodology comparison
 
 **Clinical Impact** ✅
@@ -142,11 +142,11 @@ Process ~400 pathogenic SNPs across 254 PLINK files from three data sources:
 # Automatic (default behavior)
 python run_carriers_pipeline.py
 
-# On existing results
-python run_carriers_pipeline.py --skip-extraction --enable-probe-selection
+# On existing results (skip extraction, run probe selection)
+python run_carriers_pipeline.py --skip-extraction
 
-# Explicit control
-python run_carriers_pipeline.py --no-probe-selection  # disable
+# Skip probe selection if results already exist
+python run_carriers_pipeline.py --skip-probe-selection
 ```
 
 **Output Files** ✅
@@ -257,7 +257,7 @@ streamlit run streamlit_viewer.py
 
 ### **Key Files Updated**
 ```
-run_carriers_pipeline.py         # Added --skip-extraction, --enable-probe-selection flags
+run_carriers_pipeline.py         # Added --skip-extraction, --skip-probe-selection flags
 app/processing/harmonizer.py       # Fixed multiple probe detection with SNP name mapping
 app/processing/coordinator.py      # Fixed sample counting, deduplication, probe selection integration
 app/processing/output.py           # Added source_file to metadata columns
