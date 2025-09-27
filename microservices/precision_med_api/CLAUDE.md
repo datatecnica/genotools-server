@@ -6,9 +6,11 @@ source .venv/bin/activate
 # Without this, imports will fail (pydantic, pandas, pgenlib, etc.)
 ```
 
-## Project Status: Phase 4B - Advanced Analysis (Mature Pipeline)
-**Current Goal**: Variant subset preparation with per-locus metrics and cross-dataset analysis.
-Core pipeline is stable with probe selection, frontend, and all critical fixes completed.
+## Project Status: Phase 4B - Dosage Support & Cross-Dataset Analysis
+**Current Goal**: Complete imputed data dosage handling and cross-dataset analysis features.
+✅ Multi-ancestry merge fix completed
+✅ Genotype viewer frontend added
+🔄 Next: Imputed dosage support (continuous values 0.0-2.0 instead of discrete 0/1/2)
 
 ## Implementation Rules
 - **If changing >3 files or adding new module** → Create plan first in `.claude/tasks/TASK_NAME.md`
@@ -36,6 +38,8 @@ Core pipeline is stable with probe selection, frontend, and all critical fixes c
 - **Allele counting**: Now counts pathogenic, not reference alleles (fixed in extractor.py)
 - **Sample IDs**: Normalized without '0_' prefix (WGS duplicates also fixed)
 - **Multiple probes**: Fixed deduplication to preserve different variant_id values (77 SNPs with multiple probes)
+- **Multi-ancestry merge**: Fixed NBA/IMPUTED to properly merge (not concat) across ancestries (coordinator.py)
+- **Imputed data**: Currently extracts as discrete 0/1/2 via PLINK2, but data is actually dosages (0.0-2.0)
 
 ## Core Files (Edit with Caution)
 ```
@@ -73,9 +77,8 @@ python run_carriers_pipeline.py --skip-probe-selection # skip probe selection
 # Custom port
 ./run_frontend.sh 8502 --debug
 
-# Legacy Streamlit viewer
-./run_streamlit.sh          # Production mode
-./run_streamlit.sh --debug  # Debug mode
+# Legacy Streamlit viewer (deprecated)
+streamlit run streamlit_viewer.py
 ```
 
 ## Test Execution
@@ -98,9 +101,20 @@ Output: ~/gcs_mounts/genotools_server/precision_med/results/
 ## Architecture Context
 - **Core Pipeline**: Stable with probe selection, allele counting fixes, sample ID normalization
 - **Frontend**: Modular architecture with factory/facade patterns in `frontend/` directory
-- **Phase 4B Focus**: Per-locus statistics, cross-dataset analysis, population stratification
+  - New genotype viewer page with interactive matrix visualization
+  - Component-based UI system with specialized renderers
+- **Phase 4B Focus**: Imputed dosage support, cross-dataset analysis, population stratification
+  - Multi-ancestry merge fixed with proper outer join logic
+  - Genotype viewer supports filtering by data type, genes, carrier status
 - **Mature Codebase**: Prefer enhancing existing modules over creating new files
 - **Performance**: ProcessPool parallelization, chunk_size auto-optimization, <10min for 400 variants
+
+## Imputed Data Dosage Notes
+- **Current State**: PLINK2 extraction produces discrete 0/1/2 genotypes via `.traw` format
+- **Actual Data**: Imputed files contain continuous dosage values (0.0-2.0)
+- **Required Change**: Need to use pgenlib's dosage reading capabilities or PLINK2's dosage export
+- **Frontend Impact**: Genotype viewer will need gradient display for dosages vs discrete colors
+- **Carrier Calling**: May need configurable thresholds (e.g., dosage > 0.5 = carrier)
 
 ## Important Development Instructions
 - Do what has been asked; nothing more, nothing less

@@ -407,24 +407,16 @@ class ExtractionCoordinator:
             logger.info(f"WGS combined: {len(wgs_combined)} variants")
         
         if nba_results:
-            nba_combined = pd.concat(nba_results, ignore_index=True)
-            # Remove duplicates within NBA only
-            nba_combined = nba_combined.drop_duplicates(
-                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
-                keep='first'
-            )
+            # Merge NBA results across ancestries instead of simple concat
+            nba_combined = self._merge_ancestry_results(nba_results, 'NBA')
             # Reorder columns to ensure metadata comes before samples
             nba_combined = self._reorder_dataframe_columns(nba_combined)
             results_by_datatype['NBA'] = nba_combined
             logger.info(f"NBA combined: {len(nba_combined)} variants")
         
         if imputed_results:
-            imputed_combined = pd.concat(imputed_results, ignore_index=True)
-            # Remove duplicates within IMPUTED only
-            imputed_combined = imputed_combined.drop_duplicates(
-                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
-                keep='first'
-            )
+            # Merge IMPUTED results across ancestries instead of simple concat
+            imputed_combined = self._merge_ancestry_results(imputed_results, 'IMPUTED')
             # Reorder columns to ensure metadata comes before samples
             imputed_combined = self._reorder_dataframe_columns(imputed_combined)
             results_by_datatype['IMPUTED'] = imputed_combined
@@ -526,7 +518,74 @@ class ExtractionCoordinator:
                     sample_id = first_half
         
         return sample_id
-    
+
+    def _merge_ancestry_results(self, result_dfs: List[pd.DataFrame], data_type: str) -> pd.DataFrame:
+        """
+        Merge results from different ancestries for the same data type.
+
+        When extracting from multiple ancestry files (e.g., NBA AAC, AFR, AMR, etc.),
+        each file contains only its ancestry's samples. This method properly merges
+        them so all samples have genotypes for all variants.
+
+        Args:
+            result_dfs: List of DataFrames from different ancestry files
+            data_type: The data type being merged (NBA/IMPUTED)
+
+        Returns:
+            Merged DataFrame with all samples having genotypes for all variants
+        """
+        if not result_dfs:
+            return pd.DataFrame()
+
+        if len(result_dfs) == 1:
+            # Single ancestry - no merge needed
+            return result_dfs[0]
+
+        # Define key columns for merging (variant identifier columns)
+        merge_keys = ['snp_list_id', 'variant_id', 'chromosome', 'position',
+                      'counted_allele', 'alt_allele']
+
+        # Metadata columns that should be consistent across ancestries
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
+                         'pgen_a1', 'pgen_a2', 'data_type', 'ancestry']
+
+        # Start with the first DataFrame
+        merged_df = result_dfs[0].copy()
+
+        # For subsequent DataFrames, merge on variant keys
+        for df in result_dfs[1:]:
+            # Get sample columns from this DataFrame (columns not in metadata)
+            df_sample_cols = [col for col in df.columns if col not in metadata_cols and col not in merge_keys]
+
+            # Select only merge keys and new sample columns for merging
+            cols_to_merge = merge_keys + df_sample_cols
+            df_to_merge = df[cols_to_merge].copy()
+
+            # Merge on variant identifiers
+            merged_df = pd.merge(
+                merged_df,
+                df_to_merge,
+                on=merge_keys,
+                how='outer',  # Use outer join to keep all variants
+                suffixes=('', '_dup')  # Avoid column name conflicts
+            )
+
+            # Drop any duplicate columns that might have been created
+            dup_cols = [col for col in merged_df.columns if col.endswith('_dup')]
+            if dup_cols:
+                merged_df = merged_df.drop(columns=dup_cols)
+
+        # Remove duplicate variants if any (keeping first occurrence)
+        merged_df = merged_df.drop_duplicates(
+            subset=merge_keys,
+            keep='first'
+        )
+
+        logger.info(f"Merged {len(result_dfs)} {data_type} ancestry files into {len(merged_df)} variants")
+
+        return merged_df
+
     def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
         """Calculate optimal process count based on system resources and settings."""
         return self.settings.get_optimal_workers(total_files)

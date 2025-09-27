@@ -107,13 +107,13 @@ def setup_sidebar(config: FrontendConfig) -> Tuple[str, str, str]:
 
     # Page navigation
     st.sidebar.header("📊 Navigation")
-    page_options = ["Release Overview", "Probe Validation"]
+    page_options = ["Release Overview", "Genotype Viewer", "Probe Validation"]
 
     # Check if probe validation data is available
     probe_data_available = data_facade.get_probe_validation_data(selected_release, selected_job) is not None
 
     if not probe_data_available:
-        page_options = ["Release Overview"]
+        page_options = ["Release Overview", "Genotype Viewer"]
         if hasattr(app_state, 'selected_page') and app_state.selected_page == "Probe Validation":
             app_state.selected_page = "Release Overview"
 
@@ -170,6 +170,10 @@ def render_main_content(release: str, job_name: str, selected_page: str, config:
     if selected_page == "Release Overview":
         # Overview section
         overview.render_overview_with_validation(release, job_name, config)
+    elif selected_page == "Genotype Viewer":
+        # Genotype viewer section
+        from frontend.pages.genotype_viewer import render_genotype_viewer_page
+        render_genotype_viewer_page(release, job_name, config)
     elif selected_page == "Probe Validation":
         # Probe validation section
         from frontend.pages.probe_validation import render_probe_validation_page
