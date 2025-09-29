@@ -112,7 +112,7 @@ if st.session_state["authentication_status"] and st.session_state["user_email"] 
             # Input fields for API endpoint and payload
             api_url = st.text_input("API URL", value="http://genotools-api.genotoolsserver.com/run-genotools/")
             payload = st.text_area("Request Payload (JSON)", value='{"email":"syed@datatecnica.com", "storage_type": "local", "pfile": "syed-test/input/GP2_merge_AAPDGC", "out": "syed-test/output/test_1", "skip_fails":"True", "ref_panel":"ref/new_panel/ref_panel_gp2_prune_rm_underperform_pos_update","ref_labels":"ref/new_panel/ref_panel_ancestry_updated.txt","model":"ref/models/python3_11/GP2_merge_release6_NOVEMBER_ready_genotools_qc_umap_linearsvc_ancestry_model.pkl", "ancestry":"True", "all_sample":"True", "all_variant":"True", "amr_het":"True", "prune_duplicated": "False", "full_output":"True"}')
-            api_key = st.text_area("X-API-KEY", value='3hHAx2FG9U5WS0yjjHbq6MMlMHc9LIQnQfLHX0edwGvidA-wtV')
+            api_key = st.text_area("X-API-KEY", value='')
 
 
             # python_code = st.text_area(":red[**Please adjust your parameters in the code here and Indent Properly:**]", height=200)  
