@@ -343,29 +343,8 @@ class GenotypeMatrixRenderer(ComponentRenderer):
             total_variants, total_samples = genotype_df.shape
             st.caption(f"Showing {total_variants} variants × {total_samples} samples (limited for display)")
 
-            # Create styled dataframe
-            styled_df = genotype_df.copy()
-
-            # Color-code genotypes: 0=gray, 1=yellow, 2=red
-            def style_genotypes(val):
-                if pd.isna(val):
-                    return 'background-color: lightgray'
-                elif val == 0:
-                    return 'background-color: #f0f0f0'
-                elif val == 1:
-                    return 'background-color: #fff2cc'
-                elif val == 2:
-                    return 'background-color: #ffcccc'
-                else:
-                    return ''
-
-            # Apply styling and display
-            try:
-                styled = styled_df.style.map(style_genotypes)
-                st.dataframe(styled, width='stretch')
-            except:
-                # Fallback to regular dataframe if styling fails
-                st.dataframe(styled_df, width='stretch')
+            # Display dataframe without custom styling
+            st.dataframe(genotype_df, width='stretch')
 
 
 class CarrierSummaryRenderer(ComponentRenderer):

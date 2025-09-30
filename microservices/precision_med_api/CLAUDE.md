@@ -81,6 +81,13 @@ python run_carriers_pipeline.py --skip-probe-selection # skip probe selection
 streamlit run streamlit_viewer.py
 ```
 
+### Frontend Development Notes
+- **Streamlit API**: Use `width='stretch'` instead of deprecated `use_container_width=True`
+  - `use_container_width` will be removed after 2025-12-31
+  - `width='stretch'` for full width, `width='content'` for auto width
+- **Component Architecture**: Use factory/facade patterns in `frontend/utils/ui_components.py`
+- **Data Loading**: Use `DataLoaderFactory` for consistent data access patterns
+
 ## Test Execution
 ```bash
 source .venv/bin/activate
