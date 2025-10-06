@@ -120,9 +120,7 @@ echo Now for cloudsql related
 
 export PostgreSQL_Instance=sql-genotools-server
 export PGSQL_ROOT_PASS=syed@gtserver
-# export DB_NAME=genotracker-db
-# export GENOTRACKER_DB_USER=genotracker-user
-# export GENOTRACKER_DB_USER_PASSWORD=gt_pass
+
 
 export KSA_PGSQL=ksa-postgresql
 # export KS_PGSQL_SEC=gke-cloud-sql-secrets
