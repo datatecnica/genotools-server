@@ -170,10 +170,12 @@ Options:
 ├── release10_IMPUTED.parquet               # IMPUTED genotypes with normalized sample IDs
 ├── release10_IMPUTED_variant_summary.csv
 ├── release10_probe_selection.json          # Probe quality analysis and recommendations
-├── release10_locus_reports_WGS_NBA.json    # Per-gene clinical phenotype statistics (WGS+NBA)
-├── release10_locus_reports_WGS_NBA.csv     # Per-gene clinical phenotype statistics (WGS+NBA)
-├── release10_locus_reports_WGS_IMPUTED.json # Per-gene clinical phenotype statistics (WGS+IMPUTED)
-├── release10_locus_reports_WGS_IMPUTED.csv  # Per-gene clinical phenotype statistics (WGS+IMPUTED)
+├── release10_locus_reports_WGS.json        # Per-gene clinical phenotype statistics (WGS)
+├── release10_locus_reports_WGS.csv         # Per-gene clinical phenotype statistics (WGS)
+├── release10_locus_reports_NBA.json        # Per-gene clinical phenotype statistics (NBA)
+├── release10_locus_reports_NBA.csv         # Per-gene clinical phenotype statistics (NBA)
+├── release10_locus_reports_IMPUTED.json    # Per-gene clinical phenotype statistics (IMPUTED)
+├── release10_locus_reports_IMPUTED.csv     # Per-gene clinical phenotype statistics (IMPUTED)
 └── release10_pipeline_results.json         # Overall pipeline execution summary
 ```
 
@@ -429,71 +431,68 @@ The codebase follows a modular architecture with clear separation of concerns:
 
 ### Major Recent Achievements
 
-**📊 Locus Reports & Clinical Analysis** ✅ **NEW**:
-- **NEW FEATURE**: Per-gene clinical phenotype statistics stratified by ancestry
+**Locus Reports & Clinical Analysis** - COMPLETE:
+- **Feature**: Per-gene clinical phenotype statistics stratified by ancestry
 - **Execution**: Runs automatically during pipeline execution, after genotype extraction completes
-- **Requirements**: Needs both comparison datasets (e.g., WGS+NBA or WGS+IMPUTED)
-- Ancestry-stratified carrier frequencies and clinical metrics
-- Integration of clinical data (diagnosis, sex, AAO, family history) from phenotype files
-- Comprehensive locus-level analysis with sample overlap handling
-- **Output**: JSON and CSV formats for both WGS+NBA and WGS+IMPUTED datasets
-- **Frontend**: Reads pre-generated files for display (does not regenerate)
-- **Usage**: Enabled by default, can skip with `--skip-locus-reports`
+- **Output**: Separate JSON and CSV reports for each data type (WGS, NBA, IMPUTED)
+- **Clinical Data**: H&Y stage, MoCA scores, DAT imaging, disease duration from phenotype files
+- **Frontend Display**: Interactive display with ancestry breakdowns and variant-level carrier counts (heterozygous/homozygous)
+- **Bug Fix**: Fixed metadata column melting issue that prevented ancestry assignments in IMPUTED data
+- **Usage**: Enabled by default, can skip with --skip-locus-reports
 
-**🔀 Multi-Ancestry Merge Fix** ✅:
-- **CRITICAL FIX**: Resolved issue where multiple ancestry extractions were concatenated instead of properly merged
-- Implemented `_merge_ancestry_results()` method for proper outer join merging
+**Multi-Ancestry Merge Fix** - COMPLETE:
+- **Fix**: Resolved issue where multiple ancestry extractions were concatenated instead of properly merged
+- Implemented _merge_ancestry_results() method for proper outer join merging
 - Ensures all samples have genotypes for all variants across ancestries
 - **Impact**: Correct cross-ancestry analysis with complete genotype matrices
 
-**🧬 Genotype Viewer Interface** ✅ **NEW**:
-- **NEW PAGE**: Interactive genotype matrix visualization in frontend
+**Genotype Viewer Interface** - COMPLETE:
+- **Page**: Interactive genotype matrix visualization in frontend
 - Real-time filtering by data type, genes/loci, and carrier status
 - Color-coded genotype display (0=gray, 1=yellow, 2=red)
 - Carrier summary statistics with frequency calculations
 - **Components**: GenotypeDataLoader, multiple UI renderers for controls and visualization
 
-**🚀 Skip-Extraction Development Mode** ✅:
-- **DEVELOPER FEATURE**: Added `--skip-extraction` argument for rapid postprocessing development
+**Skip-Extraction Development Mode** - COMPLETE:
+- Added --skip-extraction argument for rapid postprocessing development
 - Automatically detects existing parquet files and reuses them (0.0s vs 17.5s+ execution)
 - Graceful fallback to full extraction when results don't exist
 - **Impact**: Enables fast iteration on postprocessing logic without 45-minute re-runs
-- **Usage**: `python run_carriers_pipeline.py --job-name my_analysis --skip-extraction`
+- **Usage**: python run_carriers_pipeline.py --job-name my_analysis --skip-extraction
 
-**🔧 Multiple Probe Detection Fix**:
-- **CRITICAL BUG FIX**: Resolved issue where NBA variants with multiple probes at the same genomic position were being lost
+**Multiple Probe Detection Fix** - COMPLETE:
+- **Fix**: Resolved issue where NBA variants with multiple probes at the same genomic position were being lost
 - Fixed harmonization record creation to use SNP names instead of coordinate-based IDs
-- Updated deduplication logic to preserve different probes (different `variant_id` values)
+- Updated deduplication logic to preserve different probes (different variant_id values)
 - **Result**: 77 SNPs now correctly show multiple probes (316 total variants vs 218 previously)
 
-**🔧 Allele Counting Fix**: 
+**Allele Counting Fix** - COMPLETE: 
 - Fixed critical issue where reference alleles were counted instead of pathogenic alleles
 - Implemented proper genotype transformation for all harmonization scenarios (EXACT, FLIP, SWAP, FLIP_SWAP)
 - Genotype values now correctly represent pathogenic allele counts
 
-**📊 Sample Counting Fix**:
+**Sample Counting Fix** - COMPLETE:
 - Fixed pipeline summary reporting "Total samples: 0" instead of actual count
 - Added `source_file` to metadata columns list to prevent it being counted as sample
 - Implemented proper sample count aggregation across data types
 - **Result**: Accurate reporting of 1,215 samples in AAC NBA data
 
-**🏷️ Sample ID Normalization**:
+**Sample ID Normalization** - COMPLETE:
 - Consistent sample IDs across all data types  
 - Fixed WGS duplicated IDs: `SAMPLE_001234_SAMPLE_001234` → `SAMPLE_001234`
 - Removed NBA/IMPUTED prefixes: `0_SAMPLE_001234` → `SAMPLE_001234`
 
-**📊 Data Organization**:
+**Data Organization** - COMPLETE:
 - Column reordering: metadata columns first, then sorted sample columns
 - Duplicate handling and conflict resolution
 - Streamlined test suite (83% code reduction in transformer.py)
 
-**🖥️ Enhanced Streamlit Viewer**:
-- Interactive web interface for exploring pipeline results
-- **Multiple Probes Analysis**: Dedicated section showing SNPs with multiple probes
-- **Debug Mode**: Optional job selection with `--debug` flag for development
-- **Fixed Deprecation**: Updated `use_container_width` to `width='stretch'`
-- Variant filtering and statistics visualization
-- File downloads and data exploration capabilities
+**Enhanced Frontend Viewer** - COMPLETE:
+- Interactive web interface for exploring pipeline results with modular architecture
+- Multiple pages: Release Overview, Genotype Viewer, Locus Reports, Probe Validation
+- Debug mode with job selection for development
+- Real-time filtering, color-coded displays, and interactive visualizations
+- Ancestry-stratified clinical statistics with variant-level carrier counts
 
 ### Technology Stack
 - **Core**: FastAPI, Pydantic v2, pgenlib (PLINK file processing)

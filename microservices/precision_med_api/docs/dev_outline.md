@@ -43,35 +43,34 @@ Process ~400 pathogenic SNPs across 254 PLINK files from three data sources:
 
 ## 🚀 Recent Major Achievements
 
-### **Phase 4B: Enhanced Frontend & Cross-Dataset Analysis** ✅ **COMPLETE**
+### **Phase 4B: Enhanced Frontend & Cross-Dataset Analysis** - COMPLETE
 
-**Locus Reports & Clinical Analysis** ✅ **NEW**
+**Locus Reports & Clinical Analysis** - COMPLETE
 - **Feature**: Per-gene clinical phenotype statistics stratified by ancestry
-- **Implementation**: New `LocusReportGenerator` class with ancestry-stratified carrier analysis
-- **Clinical Integration**: Diagnosis, sex, AAO, family history from phenotype files
-- **Output**: JSON and CSV formats for WGS+NBA and WGS+IMPUTED datasets
-- **Components**: `app/models/locus_report.py`, `app/processing/locus_report_generator.py`
+- **Implementation**: LocusReportGenerator class with ancestry-stratified carrier analysis
+- **Clinical Integration**: Clinical data from master key and extended clinical files (H&Y stage, MoCA scores, DAT imaging, disease duration)
+- **Output**: Separate JSON and CSV reports for each data type (WGS, NBA, IMPUTED)
+- **Frontend**: Interactive display with ancestry breakdowns and variant-level carrier counts (heterozygous/homozygous)
+- **Bug Fix**: Fixed metadata column melting issue that prevented ancestry assignments in IMPUTED data
+- **Components**: app/models/locus_report.py, app/processing/locus_report_generator.py, frontend/pages/locus_reports.py
 
-**Multi-Ancestry Merge Fix** ✅
+**Multi-Ancestry Merge Fix** - COMPLETE
 - **Problem**: Multiple ancestry files were concatenated instead of properly merged
-- **Solution**: Implemented `_merge_ancestry_results()` with outer join on variant keys
+- **Solution**: Implemented _merge_ancestry_results() with outer join on variant keys
 - **Impact**: All samples now have genotypes for all variants across ancestries
-- **Implementation**: Enhanced `app/processing/coordinator.py` with proper merge logic
+- **Implementation**: Enhanced app/processing/coordinator.py with proper merge logic
 
-**Genotype Viewer Frontend** ✅ **NEW**
+**Genotype Viewer Frontend** - COMPLETE
 - **New Page**: Interactive genotype matrix visualization
-- **Features**:
-  - Real-time filtering by data type, genes/loci, carrier status
-  - Color-coded genotype display for easy interpretation
-  - Carrier summary statistics with frequency calculations
+- **Features**: Real-time filtering by data type, genes/loci, carrier status; color-coded genotype display; carrier summary statistics
 - **Architecture**: Modular component system with factory pattern
 - **Components**: GenotypeDataLoader, GenotypeMatrixRenderer, CarrierSummaryRenderer, etc.
 
-**Frontend Architecture Refactor** ✅ **NEW**
+**Frontend Architecture Refactor** - COMPLETE
 - **Migration**: From Streamlit to modular frontend with factory pattern
 - **New Components**: 10+ new UI renderer components for genotype visualization
 - **run_frontend.sh**: New launcher script replacing run_streamlit.sh
-- **Pages**: Release Overview, Genotype Viewer, Probe Validation
+- **Pages**: Release Overview, Genotype Viewer, Locus Reports, Probe Validation
 
 ## 🚀 Previous Major Achievements
 
@@ -187,26 +186,28 @@ python run_carriers_pipeline.py --skip-probe-selection
 
 ## 🎯 Next Phases: Advanced Analysis & Optimization
 
-### **Phase 4B: Cross-Dataset Analysis & Clinical Integration** ✅ **COMPLETE**
+### **Phase 4B: Cross-Dataset Analysis & Clinical Integration** - COMPLETE
 **Objective**: Complete cross-dataset analysis and clinical phenotype integration
 
-**Completed Features** ✅:
+**Completed Features**:
 - **Multi-Ancestry Merge**: Proper merging of NBA/IMPUTED results across ancestries
 - **Genotype Viewer**: Interactive matrix visualization with filtering
 - **Frontend Architecture**: Modular component system with factory pattern
-- **Locus Reports**: Per-gene clinical phenotype statistics stratified by ancestry
-- **Clinical Integration**: Diagnosis, sex, AAO, family history from phenotype files
+- **Locus Reports**: Per-gene clinical phenotype statistics with separate reports per data type
+- **Clinical Integration**: H&Y stage, MoCA scores, DAT imaging, disease duration from phenotype files
+- **Frontend Display**: Ancestry breakdowns, variant carrier counts (heterozygous/homozygous)
+- **Bug Fix**: Fixed metadata column melting preventing ancestry assignments in IMPUTED data
 
-### **Phase 4C: Imputed Dosage Support** 🔄 **NEXT FOCUS**
+### **Phase 4C: Imputed Dosage Support** - NEXT FOCUS
 **Objective**: Support continuous dosage values in imputed data
 
-**Planned Features** 🔄:
+**Planned Features**:
 - **Imputed Dosage Handling**: Support continuous dosage values (0.0-2.0) in extraction
 - **Dosage Visualization**: Update frontend to display dosage gradients
 - **Cross-Dataset Concordance**: Compare dosages vs discrete genotypes
 - **Carrier Thresholds**: Configurable thresholds for dosage-based carrier calling
 
-### **Phase 4D: Variant Subset Preparation** 🔄 **FUTURE**
+### **Phase 4D: Variant Subset Preparation** - FUTURE
 **Objective**: Prepare variant subsets with comprehensive metrics
 
 **Planned Features**:
@@ -216,16 +217,16 @@ python run_carriers_pipeline.py --skip-probe-selection
 - **Variant Annotation**: Integration of clinical significance and pathogenicity scores
 - **Subset Generation**: Create filtered variant sets based on quality thresholds
 
-### **Phase 5: Frontend Development** 🎯 **FUTURE**
+### **Phase 5: API Development** - FUTURE
 **Objective**: Build production-ready API and web interface for genomic analysis
 
-**Phase 5A: API Development** 🔄 **PLANNED**
+**Phase 5A: API Development** - PLANNED
 - **FastAPI Endpoints**: RESTful API for variant querying, analysis submission, and result retrieval
 - **Authentication**: User management and secure access to genomic data
 - **Background Processing**: Celery + Redis for long-running analysis jobs
 - **Result Caching**: Optimized storage and retrieval of analysis results
 
-**Phase 5B: Web Interface** 🔄 **PLANNED**
+**Phase 5B: Web Interface** - PLANNED
 - **Interactive Dashboard**: Advanced web UI replacing Streamlit prototype
 - **Variant Explorer**: Production-grade variant browsing with filtering and visualization
 - **Analysis Workflow**: Guided interface for carrier screening and variant subset creation
@@ -308,14 +309,16 @@ streamlit run streamlit_viewer.py
 ```
 # Recent Updates (Phase 4B)
 app/processing/coordinator.py            # Added _merge_ancestry_results() for proper multi-ancestry merging
-app/processing/locus_report_generator.py # NEW: Per-gene clinical phenotype statistics
-app/models/locus_report.py               # NEW: Locus report data models
-frontend/main.py                         # Added Genotype Viewer page to navigation
-frontend/pages/genotype_viewer.py        # NEW: Genotype viewer page implementation
-frontend/utils/data_loaders.py           # Added GenotypeDataLoader with filtering capabilities
-frontend/utils/ui_components.py          # Added 10+ new renderer components for genotype visualization
-frontend/utils/genotype_analysis.py      # NEW: Genotype analysis utilities
-run_frontend.sh                          # NEW: Frontend launcher script (replaces run_streamlit.sh)
+app/processing/locus_report_generator.py # Per-gene clinical phenotype statistics with per-datatype reports; fixed metadata melting bug
+app/models/locus_report.py               # Locus report data models with variant details
+frontend/main.py                         # Added Genotype Viewer and Locus Reports pages
+frontend/pages/genotype_viewer.py        # Genotype viewer page implementation
+frontend/pages/locus_reports.py          # Locus reports page with ancestry breakdowns and carrier counts
+frontend/pages/overview.py               # Removed redundant probe selection notice
+frontend/utils/data_loaders.py           # GenotypeDataLoader and locus report loaders
+frontend/utils/ui_components.py          # UI renderer components for genotype visualization
+frontend/utils/genotype_analysis.py      # Genotype analysis utilities
+run_frontend.sh                          # Frontend launcher script (replaces run_streamlit.sh)
 
 # Previous Updates
 run_carriers_pipeline.py         # Added --skip-extraction, --skip-probe-selection flags
@@ -368,29 +371,31 @@ CLAUDE.md                       # Development instructions
 - ✅ Sample ID normalization across data types
 - ✅ Column organization (metadata first, sorted samples)
 - ✅ Enhanced Streamlit viewer with debug mode and multiple probes analysis
-- ✅ **Probe Selection Method** (NBA probe quality validation against WGS ground truth)
-- ✅ **Locus Reports**: Per-gene clinical phenotype statistics stratified by ancestry
-- ✅ Zero deprecation warnings (Streamlit and Pydantic v2)
-- ✅ Streamlined test suite (3 essential tests)
-- 🎯 Imputed dosage support for continuous values (0.0-2.0)
-- 🎯 Variant subset preparation with per-locus metrics and cross-dataset analysis
+- **Probe Selection Method** (NBA probe quality validation against WGS ground truth)
+- **Locus Reports**: Per-gene clinical phenotype statistics with per-datatype reports and variant carrier counts
+- **Clinical Data Integration**: Fixed ancestry join bug in IMPUTED data processing
+- Zero deprecation warnings (Streamlit and Pydantic v2)
+- Streamlined test suite (3 essential tests)
+- Imputed dosage support for continuous values (0.0-2.0) - NEXT FOCUS
+- Variant subset preparation with per-locus metrics and cross-dataset analysis - FUTURE
 
 ### **Quality Metrics**
-- ✅ Process isolation and error handling
-- ✅ Original allele transparency with harmonization tracking
-- ✅ IMPUTED file format support
-- ✅ **Enhanced deduplication logic** preserving multiple probes per SNP
-- ✅ **Critical Fix**: Pathogenic allele counting instead of reference alleles
-- ✅ **Complete data capture**: 77 SNPs with multiple probes (316 vs 218 variants)
-- ✅ **Accurate sample reporting**: 1,215 samples correctly counted
-- ✅ Consistent sample ID format across NBA/WGS/IMPUTED data types
-- ✅ User-friendly Streamlit interface with multiple probes analysis
-- ✅ **Production/Debug interface split** for optimal user experience
-- ✅ **Probe Quality Validation** with dual-metric analysis (diagnostic + concordance)
-- ✅ **Evidence-Based Probe Selection** with consensus recommendations and confidence scoring
-- ✅ **Locus Reports & Clinical Integration**: Ancestry-stratified carrier frequencies with clinical phenotypes
-- 🎯 Imputed dosage support for continuous genotype values
-- 🎯 Storage optimization (25% reduction via consolidation)
+- Process isolation and error handling
+- Original allele transparency with harmonization tracking
+- IMPUTED file format support
+- Enhanced deduplication logic preserving multiple probes per SNP
+- Critical Fix: Pathogenic allele counting instead of reference alleles
+- Complete data capture: 77 SNPs with multiple probes (316 vs 218 variants)
+- Accurate sample reporting: 1,215 samples correctly counted
+- Consistent sample ID format across NBA/WGS/IMPUTED data types
+- User-friendly Streamlit interface with multiple probes analysis
+- Production/Debug interface split for optimal user experience
+- Probe Quality Validation with dual-metric analysis (diagnostic + concordance)
+- Evidence-Based Probe Selection with consensus recommendations and confidence scoring
+- Locus Reports & Clinical Integration: Per-datatype ancestry-stratified statistics with variant carrier counts
+- Clinical Data Bug Fix: Fixed metadata column melting preventing ancestry assignments
+- Imputed dosage support for continuous genotype values - NEXT FOCUS
+- Storage optimization (25% reduction via consolidation) - FUTURE
 
 ### **Impact Assessment**
 The recent critical bug fixes, probe selection, and locus reports implementation represent a **major milestone** in pipeline development:
