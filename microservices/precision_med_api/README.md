@@ -105,6 +105,7 @@ streamlit run streamlit_viewer.py
 **Frontend Features:**
 - **📊 Release Overview**: Pipeline summary, sample counts, file information
 - **🧬 Genotype Viewer**: Interactive genotype matrix visualization with carrier analysis
+- **📊 Locus Reports**: Per-gene clinical phenotype statistics stratified by ancestry
 - **🔬 Probe Validation**: Probe quality metrics and selection recommendations
 - **🧬 Variant Browser**: Filter and explore variants with harmonization details
 - **📈 Statistics**: Visualizations of harmonization actions and variant distributions
@@ -130,6 +131,7 @@ Options:
                             Use performance optimizations (default: True)
   --skip-extraction         Skip extraction phase if results already exist (default: False)
   --skip-probe-selection    Skip probe selection phase if results already exist (default: False)
+  --skip-locus-reports      Skip locus report generation (default: False)
 ```
 
 ## Data Types Supported
@@ -162,12 +164,16 @@ Options:
 ```
 ~/gcs_mounts/genotools_server/precision_med/results/release10/
 ├── release10_NBA.parquet                   # NBA genotypes with normalized sample IDs
-├── release10_NBA_variant_summary.csv       # Per-variant harmonization metadata  
+├── release10_NBA_variant_summary.csv       # Per-variant harmonization metadata
 ├── release10_WGS.parquet                   # WGS genotypes with normalized sample IDs
 ├── release10_WGS_variant_summary.csv
 ├── release10_IMPUTED.parquet               # IMPUTED genotypes with normalized sample IDs
 ├── release10_IMPUTED_variant_summary.csv
 ├── release10_probe_selection.json          # Probe quality analysis and recommendations
+├── release10_locus_reports_WGS_NBA.json    # Per-gene clinical phenotype statistics (WGS+NBA)
+├── release10_locus_reports_WGS_NBA.csv     # Per-gene clinical phenotype statistics (WGS+NBA)
+├── release10_locus_reports_WGS_IMPUTED.json # Per-gene clinical phenotype statistics (WGS+IMPUTED)
+├── release10_locus_reports_WGS_IMPUTED.csv  # Per-gene clinical phenotype statistics (WGS+IMPUTED)
 └── release10_pipeline_results.json         # Overall pipeline execution summary
 ```
 
@@ -335,6 +341,11 @@ The codebase follows a modular architecture with clear separation of concerns:
 - `ProbeAnalysisResult` and `ProbeRecommendation` models
 - `ProbeSelectionReport` with comprehensive analysis results
 
+**`app/models/locus_report.py`** - Locus report models
+- `LocusStats` and `AncestryStats` classes
+- `LocusReport` with per-gene clinical phenotype statistics
+- Ancestry-stratified carrier frequencies and clinical metrics
+
 ### Processing Pipeline (`app/processing/`)
 
 **`app/processing/coordinator.py`** - High-level orchestration
@@ -382,6 +393,12 @@ The codebase follows a modular architecture with clear separation of concerns:
 - Quality thresholds and confidence scoring
 - Methodology comparison and disagreement analysis
 
+**`app/processing/locus_report_generator.py`** - Locus report generation
+- `LocusReportGenerator` class
+- Per-gene clinical phenotype statistics
+- Ancestry-stratified carrier frequency calculations
+- Clinical data integration from phenotype files
+
 ### Utilities (`app/utils/`)
 
 **`app/utils/parquet_io.py`** - Parquet I/O operations
@@ -402,15 +419,28 @@ The codebase follows a modular architecture with clear separation of concerns:
 - ✅ **Phase 3B Complete**: Correct allele counting, sample ID normalization, column organization
 - ✅ **Frontend Interface**: Enhanced modular frontend with genotype viewer and probe validation
 - ✅ **Phase 4A Complete**: Probe Selection Method - NBA probe quality validation against WGS ground truth
-- 🎯 **Phase 4B**: Dosage Support & Cross-Dataset Analysis (CURRENT FOCUS)
+- ✅ **Phase 4B Complete**: Dosage Support & Cross-Dataset Analysis
   - **Ancestry Merging**: Fixed NBA/IMPUTED multi-ancestry result merging
   - **Genotype Viewer**: Interactive genotype matrix with carrier analysis
+  - **Locus Reports**: Per-gene clinical phenotype statistics stratified by ancestry
+- 🎯 **Phase 4C**: Imputed Dosage Support (NEXT FOCUS)
   - **Next**: Imputed data dosage handling (continuous values 0.0-2.0)
 - ⏳ **Phase 5 Planned**: Pipeline optimization, REST API endpoints, background processing, monitoring
 
 ### Major Recent Achievements
 
-**🔀 Multi-Ancestry Merge Fix** ✅ **NEW**:
+**📊 Locus Reports & Clinical Analysis** ✅ **NEW**:
+- **NEW FEATURE**: Per-gene clinical phenotype statistics stratified by ancestry
+- **Execution**: Runs automatically during pipeline execution, after genotype extraction completes
+- **Requirements**: Needs both comparison datasets (e.g., WGS+NBA or WGS+IMPUTED)
+- Ancestry-stratified carrier frequencies and clinical metrics
+- Integration of clinical data (diagnosis, sex, AAO, family history) from phenotype files
+- Comprehensive locus-level analysis with sample overlap handling
+- **Output**: JSON and CSV formats for both WGS+NBA and WGS+IMPUTED datasets
+- **Frontend**: Reads pre-generated files for display (does not regenerate)
+- **Usage**: Enabled by default, can skip with `--skip-locus-reports`
+
+**🔀 Multi-Ancestry Merge Fix** ✅:
 - **CRITICAL FIX**: Resolved issue where multiple ancestry extractions were concatenated instead of properly merged
 - Implemented `_merge_ancestry_results()` method for proper outer join merging
 - Ensures all samples have genotypes for all variants across ancestries

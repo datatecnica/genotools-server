@@ -233,6 +233,46 @@ class ProbeValidationLoader(DataLoader):
             return None
 
 
+class LocusReportsLoader(DataLoader):
+    """Loader for locus reports."""
+
+    @st.cache_data(ttl=300)
+    def load(
+        _self,
+        config: 'FrontendConfig',
+        release: str,
+        job_name: str,
+        comparison: str = "WGS_NBA"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Load locus report data for a specific comparison.
+
+        Args:
+            config: Frontend configuration
+            release: Release identifier
+            job_name: Job name
+            comparison: Data type comparison ("WGS_NBA" or "WGS_IMPUTED")
+
+        Returns:
+            Locus report collection data or None if not available
+        """
+        try:
+            release_path = os.path.join(os.path.dirname(config.results_base_path), release)
+            report_path = os.path.join(release_path, f"{job_name}_locus_reports_{comparison}.json")
+
+            if not os.path.exists(report_path):
+                return None
+
+            with open(report_path, 'r') as f:
+                data = json.load(f)
+
+            return data
+
+        except Exception as e:
+            logger.error(f"Failed to load locus report data: {e}")
+            return None
+
+
 class GenotypeDataLoader(DataLoader):
     """Loader for genotype data from parquet files with subsetting capabilities."""
 
@@ -437,6 +477,7 @@ class DataLoaderFactory:
         'sample_counts': SampleCountsLoader,
         'file_info': FileInfoLoader,
         'probe_validation': ProbeValidationLoader,
+        'locus_reports': LocusReportsLoader,
         'genotype_data': GenotypeDataLoader
     }
 

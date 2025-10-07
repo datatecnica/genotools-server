@@ -113,3 +113,24 @@ class DataFacade:
         return self.factory.get_loader('probe_validation').load(
             self.config, release, job_name
         )
+
+    def get_locus_report_data(
+        self,
+        release: str,
+        job_name: str,
+        comparison: str = "WGS_NBA"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get locus report data for a specific data type comparison.
+
+        Args:
+            release: Release identifier
+            job_name: Job name identifier
+            comparison: Data type comparison ("WGS_NBA" or "WGS_IMPUTED")
+
+        Returns:
+            Dict containing locus report collection data, or None if not available
+        """
+        return self.factory.get_loader('locus_reports').load(
+            self.config, release, job_name, comparison
+        )

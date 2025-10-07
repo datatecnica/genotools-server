@@ -32,6 +32,12 @@ Clean, focused Streamlit-based interface for viewing genomic carrier screening p
   - IMPUTED: 82 variants, 82,945 samples
 - **Pipeline Summary**: Execution details, file info with proper KB/MB sizing
 
+### Locus Reports
+- **📊 Locus Reports**: Per-gene clinical phenotype statistics stratified by ancestry
+- Ancestry-stratified carrier frequencies and clinical metrics
+- Integration of clinical data (diagnosis, sex, AAO, family history)
+- Comprehensive locus-level analysis with sample overlap handling
+
 ### Navigation & Debug
 - **Sidebar**: Release selection (job selection in debug mode)
 - **Debug Tools**: Cache clearing and data type information
@@ -116,6 +122,7 @@ frontend/
 - ✅ **Key Metrics**: Release, total variants, pipeline status display
 - ✅ **Data Type Summary**: Combined variants and samples table
 - ✅ **Pipeline Details**: Expandable summary with execution info
+- ✅ **Locus Reports**: Per-gene clinical phenotype statistics stratified by ancestry
 - ✅ **Debug Mode**: Job selection and cache management tools
 - ✅ **Performance**: Sub-second cached data loading
 - ✅ **Error Handling**: Graceful failures with user feedback

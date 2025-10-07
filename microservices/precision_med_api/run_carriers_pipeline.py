@@ -85,6 +85,12 @@ def parse_args():
         default=False,
         help='Skip probe selection phase if results already exist (default: False)'
     )
+    parser.add_argument(
+        '--skip-locus-reports',
+        action='store_true',
+        default=False,
+        help='Skip locus report generation (default: False)'
+    )
     return parser.parse_args()
 
 
@@ -215,6 +221,9 @@ def main():
         # Handle probe selection logic - enabled by default unless skipped
         enable_probe_selection = not args.skip_probe_selection
 
+        # Handle locus reports logic - enabled by default unless skipped
+        enable_locus_reports = not args.skip_locus_reports
+
         logger.info("=== Pipeline Configuration ===")
         logger.info(f"📊 Data types: {args.data_types}")
         logger.info(f"🌍 Ancestries ({len(args.ancestries)}): {args.ancestries}")
@@ -227,6 +236,7 @@ def main():
         logger.info(f"🔧 Using {'config-based' if args.output is None else 'custom'} output location")
         logger.info(f"📋 Skip extraction: {args.skip_extraction}")
         logger.info(f"🔬 Probe selection: {enable_probe_selection}")
+        logger.info(f"📊 Locus reports: {enable_locus_reports}")
 
         # Check if we should skip extraction
         if args.skip_extraction:
@@ -251,6 +261,17 @@ def main():
                     if probe_selection_results:
                         output_files.update(probe_selection_results)
 
+                # Run locus reports on existing results if enabled
+                if enable_locus_reports:
+                    logger.info("📊 Running locus report generation on existing results...")
+                    locus_report_results = coordinator.run_locus_report_postprocessing(
+                        output_dir=output_dir,
+                        output_name=custom_name,
+                        data_types=data_type_enums
+                    )
+                    if locus_report_results:
+                        output_files.update(locus_report_results)
+
                 results = {
                     'success': True,
                     'job_id': custom_name,
@@ -271,7 +292,8 @@ def main():
                     parallel=args.parallel,
                     max_workers=args.max_workers,  # Use auto-detect if None
                     output_name=custom_name,
-                    enable_probe_selection=enable_probe_selection
+                    enable_probe_selection=enable_probe_selection,
+                    enable_locus_reports=enable_locus_reports
                 )
         else:
             # Normal pipeline execution (will overwrite existing results)
@@ -285,7 +307,8 @@ def main():
                 parallel=args.parallel,
                 max_workers=args.max_workers,  # Use auto-detect if None
                 output_name=custom_name,
-                enable_probe_selection=enable_probe_selection
+                enable_probe_selection=enable_probe_selection,
+                enable_locus_reports=enable_locus_reports
             )
         
         # Calculate timing only if extraction was run

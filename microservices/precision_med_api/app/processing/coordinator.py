@@ -807,6 +807,7 @@ class ExtractionCoordinator:
         max_workers: Optional[int] = None,
         output_name: Optional[str] = None,
         enable_probe_selection: bool = True,
+        enable_locus_reports: bool = True,
     ) -> Dict[str, Any]:
         """
         Run complete extraction pipeline from SNP list to final output.
@@ -908,6 +909,19 @@ class ExtractionCoordinator:
                     logger.info("✅ Probe selection analysis completed")
                 else:
                     logger.warning("⚠️ Probe selection analysis did not generate results")
+
+            if enable_locus_reports:
+                logger.info("📊 Running locus report generation...")
+                locus_report_results = self.run_locus_report_postprocessing(
+                    output_dir=output_dir,
+                    output_name=job_id,
+                    data_types=data_types
+                )
+                if locus_report_results:
+                    results['output_files'].update(locus_report_results)
+                    logger.info("✅ Locus report generation completed")
+                else:
+                    logger.warning("⚠️ Locus report generation did not generate results")
 
         except Exception as e:
             logger.error(f"Pipeline failed: {e}")
@@ -1024,6 +1038,73 @@ class ExtractionCoordinator:
 
         except Exception as e:
             logger.error(f"Probe selection analysis failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def run_locus_report_postprocessing(
+        self,
+        output_dir: str,
+        output_name: str,
+        data_types: List[DataType]
+    ) -> Optional[Dict[str, str]]:
+        """
+        Run locus report generation on existing parquet files.
+
+        Args:
+            output_dir: Directory containing parquet files
+            output_name: Base name for files (e.g., 'release10')
+            data_types: Data types to analyze
+
+        Returns:
+            Dictionary mapping output file types to file paths, or None if failed
+        """
+        try:
+            from .locus_report_generator import LocusReportGenerator
+
+            # Build parquet file map
+            parquet_files = {}
+            for data_type in data_types:
+                parquet_path = os.path.join(output_dir, f"{output_name}_{data_type.name}.parquet")
+                if os.path.exists(parquet_path):
+                    parquet_files[data_type.name] = parquet_path
+                else:
+                    logger.warning(f"{data_type.name} parquet file not found: {parquet_path}")
+
+            if not parquet_files:
+                logger.warning("No parquet files found for locus report generation")
+                return None
+
+            logger.info(f"Running locus report generation with data types: {list(parquet_files.keys())}")
+
+            # Initialize generator
+            generator = LocusReportGenerator(self.settings)
+
+            # Determine which comparisons to generate based on available data
+            comparisons = []
+            if "WGS" in parquet_files and "NBA" in parquet_files:
+                comparisons.append(("WGS", "NBA"))
+            if "WGS" in parquet_files and "IMPUTED" in parquet_files:
+                comparisons.append(("WGS", "IMPUTED"))
+
+            if not comparisons:
+                logger.warning("No valid data type comparisons available (need WGS + NBA/IMPUTED)")
+                return None
+
+            # Generate reports
+            output_files = generator.generate_reports(
+                parquet_files=parquet_files,
+                output_dir=output_dir,
+                job_name=output_name,
+                data_type_comparisons=comparisons
+            )
+
+            logger.info(f"Locus report generation complete. Generated {len(output_files)} files")
+
+            return output_files
+
+        except Exception as e:
+            logger.error(f"Locus report generation failed: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None

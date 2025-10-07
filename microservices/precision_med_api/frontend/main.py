@@ -107,14 +107,26 @@ def setup_sidebar(config: FrontendConfig) -> Tuple[str, str, str]:
 
     # Page navigation
     st.sidebar.header("📊 Navigation")
-    page_options = ["Release Overview", "Genotype Viewer", "Probe Validation"]
+    page_options = ["Release Overview", "Genotype Viewer", "Locus Reports", "Probe Validation"]
 
     # Check if probe validation data is available
     probe_data_available = data_facade.get_probe_validation_data(selected_release, selected_job) is not None
 
+    # Check if locus reports are available
+    locus_reports_available = (
+        data_facade.get_locus_report_data(selected_release, selected_job, "WGS_NBA") is not None or
+        data_facade.get_locus_report_data(selected_release, selected_job, "WGS_IMPUTED") is not None
+    )
+
+    # Remove unavailable pages
     if not probe_data_available:
-        page_options = ["Release Overview", "Genotype Viewer"]
+        page_options = [p for p in page_options if p != "Probe Validation"]
         if hasattr(app_state, 'selected_page') and app_state.selected_page == "Probe Validation":
+            app_state.selected_page = "Release Overview"
+
+    if not locus_reports_available:
+        page_options = [p for p in page_options if p != "Locus Reports"]
+        if hasattr(app_state, 'selected_page') and app_state.selected_page == "Locus Reports":
             app_state.selected_page = "Release Overview"
 
     if not hasattr(app_state, 'selected_page'):
@@ -174,6 +186,10 @@ def render_main_content(release: str, job_name: str, selected_page: str, config:
         # Genotype viewer section
         from frontend.pages.genotype_viewer import render_genotype_viewer_page
         render_genotype_viewer_page(release, job_name, config)
+    elif selected_page == "Locus Reports":
+        # Locus reports section
+        from frontend.pages.locus_reports import render_locus_reports_page
+        render_locus_reports_page(release, job_name, config)
     elif selected_page == "Probe Validation":
         # Probe validation section
         from frontend.pages.probe_validation import render_probe_validation_page
