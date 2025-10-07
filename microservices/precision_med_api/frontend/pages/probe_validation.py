@@ -1,234 +1,166 @@
 """
-Probe validation analysis page for visualizing probe quality metrics.
-
-Displays probe validation results including diagnostic metrics, concordance analysis,
-and methodology comparisons for NBA probe quality assessment.
+Probe validation page - displays NBA probe quality metrics.
 """
 
 import streamlit as st
-import sys
-import os
-from typing import Dict, Any
 import pandas as pd
-
-# Add parent directory to Python path to enable imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
+from typing import Dict, Any
 from frontend.config import FrontendConfig
-from frontend.utils.data_facade import DataFacade
-from frontend.utils.ui_components import UIComponentFactory
+from frontend.utils.data_loaders import load_probe_validation
 
 
-def render_probe_validation_page(release: str, job_name: str, config: FrontendConfig) -> None:
+def render_probe_validation(release: str, job_name: str, config: FrontendConfig):
     """
-    Render the probe validation analysis page.
+    Render the probe validation page.
 
     Args:
-        release: Selected release
-        job_name: Selected job name
+        release: Release identifier
+        job_name: Job name
         config: Frontend configuration
     """
-    try:
-        st.header("🔬 Probe Validation Analysis")
-        st.markdown("Quality assessment of NBA probes against WGS ground truth data.")
+    st.header("🔬 Probe Validation Analysis")
+    st.markdown("Quality assessment of NBA probes against WGS ground truth data.")
 
-        # Initialize data facade
-        data_facade = DataFacade(config)
+    # Load probe validation data
+    probe_data = load_probe_validation(release, job_name, config.results_base_path)
 
-        # Load probe validation data
-        probe_data = data_facade.get_probe_validation_data(release, job_name)
+    if not probe_data:
+        st.info(
+            "**No probe validation data available.**\n\n"
+            "Probe validation analysis requires:\n"
+            "- Both NBA and WGS data types\n"
+            "- Multiple NBA probes per genomic position\n"
+            "- Overlapping samples between datasets\n\n"
+            "Run pipeline without `--skip-probe-selection` to generate this data."
+        )
+        return
 
-        if not probe_data:
-            st.info(
-                "**No probe validation data available for this release.**\n\n"
-                "Probe validation analysis requires:\n"
-                "- Both NBA and WGS data types\n"
-                "- Multiple NBA probes per genomic position\n"
-                "- Overlapping samples between datasets\n\n"
-                "Run the pipeline without `--skip-probe-selection` to generate this data."
-            )
-            return
-
-        # Debug info
-        st.write(f"**Debug:** Loaded probe data with {len(probe_data.get('probe_comparisons', []))} mutations")
-
-        # Render probe validation sections
-        render_probe_validation_summary(probe_data)
-        render_probe_validation_analysis(probe_data)
-        render_probe_validation_visualizations(probe_data)
-        render_methodology_comparison(probe_data)
-        render_probe_recommendations(probe_data)
-
-    except Exception as e:
-        st.error(f"Error rendering probe validation page: {e}")
-        import traceback
-        st.code(traceback.format_exc())
+    # Render sections
+    render_validation_summary(probe_data)
+    render_probe_comparisons(probe_data)
+    render_recommendations(probe_data)
 
 
-def render_probe_validation_summary(probe_data: Dict[str, Any]) -> None:
-    """
-    Render probe validation summary metrics.
-
-    Args:
-        probe_data: Probe validation report data
-    """
+def render_validation_summary(data: Dict[str, Any]):
+    """Render validation summary metrics."""
     st.subheader("📊 Validation Summary")
 
-    # Use UI component for summary rendering
-    summary_renderer = UIComponentFactory.get_renderer('probe_validation_summary')
-    summary_renderer.render(probe_data)
+    summary = data.get('summary', {})
 
-    # Additional context information
-    with st.expander("ℹ️ About Probe Validation", expanded=False):
-        st.markdown("""
-        **Probe Validation Analysis** assesses the quality of NBA (array-based) probes by comparing
-        their results against WGS (whole genome sequencing) ground truth data.
-
-        **Key Metrics:**
-        - **Sensitivity**: Ability to detect true carriers (avoid false negatives)
-        - **Specificity**: Ability to avoid false alarms (avoid false positives)
-        - **Overall Concordance**: Genotype-level agreement between NBA and WGS
-        - **Quality Score**: Weighted combination of concordance and carrier detection
-
-        **Analysis Methods:**
-        - **Diagnostic**: Traditional medical test evaluation (carrier vs non-carrier)
-        - **Concordance**: Detailed genotype transition analysis (0/0, 0/1, 1/1)
-
-        Only mutations with multiple NBA probes are analyzed to enable quality comparisons.
-        """)
-
-
-def render_probe_validation_analysis(probe_data: Dict[str, Any]) -> None:
-    """
-    Render detailed probe validation analysis table.
-
-    Args:
-        probe_data: Probe validation report data
-    """
-    # Use UI component for table rendering
-    table_renderer = UIComponentFactory.get_renderer('probe_validation_table')
-    table_renderer.render(probe_data)
-
-
-def render_probe_validation_visualizations(probe_data: Dict[str, Any]) -> None:
-    """
-    Render probe validation visualizations.
-
-    Args:
-        probe_data: Probe validation report data
-    """
-    # Use UI component for visualization rendering
-    viz_renderer = UIComponentFactory.get_renderer('probe_validation_visualization')
-    viz_renderer.render(probe_data)
-
-
-def render_methodology_comparison(probe_data: Dict[str, Any]) -> None:
-    """
-    Render methodology comparison analysis.
-
-    Args:
-        probe_data: Probe validation report data
-    """
-    methodology = probe_data.get('methodology_comparison', {})
-    if not methodology:
-        return
-
-    st.subheader("🔄 Methodology Comparison")
-
-    col1, col2 = st.columns(2)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        total_agreements = methodology.get('total_agreements', 0)
-        total_disagreements = methodology.get('total_disagreements', 0)
-        total_comparisons = total_agreements + total_disagreements
-
-        if total_comparisons > 0:
-            agreement_rate = total_agreements / total_comparisons
-            st.metric("Agreement Rate", f"{agreement_rate:.1%}")
-
-            # Agreement breakdown chart
-            agreement_data = {
-                'Method Agreement': [total_agreements, total_disagreements],
-                'Count': [total_agreements, total_disagreements]
-            }
-            agreement_df = pd.DataFrame({
-                'Outcome': ['Agreement', 'Disagreement'],
-                'Count': [total_agreements, total_disagreements]
-            })
-
-            st.bar_chart(agreement_df.set_index('Outcome'))
+        total_mutations = summary.get('total_mutations_analyzed', 0)
+        st.metric("Mutations Analyzed", f"{total_mutations:,}")
 
     with col2:
-        st.write("**Method Comparison Summary:**")
-        st.write(f"- Total mutations compared: {total_comparisons}")
-        st.write(f"- Methods agree: {total_agreements}")
-        st.write(f"- Methods disagree: {total_disagreements}")
+        multiple_probes = summary.get('mutations_with_multiple_probes', 0)
+        st.metric("Multiple Probes", f"{multiple_probes:,}")
 
-        if total_disagreements > 0:
-            st.warning(f"Review {total_disagreements} disagreements for manual curation")
+    with col3:
+        probe_comparisons = summary.get('total_probe_comparisons', 0)
+        st.metric("Probe Comparisons", f"{probe_comparisons:,}")
 
-    # Show disagreement details if any exist
-    disagreements = methodology.get('disagreement_analysis', [])
-    if disagreements:
-        with st.expander(f"🔍 View {len(disagreements)} Method Disagreements", expanded=False):
-            disagreement_df = pd.DataFrame(disagreements)
-            st.dataframe(disagreement_df, width='stretch', hide_index=True)
-
-            st.info(
-                "**Disagreement Analysis:** When diagnostic and concordance methods recommend "
-                "different probes, manual review is recommended to determine the best choice "
-                "based on study-specific requirements."
-            )
+    with col4:
+        samples_compared = summary.get('samples_compared', 0)
+        st.metric("Samples Compared", f"{samples_compared:,}")
 
 
-def render_probe_recommendations(probe_data: Dict[str, Any]) -> None:
-    """
-    Render probe recommendations summary.
+def render_probe_comparisons(data: Dict[str, Any]):
+    """Render probe comparison table."""
+    st.subheader("🔍 Probe Comparisons")
 
-    Args:
-        probe_data: Probe validation report data
-    """
-    probe_comparisons = probe_data.get('probe_comparisons', [])
+    probe_comparisons = data.get('probe_comparisons', [])
+
     if not probe_comparisons:
+        st.info("No probe comparisons available")
         return
 
-    st.subheader("🎯 Probe Recommendations")
+    # Create table data
+    comparison_rows = []
+    for comp in probe_comparisons:
+        mutation = comp.get('mutation', comp.get('snp_list_id', 'N/A'))
+        probes = comp.get('probes', [])
+        consensus = comp.get('consensus', {})
+        recommended_probe = consensus.get('recommended_probe', '')
 
-    recommendations = []
-    for mutation_analysis in probe_comparisons:
-        mutation = mutation_analysis.get('mutation', 'Unknown')
-        consensus = mutation_analysis.get('consensus', {})
+        # Add row for each probe
+        for probe in probes:
+            variant_id = probe.get('variant_id', 'N/A')
 
-        if consensus.get('both_methods_agree', False):
-            recommended_probe = consensus.get('recommended_probe', 'N/A')
-            confidence = consensus.get('combined_confidence', 0)
-            recommendations.append({
+            # Extract metrics from nested structures
+            concordance_metrics = probe.get('concordance_metrics', {})
+            diagnostic_metrics = probe.get('diagnostic_metrics', {})
+
+            is_selected = (variant_id == recommended_probe)
+
+            comparison_rows.append({
                 'Mutation': mutation,
-                'Recommended Probe': recommended_probe,
-                'Consensus': 'Yes',
-                'Confidence': f"{confidence:.2f}"
-            })
-        else:
-            diagnostic_choice = consensus.get('diagnostic_choice', 'N/A')
-            concordance_choice = consensus.get('concordance_choice', 'N/A')
-            recommendations.append({
-                'Mutation': mutation,
-                'Recommended Probe': f"Manual Review Required",
-                'Consensus': 'No',
-                'Diagnostic Choice': diagnostic_choice,
-                'Concordance Choice': concordance_choice
+                'Probe/Variant ID': variant_id,
+                'Concordance': f"{concordance_metrics.get('overall_concordance', 0):.3f}",
+                'Sensitivity': f"{diagnostic_metrics.get('sensitivity', 0):.3f}",
+                'Specificity': f"{diagnostic_metrics.get('specificity', 0):.3f}",
+                'Quality Score': f"{concordance_metrics.get('quality_score', 0):.3f}",
+                'Selected': '✅' if is_selected else ''
             })
 
-    if recommendations:
-        rec_df = pd.DataFrame(recommendations)
-        st.dataframe(rec_df, width='stretch', hide_index=True)
+    if comparison_rows:
+        df = pd.DataFrame(comparison_rows)
 
-        # Summary statistics
-        consensus_count = sum(1 for r in recommendations if r['Consensus'] == 'Yes')
-        manual_review_count = len(recommendations) - consensus_count
+        # Add search filter
+        search = st.text_input("🔍 Search by Mutation or Probe/Variant ID:", "")
+        if search:
+            df = df[
+                df['Mutation'].str.contains(search, case=False, na=False) |
+                df['Probe/Variant ID'].str.contains(search, case=False, na=False)
+            ]
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Consensus Recommendations", consensus_count)
-        with col2:
-            st.metric("Manual Review Required", manual_review_count)
+        st.dataframe(df, width='stretch', hide_index=True)
+        st.caption(f"Showing {len(df):,} probe comparisons")
+
+
+def render_recommendations(data: Dict[str, Any]):
+    """Render probe selection recommendations and methodology."""
+
+    # Methodology section
+    methodology = data.get('methodology', {})
+    if methodology:
+        with st.expander("📋 Selection Methodology", expanded=False):
+            st.markdown("**Probe Selection Approach:**")
+            st.json(methodology)
+
+    # Methodology comparison
+    methodology_comparison = data.get('methodology_comparison', {})
+    if methodology_comparison:
+        with st.expander("🔬 Methodology Comparison", expanded=True):
+            st.markdown("**Comparison between diagnostic and concordance-based selection:**")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.metric(
+                    "Total Mutations",
+                    methodology_comparison.get('total_mutations', 0)
+                )
+                st.metric(
+                    "Both Methods Agree",
+                    methodology_comparison.get('both_methods_agree', 0)
+                )
+
+            with col2:
+                agreement_rate = methodology_comparison.get('agreement_rate', 0)
+                st.metric(
+                    "Agreement Rate",
+                    f"{agreement_rate:.1%}"
+                )
+                st.metric(
+                    "Disagreements",
+                    methodology_comparison.get('disagreements', 0)
+                )
+
+            # Show disagreement details if any
+            disagreement_details = methodology_comparison.get('disagreement_details', [])
+            if disagreement_details:
+                st.markdown("**Disagreements:**")
+                disagreement_df = pd.DataFrame(disagreement_details)
+                st.dataframe(disagreement_df, width='stretch', hide_index=True)

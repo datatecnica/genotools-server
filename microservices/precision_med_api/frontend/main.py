@@ -1,24 +1,20 @@
 """
-Main Streamlit application orchestrator.
+Main Streamlit application - simplified frontend.
 """
 
 import streamlit as st
 import os
 import sys
-import pandas as pd
-from typing import Tuple
 
-# Add parent directory to Python path to enable imports
+# Add parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from frontend.config import FrontendConfig
-from frontend.state import get_app_state
-from frontend.utils.data_facade import DataFacade
-from frontend.pages import overview
+from frontend.utils.data_loaders import discover_releases, discover_jobs, check_data_availability
 
 
-def setup_app_config() -> FrontendConfig:
-    """Set up application configuration and page settings."""
+def setup_page_config():
+    """Configure Streamlit page settings."""
     st.set_page_config(
         page_title="Carriers Pipeline Results Viewer",
         page_icon="🧬",
@@ -26,232 +22,146 @@ def setup_app_config() -> FrontendConfig:
         initial_sidebar_state="expanded"
     )
 
-    # Create frontend configuration (auto-detects debug mode)
-    return FrontendConfig.create()
 
-
-def setup_sidebar(config: FrontendConfig) -> Tuple[str, str, str]:
+def setup_sidebar(config: FrontendConfig):
     """
-    Set up sidebar navigation with release and job selection.
-
-    Args:
-        config: Frontend configuration
+    Setup sidebar with navigation.
 
     Returns:
-        Tuple of (selected_release, selected_job, selected_page)
+        Tuple of (release, job_name, selected_page)
     """
     st.sidebar.header("📁 Data Selection")
-    app_state = get_app_state()
-    data_facade = DataFacade(config)
 
     # Release selection
-    releases = data_facade.discover_releases()
+    releases = discover_releases(config.results_base_path)
     if not releases:
         st.error(f"No releases found in {config.results_base_path}")
-        st.info(
-            "**Troubleshooting:**\n"
-            "- Ensure GCS mounts are accessible\n"
-            "- Check that pipeline results exist\n"
-            "- Verify file permissions"
-        )
+        st.info("Ensure GCS mounts are accessible and pipeline results exist.")
         st.stop()
 
-    # Use session state for persistence
-    if app_state.selected_release not in releases:
-        app_state.selected_release = releases[0]
+    # Initialize session state
+    if 'selected_release' not in st.session_state:
+        st.session_state.selected_release = releases[0]
+    if 'selected_job' not in st.session_state:
+        st.session_state.selected_job = releases[0]
+    if 'selected_page' not in st.session_state:
+        st.session_state.selected_page = "Release Overview"
 
+    # Release selector
     selected_release = st.sidebar.selectbox(
         "Select Release",
         releases,
-        index=releases.index(app_state.selected_release) if app_state.selected_release in releases else 0
+        index=releases.index(st.session_state.selected_release) if st.session_state.selected_release in releases else 0
     )
-    app_state.selected_release = selected_release
+    st.session_state.selected_release = selected_release
 
     # Job selection (debug mode only)
     if config.debug_mode:
-        jobs = data_facade.discover_jobs(selected_release)
+        jobs = discover_jobs(selected_release, config.results_base_path)
 
         if len(jobs) > 1:
-            if app_state.selected_job not in jobs:
-                app_state.selected_job = jobs[0]
-
             selected_job = st.sidebar.selectbox(
                 "Select Job",
                 jobs,
-                index=jobs.index(app_state.selected_job) if app_state.selected_job in jobs else 0,
-                help="Choose pipeline run to view. Main release results are typically named after the release."
+                index=jobs.index(st.session_state.selected_job) if st.session_state.selected_job in jobs else 0,
+                help="Choose pipeline run to view"
             )
         else:
             selected_job = jobs[0] if jobs else selected_release
 
-        app_state.selected_job = selected_job
+        st.session_state.selected_job = selected_job
+        st.sidebar.info("🔧 **Debug Mode Active**")
 
-        # Debug mode indicator
-        st.sidebar.info("🔧 **Debug Mode Active**\nJob selection enabled")
-
-        # Debug info (simplified)
-        with st.sidebar.expander("🛠️ Debug Info", expanded=False):
-            st.text(f"Available jobs: {len(jobs)}")
-            available_data_types = data_facade.get_available_data_types(selected_release, selected_job)
-            st.text(f"Data types: {', '.join(available_data_types)}")
-
-            if st.button("Clear Cache", help="Clear all cached data"):
+        # Cache clear button
+        with st.sidebar.expander("🛠️ Debug Tools", expanded=False):
+            if st.button("Clear Cache"):
                 st.cache_data.clear()
                 st.success("Cache cleared!")
                 st.rerun()
-
     else:
-        # Production mode: always use release name as job name
+        # Production mode: use release name as job name
         selected_job = selected_release
-        app_state.selected_job = selected_job
+        st.session_state.selected_job = selected_job
+
+    # Check data availability
+    data_available = check_data_availability(selected_release, selected_job, config.results_base_path)
 
     # Page navigation
     st.sidebar.header("📊 Navigation")
-    page_options = ["Release Overview", "Genotype Viewer", "Locus Reports", "Probe Validation"]
+    page_options = ["Release Overview"]
 
-    # Check if probe validation data is available
-    probe_data_available = data_facade.get_probe_validation_data(selected_release, selected_job) is not None
+    # Add pages based on data availability
+    if data_available['locus_reports_nba'] or data_available['locus_reports_imputed']:
+        page_options.append("Locus Reports")
+    if data_available['probe_validation']:
+        page_options.append("Probe Validation")
 
-    # Check if locus reports are available
-    locus_reports_available = (
-        data_facade.get_locus_report_data(selected_release, selected_job, "WGS_NBA") is not None or
-        data_facade.get_locus_report_data(selected_release, selected_job, "WGS_IMPUTED") is not None
-    )
-
-    # Remove unavailable pages
-    if not probe_data_available:
-        page_options = [p for p in page_options if p != "Probe Validation"]
-        if hasattr(app_state, 'selected_page') and app_state.selected_page == "Probe Validation":
-            app_state.selected_page = "Release Overview"
-
-    if not locus_reports_available:
-        page_options = [p for p in page_options if p != "Locus Reports"]
-        if hasattr(app_state, 'selected_page') and app_state.selected_page == "Locus Reports":
-            app_state.selected_page = "Release Overview"
-
-    if not hasattr(app_state, 'selected_page'):
-        app_state.selected_page = "Release Overview"
+    # Ensure selected page is valid
+    if st.session_state.selected_page not in page_options:
+        st.session_state.selected_page = "Release Overview"
 
     selected_page = st.sidebar.selectbox(
         "Select Page",
         page_options,
-        index=page_options.index(app_state.selected_page) if app_state.selected_page in page_options else 0
+        index=page_options.index(st.session_state.selected_page) if st.session_state.selected_page in page_options else 0
     )
-    app_state.selected_page = selected_page
+    st.session_state.selected_page = selected_page
 
-    if not probe_data_available and len(page_options) == 1:
-        st.sidebar.info("🔬 **Probe Validation**\nRequires probe selection analysis data")
+    # Show info for unavailable pages
+    if not data_available['locus_reports_nba'] and not data_available['locus_reports_imputed']:
+        st.sidebar.info("📊 **Locus Reports**\nRequires locus report data")
+    if not data_available['probe_validation']:
+        st.sidebar.info("🔬 **Probe Validation**\nRequires probe selection data")
 
     return selected_release, selected_job, selected_page
 
 
-def render_main_header(release: str, job_name: str, config: FrontendConfig) -> None:
-    """
-    Render main application header.
+def render_main_content(release: str, job_name: str, page: str, config: FrontendConfig):
+    """Render the main content area based on selected page."""
 
-    Args:
-        release: Selected release
-        job_name: Selected job name
-        config: Frontend configuration
-    """
+    # Page header
     st.title("🧬 Carriers Pipeline Results Viewer")
-    st.markdown("Browse and analyze results from the precision medicine carriers pipeline.")
+    st.markdown(f"**Release:** {release} | **Job:** {job_name}")
 
-    # Show configuration info in debug mode
-    if config.debug_mode:
-        with st.expander("🔧 Configuration Details", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                st.text(f"GCS Results Bucket: {config.gcs_results_path}")
-                st.text(f"Backend Release: {config.backend_settings.release}")
-            with col2:
-                st.text(f"Debug Mode: {config.debug_mode}")
-                st.text(f"Available Data Types: {', '.join(config.data_types)}")
+    # Lazy load pages
+    if page == "Release Overview":
+        from frontend.pages.overview import render_overview
+        render_overview(release, job_name, config)
 
+    elif page == "Locus Reports":
+        from frontend.pages.locus_reports import render_locus_reports
+        render_locus_reports(release, job_name, config)
 
-def render_main_content(release: str, job_name: str, selected_page: str, config: FrontendConfig) -> None:
-    """
-    Render main content area with overview section.
-
-    Args:
-        release: Selected release
-        job_name: Selected job name
-        selected_page: Selected page name
-        config: Frontend configuration
-    """
-    if selected_page == "Release Overview":
-        # Overview section
-        overview.render_overview_with_validation(release, job_name, config)
-    elif selected_page == "Genotype Viewer":
-        # Genotype viewer section
-        from frontend.pages.genotype_viewer import render_genotype_viewer_page
-        render_genotype_viewer_page(release, job_name, config)
-    elif selected_page == "Locus Reports":
-        # Locus reports section
-        from frontend.pages.locus_reports import render_locus_reports_page
-        render_locus_reports_page(release, job_name, config)
-    elif selected_page == "Probe Validation":
-        # Probe validation section
-        from frontend.pages.probe_validation import render_probe_validation_page
-        render_probe_validation_page(release, job_name, config)
-
-
-def handle_errors() -> None:
-    """Handle application-level errors and show user-friendly messages."""
-    try:
-        # This is where we'd catch any unhandled exceptions
-        # and show user-friendly error messages
-        pass
-    except Exception as e:
-        st.error("Application Error")
-        st.error(f"An unexpected error occurred: {e}")
-
-        if st.button("Reset Application"):
-            st.cache_data.clear()
-            st.rerun()
+    elif page == "Probe Validation":
+        from frontend.pages.probe_validation import render_probe_validation
+        render_probe_validation(release, job_name, config)
 
 
 def main():
     """Main application entry point."""
     try:
-        # Setup configuration
-        config = setup_app_config()
+        # Setup
+        setup_page_config()
+        config = FrontendConfig.create()
 
-        # Render main header
-        render_main_header("", "", config)  # Will be updated after sidebar setup
-
-        # Setup sidebar navigation and get selections
+        # Sidebar navigation
         release, job_name, selected_page = setup_sidebar(config)
 
-        # Validate selections before proceeding
-        data_facade = DataFacade(config)
-        if not data_facade.validate_release_and_job(release, job_name):
-            st.error(f"Invalid release '{release}' or job '{job_name}' combination")
-            st.info("Please select a valid release and job from the sidebar.")
-            return
-
-        # Render main content
+        # Main content
         render_main_content(release, job_name, selected_page, config)
 
-        # Footer information
+        # Footer
         if config.debug_mode:
             st.caption(f"{selected_page} | Debug Mode | {release} | {job_name}")
         else:
             st.caption(f"{selected_page} | Precision Medicine Carriers Pipeline")
 
     except Exception as e:
-        st.error("Application Initialization Error")
-        st.error(f"Failed to initialize application: {e}")
+        st.error("Application Error")
+        st.error(f"Failed to initialize: {e}")
+        st.info("Try refreshing the page or check GCS mount accessibility")
 
-        st.info(
-            "**Troubleshooting Steps:**\n"
-            "1. Check GCS mount accessibility\n"
-            "2. Verify backend configuration\n"
-            "3. Ensure required files exist\n"
-            "4. Try refreshing the page"
-        )
-
-        if st.button("Retry Initialization"):
+        if st.button("Retry"):
             st.rerun()
 
 

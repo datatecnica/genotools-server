@@ -1080,23 +1080,21 @@ class ExtractionCoordinator:
             # Initialize generator
             generator = LocusReportGenerator(self.settings)
 
-            # Determine which comparisons to generate based on available data
-            comparisons = []
-            if "WGS" in parquet_files and "NBA" in parquet_files:
-                comparisons.append(("WGS", "NBA"))
-            if "WGS" in parquet_files and "IMPUTED" in parquet_files:
-                comparisons.append(("WGS", "IMPUTED"))
+            # Generate independent reports for each available data type
+            data_types_to_generate = list(parquet_files.keys())
 
-            if not comparisons:
-                logger.warning("No valid data type comparisons available (need WGS + NBA/IMPUTED)")
+            if not data_types_to_generate:
+                logger.warning("No data types available for locus report generation")
                 return None
+
+            logger.info(f"Generating locus reports for data types: {data_types_to_generate}")
 
             # Generate reports
             output_files = generator.generate_reports(
                 parquet_files=parquet_files,
                 output_dir=output_dir,
                 job_name=output_name,
-                data_type_comparisons=comparisons
+                data_types=data_types_to_generate
             )
 
             logger.info(f"Locus report generation complete. Generated {len(output_files)} files")

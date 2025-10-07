@@ -1,204 +1,144 @@
 """
-Overview page implementation using builder pattern.
+Release overview page - displays pipeline summary and metrics.
 """
 
 import streamlit as st
-from typing import List, Tuple
+from typing import Dict, Any
 from frontend.config import FrontendConfig
-from frontend.utils.data_facade import DataFacade
-from frontend.utils.ui_components import UIComponentFactory, render_expandable_section
-from frontend.models.frontend_models import OverviewData
+from frontend.utils.data_loaders import load_pipeline_results, get_selected_probe_ids
 
 
-class OverviewBuilder:
-    """Builder for constructing overview section components."""
-
-    def __init__(self, config: FrontendConfig):
-        """
-        Initialize builder with configuration.
-
-        Args:
-            config: Frontend configuration
-        """
-        self.config = config
-        self.data_facade = DataFacade(config)
-        self.ui_factory = UIComponentFactory()
-        self.components = []
-
-    def add_metrics(self, release: str, job_name: str) -> 'OverviewBuilder':
-        """
-        Add metrics component to overview.
-
-        Args:
-            release: Release identifier
-            job_name: Job name
-
-        Returns:
-            OverviewBuilder: Self for chaining
-        """
-        try:
-            overview_data = self.data_facade.get_overview_data(release, job_name)
-            metrics_data = {
-                'release': release,
-                'total_variants': overview_data.total_variants,
-                'success': overview_data.pipeline_success
-            }
-            self.components.append(('metrics', metrics_data))
-        except Exception as e:
-            st.error(f"Error loading metrics: {e}")
-
-        return self
-
-
-    def add_sample_breakdown(self, release: str, job_name: str) -> 'OverviewBuilder':
-        """
-        Add data type breakdown component to overview.
-
-        Args:
-            release: Release identifier
-            job_name: Job name
-
-        Returns:
-            OverviewBuilder: Self for chaining
-        """
-        try:
-            overview_data = self.data_facade.get_overview_data(release, job_name)
-            breakdown_data = {
-                'sample_counts': overview_data.sample_counts,
-                'variant_counts': overview_data.variants_by_data_type
-            }
-            self.components.append(('sample_breakdown', breakdown_data))
-        except Exception as e:
-            st.error(f"Error loading data breakdown: {e}")
-
-        return self
-
-    def add_pipeline_summary(self, release: str, job_name: str) -> 'OverviewBuilder':
-        """
-        Add pipeline summary component to overview.
-
-        Args:
-            release: Release identifier
-            job_name: Job name
-
-        Returns:
-            OverviewBuilder: Self for chaining
-        """
-        try:
-            overview_data = self.data_facade.get_overview_data(release, job_name)
-            self.components.append(('pipeline_summary', overview_data))
-        except Exception as e:
-            st.error(f"Error loading pipeline summary: {e}")
-
-        return self
-
-    def build(self) -> None:
-        """Render all added components in order."""
-        for component_type, data in self.components:
-            self._render_component(component_type, data)
-
-    def _render_component(self, component_type: str, data) -> None:
-        """
-        Render a single component.
-
-        Args:
-            component_type: Type of component to render
-            data: Data for the component
-        """
-        try:
-            if component_type == 'pipeline_summary':
-                self._render_pipeline_summary_section(data)
-            else:
-                renderer = self.ui_factory.get_renderer(component_type)
-                renderer.render(data)
-        except Exception as e:
-            st.error(f"Error rendering {component_type}: {e}")
-
-    def _render_pipeline_summary_section(self, overview_data: OverviewData) -> None:
-        """
-        Render the pipeline summary in an expandable section.
-
-        Args:
-            overview_data: Overview data containing pipeline results
-        """
-        def render_summary_content():
-            # Pipeline execution details
-            st.subheader("Execution Details")
-            pipeline_renderer = self.ui_factory.get_renderer('pipeline_details')
-            pipeline_renderer.render(overview_data)
-
-            # File information
-            file_renderer = self.ui_factory.get_renderer('file_info')
-            file_renderer.render(overview_data.file_info)
-
-        render_expandable_section(
-            "📋 Pipeline Summary",
-            render_summary_content,
-            expanded=False
-        )
-
-
-def render_overview(release: str, job_name: str, config: FrontendConfig) -> None:
+def render_overview(release: str, job_name: str, config: FrontendConfig):
     """
-    Render the complete overview section.
+    Render the release overview page.
 
     Args:
         release: Release identifier
         job_name: Job name
         config: Frontend configuration
     """
-    # Show debug info for non-standard jobs
-    if config.debug_mode and job_name != release:
-        st.info(f"📊 **Viewing Job Results: {job_name}**")
+    st.header("📊 Release Overview")
 
-    # Build and render overview components
-    builder = OverviewBuilder(config)
-    builder.add_metrics(release, job_name)\
-           .add_sample_breakdown(release, job_name)\
-           .add_pipeline_summary(release, job_name)\
-           .build()
+    # Load pipeline results
+    pipeline_data = load_pipeline_results(release, job_name, config.results_base_path)
 
-
-def validate_overview_data(release: str, job_name: str, config: FrontendConfig) -> Tuple[bool, List[str]]:
-    """
-    Validate that overview data can be loaded.
-
-    Args:
-        release: Release identifier
-        job_name: Job name
-        config: Frontend configuration
-
-    Returns:
-        Tuple of (is_valid, error_messages)
-    """
-    errors = []
-    try:
-        data_facade = DataFacade(config)
-        available_data_types = data_facade.get_available_data_types(release, job_name)
-        if not available_data_types:
-            errors.append("No data files found")
-    except Exception as e:
-        errors.append(f"Error validating data: {e}")
-
-    return len(errors) == 0, errors
-
-
-def render_overview_with_validation(release: str, job_name: str, config: FrontendConfig) -> None:
-    """
-    Render overview with data validation.
-
-    Args:
-        release: Release identifier
-        job_name: Job name
-        config: Frontend configuration
-    """
-    is_valid, errors = validate_overview_data(release, job_name, config)
-
-    if not is_valid:
-        st.error("No pipeline results found")
-        for error in errors:
-            st.error(f"• {error}")
+    if not pipeline_data:
+        st.warning("No pipeline results found for this release.")
+        st.info("Run the pipeline to generate results:\n```bash\npython run_carriers_pipeline.py --job-name " + job_name + "\n```")
         return
 
-    # Render overview
-    render_overview(release, job_name, config)
+    # Pipeline status
+    render_pipeline_status(pipeline_data)
+
+    # Summary metrics
+    if 'summary' in pipeline_data:
+        render_summary_metrics(pipeline_data['summary'])
+
+    # Data type breakdown
+    if 'summary' in pipeline_data and 'by_data_type' in pipeline_data['summary']:
+        render_data_type_breakdown(pipeline_data['summary']['by_data_type'], release, job_name, config)
+
+    # Output files
+    if 'output_files' in pipeline_data:
+        render_output_files(pipeline_data['output_files'])
+
+
+def render_pipeline_status(data: Dict[str, Any]):
+    """Render pipeline execution status."""
+    st.subheader("Pipeline Status")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        status = "✅ Success" if data.get('success', False) else "❌ Failed"
+        st.metric("Status", status)
+
+    with col2:
+        job_id = data.get('job_id', 'N/A')
+        st.metric("Job ID", job_id)
+
+    with col3:
+        timestamp = data.get('start_time', 'N/A')
+        if timestamp != 'N/A':
+            # Show just the date part
+            timestamp = timestamp.split('T')[0]
+        st.metric("Execution Date", timestamp)
+
+
+def render_summary_metrics(summary: Dict[str, Any]):
+    """Render summary metrics."""
+    st.subheader("Summary Metrics")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        total_variants = summary.get('total_variants', 0)
+        st.metric("Total Variants", f"{total_variants:,}")
+
+    with col2:
+        unique_variants = summary.get('unique_variants', 0)
+        st.metric("Unique Variants", f"{unique_variants:,}")
+
+    with col3:
+        extraction_time = summary.get('extraction_timestamp', 'N/A')
+        if extraction_time != 'N/A':
+            extraction_time = extraction_time.split('T')[0]
+        st.metric("Extraction Date", extraction_time)
+
+
+def render_data_type_breakdown(by_data_type: Dict[str, Any], release: str, job_name: str, config: FrontendConfig):
+    """Render data type breakdown table."""
+    st.subheader("Data Type Breakdown")
+
+    # Get probe selection info for NBA
+    probe_info = get_selected_probe_ids(release, job_name, config.results_base_path)
+
+    # Create table data
+    table_data = []
+    for data_type, stats in by_data_type.items():
+        if isinstance(stats, dict):
+            variants = stats.get('variants', 0)
+            samples = stats.get('samples', 0)
+
+            # Add note for NBA if probe selection is available
+            variant_str = f"{variants:,}"
+            if data_type == 'NBA' and probe_info.get('has_probe_selection'):
+                selected_count = len(probe_info['selected_ids'])
+                variant_str = f"{variants:,} ({selected_count} selected)"
+
+            table_data.append({
+                'Data Type': data_type,
+                'Variants': variant_str,
+                'Samples': f"{samples:,}"
+            })
+
+    if table_data:
+        st.table(table_data)
+    else:
+        st.info("No data type breakdown available")
+
+
+def render_output_files(output_files: Dict[str, str]):
+    """Render output files section."""
+    with st.expander("📁 Output Files", expanded=False):
+        # Group by data type
+        grouped_files = {}
+        for key, path in output_files.items():
+            # Extract data type from key
+            if '_' in key:
+                data_type = key.split('_')[0]
+            else:
+                data_type = 'Other'
+
+            if data_type not in grouped_files:
+                grouped_files[data_type] = []
+
+            # Get filename from path
+            filename = path.split('/')[-1]
+            grouped_files[data_type].append(filename)
+
+        # Display grouped files
+        for data_type, files in sorted(grouped_files.items()):
+            st.markdown(f"**{data_type}:**")
+            for filename in files:
+                st.text(f"  • {filename}")
