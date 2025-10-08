@@ -100,12 +100,17 @@ def setup_sidebar(config: FrontendConfig):
     if st.session_state.selected_page not in page_options:
         st.session_state.selected_page = "Release Overview"
 
-    selected_page = st.sidebar.selectbox(
+    selected_page = st.sidebar.radio(
         "Select Page",
         page_options,
-        index=page_options.index(st.session_state.selected_page) if st.session_state.selected_page in page_options else 0
+        index=page_options.index(st.session_state.selected_page) if st.session_state.selected_page in page_options else 0,
+        key="page_selector"
     )
-    st.session_state.selected_page = selected_page
+
+    # Update session state if changed
+    if selected_page != st.session_state.selected_page:
+        st.session_state.selected_page = selected_page
+        st.rerun()
 
     # Show info for unavailable pages
     if not data_available['locus_reports_nba'] and not data_available['locus_reports_imputed']:
@@ -125,15 +130,15 @@ def render_main_content(release: str, job_name: str, page: str, config: Frontend
 
     # Lazy load pages
     if page == "Release Overview":
-        from frontend.pages.overview import render_overview
+        from frontend.page_modules.overview import render_overview
         render_overview(release, job_name, config)
 
     elif page == "Locus Reports":
-        from frontend.pages.locus_reports import render_locus_reports
+        from frontend.page_modules.locus_reports import render_locus_reports
         render_locus_reports(release, job_name, config)
 
     elif page == "Probe Validation":
-        from frontend.pages.probe_validation import render_probe_validation
+        from frontend.page_modules.probe_validation import render_probe_validation
         render_probe_validation(release, job_name, config)
 
 
