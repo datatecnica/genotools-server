@@ -138,13 +138,15 @@ def render_recommendations(data: Dict[str, Any]):
             col1, col2 = st.columns(2)
 
             with col1:
+                # Get total mutations from summary instead
+                total_mutations = data.get('summary', {}).get('total_mutations_analyzed', 0)
                 st.metric(
                     "Total Mutations",
-                    methodology_comparison.get('total_mutations', 0)
+                    total_mutations
                 )
                 st.metric(
                     "Both Methods Agree",
-                    methodology_comparison.get('both_methods_agree', 0)
+                    methodology_comparison.get('total_agreements', 0)
                 )
 
             with col2:
@@ -155,11 +157,11 @@ def render_recommendations(data: Dict[str, Any]):
                 )
                 st.metric(
                     "Disagreements",
-                    methodology_comparison.get('disagreements', 0)
+                    methodology_comparison.get('total_disagreements', 0)
                 )
 
             # Show disagreement details if any
-            disagreement_details = methodology_comparison.get('disagreement_details', [])
+            disagreement_details = methodology_comparison.get('disagreement_analysis', [])
             if disagreement_details:
                 st.markdown("**Disagreements:**")
                 disagreement_df = pd.DataFrame(disagreement_details)

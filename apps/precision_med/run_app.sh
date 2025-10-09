@@ -26,9 +26,9 @@ done
 
 # Launch with appropriate mode
 if [[ "$DEBUG_MODE" == "true" ]]; then
-    echo "🔧 Starting app in debug mode on port $PORT..."
+    echo "🔧 Starting app in debug mode on port $PORT (auto-reload enabled)..."
     export STREAMLIT_DEBUG=true
-    streamlit run app/main.py --server.port $PORT -- --debug
+    streamlit run app/main.py --server.port $PORT --server.runOnSave true --server.fileWatcherType auto -- --debug
 else
     echo "🚀 Starting app in production mode on port $PORT..."
     export STREAMLIT_DEBUG=false
