@@ -6,6 +6,7 @@ import streamlit as st
 from typing import Dict, Any
 from app.config import FrontendConfig
 from app.utils.data_loaders import load_pipeline_results, get_selected_probe_ids
+from app.utils.methods_descriptions import MethodsDescriptions
 
 
 def render_overview(release: str, job_name: str, config: FrontendConfig):
@@ -18,6 +19,10 @@ def render_overview(release: str, job_name: str, config: FrontendConfig):
         config: Frontend configuration
     """
     st.header("📊 Release Overview")
+
+    # Methods section
+    with st.expander("📖 Pipeline Methods Overview", expanded=False):
+        st.markdown(MethodsDescriptions.get_pipeline_overview_methods())
 
     # Load pipeline results
     pipeline_data = load_pipeline_results(release, job_name, config.results_base_path)

@@ -7,6 +7,7 @@ import pandas as pd
 from typing import Dict, Any, List
 from app.config import FrontendConfig
 from app.utils.data_loaders import load_locus_report, get_selected_probe_ids, load_variant_to_mutation_map
+from app.utils.methods_descriptions import MethodsDescriptions
 
 
 def render_locus_reports(release: str, job_name: str, config: FrontendConfig):
@@ -20,6 +21,10 @@ def render_locus_reports(release: str, job_name: str, config: FrontendConfig):
     """
     st.header("📊 Per-Locus Clinical Reports")
     st.markdown("Ancestry-stratified clinical phenotype statistics for each gene/locus.")
+
+    # Methods section
+    with st.expander("📖 Methods", expanded=False):
+        st.markdown(MethodsDescriptions.get_locus_reports_methods())
 
     # Load all available data types
     wgs_data = load_locus_report(release, job_name, "WGS", config.results_base_path)

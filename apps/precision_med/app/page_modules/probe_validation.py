@@ -7,6 +7,7 @@ import pandas as pd
 from typing import Dict, Any
 from app.config import FrontendConfig
 from app.utils.data_loaders import load_probe_validation
+from app.utils.methods_descriptions import MethodsDescriptions
 
 
 def render_probe_validation(release: str, job_name: str, config: FrontendConfig):
@@ -20,6 +21,10 @@ def render_probe_validation(release: str, job_name: str, config: FrontendConfig)
     """
     st.header("🔬 Probe Validation Analysis")
     st.markdown("Quality assessment of NBA probes against WGS ground truth data.")
+
+    # Methods section
+    with st.expander("📖 Methods", expanded=False):
+        st.markdown(MethodsDescriptions.get_probe_validation_methods())
 
     # Load probe validation data
     probe_data = load_probe_validation(release, job_name, config.results_base_path)
