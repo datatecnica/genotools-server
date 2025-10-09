@@ -128,7 +128,7 @@ def render_loci_table(data: Dict[str, Any], variant_map: Dict[str, str] = None):
     # Display summary table
     if summary_rows:
         df = pd.DataFrame(summary_rows)
-        st.dataframe(df, width='stretch', hide_index=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
         # Locus selector for detailed view
         locus_names = [entry.get('locus', 'Unknown') for entry in loci_list]
@@ -172,7 +172,7 @@ def render_locus_details(locus_data: Dict[str, Any], locus_name: str, variant_ma
 
     if ancestry_rows:
         df = pd.DataFrame(ancestry_rows)
-        st.dataframe(df, width='stretch', hide_index=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
     # Show total metrics
     total_metrics = locus_data.get('total_metrics', {})
@@ -211,4 +211,4 @@ def render_locus_details(locus_data: Dict[str, Any], locus_name: str, variant_ma
 
             if variant_rows:
                 df_variants = pd.DataFrame(variant_rows)
-                st.dataframe(df_variants, width='stretch', hide_index=True)
+                st.dataframe(df_variants, use_container_width=True, hide_index=True)

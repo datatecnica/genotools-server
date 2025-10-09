@@ -162,9 +162,14 @@ def main():
             st.caption(f"{selected_page} | Precision Medicine Carriers Pipeline")
 
     except Exception as e:
+        import traceback
         st.error("Application Error")
         st.error(f"Failed to initialize: {e}")
         st.info("Try refreshing the page or check GCS mount accessibility")
+
+        # Show detailed traceback for debugging
+        with st.expander("🐛 Debug Information - Click to expand"):
+            st.code(traceback.format_exc())
 
         if st.button("Retry"):
             st.rerun()
