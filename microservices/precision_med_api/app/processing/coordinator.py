@@ -407,24 +407,16 @@ class ExtractionCoordinator:
             logger.info(f"WGS combined: {len(wgs_combined)} variants")
         
         if nba_results:
-            nba_combined = pd.concat(nba_results, ignore_index=True)
-            # Remove duplicates within NBA only
-            nba_combined = nba_combined.drop_duplicates(
-                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
-                keep='first'
-            )
+            # Merge NBA results across ancestries instead of simple concat
+            nba_combined = self._merge_ancestry_results(nba_results, 'NBA')
             # Reorder columns to ensure metadata comes before samples
             nba_combined = self._reorder_dataframe_columns(nba_combined)
             results_by_datatype['NBA'] = nba_combined
             logger.info(f"NBA combined: {len(nba_combined)} variants")
         
         if imputed_results:
-            imputed_combined = pd.concat(imputed_results, ignore_index=True)
-            # Remove duplicates within IMPUTED only
-            imputed_combined = imputed_combined.drop_duplicates(
-                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
-                keep='first'
-            )
+            # Merge IMPUTED results across ancestries instead of simple concat
+            imputed_combined = self._merge_ancestry_results(imputed_results, 'IMPUTED')
             # Reorder columns to ensure metadata comes before samples
             imputed_combined = self._reorder_dataframe_columns(imputed_combined)
             results_by_datatype['IMPUTED'] = imputed_combined
@@ -526,7 +518,74 @@ class ExtractionCoordinator:
                     sample_id = first_half
         
         return sample_id
-    
+
+    def _merge_ancestry_results(self, result_dfs: List[pd.DataFrame], data_type: str) -> pd.DataFrame:
+        """
+        Merge results from different ancestries for the same data type.
+
+        When extracting from multiple ancestry files (e.g., NBA AAC, AFR, AMR, etc.),
+        each file contains only its ancestry's samples. This method properly merges
+        them so all samples have genotypes for all variants.
+
+        Args:
+            result_dfs: List of DataFrames from different ancestry files
+            data_type: The data type being merged (NBA/IMPUTED)
+
+        Returns:
+            Merged DataFrame with all samples having genotypes for all variants
+        """
+        if not result_dfs:
+            return pd.DataFrame()
+
+        if len(result_dfs) == 1:
+            # Single ancestry - no merge needed
+            return result_dfs[0]
+
+        # Define key columns for merging (variant identifier columns)
+        merge_keys = ['snp_list_id', 'variant_id', 'chromosome', 'position',
+                      'counted_allele', 'alt_allele']
+
+        # Metadata columns that should be consistent across ancestries
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
+                         'pgen_a1', 'pgen_a2', 'data_type', 'ancestry']
+
+        # Start with the first DataFrame
+        merged_df = result_dfs[0].copy()
+
+        # For subsequent DataFrames, merge on variant keys
+        for df in result_dfs[1:]:
+            # Get sample columns from this DataFrame (columns not in metadata)
+            df_sample_cols = [col for col in df.columns if col not in metadata_cols and col not in merge_keys]
+
+            # Select only merge keys and new sample columns for merging
+            cols_to_merge = merge_keys + df_sample_cols
+            df_to_merge = df[cols_to_merge].copy()
+
+            # Merge on variant identifiers
+            merged_df = pd.merge(
+                merged_df,
+                df_to_merge,
+                on=merge_keys,
+                how='outer',  # Use outer join to keep all variants
+                suffixes=('', '_dup')  # Avoid column name conflicts
+            )
+
+            # Drop any duplicate columns that might have been created
+            dup_cols = [col for col in merged_df.columns if col.endswith('_dup')]
+            if dup_cols:
+                merged_df = merged_df.drop(columns=dup_cols)
+
+        # Remove duplicate variants if any (keeping first occurrence)
+        merged_df = merged_df.drop_duplicates(
+            subset=merge_keys,
+            keep='first'
+        )
+
+        logger.info(f"Merged {len(result_dfs)} {data_type} ancestry files into {len(merged_df)} variants")
+
+        return merged_df
+
     def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
         """Calculate optimal process count based on system resources and settings."""
         return self.settings.get_optimal_workers(total_files)
@@ -748,6 +807,7 @@ class ExtractionCoordinator:
         max_workers: Optional[int] = None,
         output_name: Optional[str] = None,
         enable_probe_selection: bool = True,
+        enable_locus_reports: bool = True,
     ) -> Dict[str, Any]:
         """
         Run complete extraction pipeline from SNP list to final output.
@@ -849,6 +909,19 @@ class ExtractionCoordinator:
                     logger.info("✅ Probe selection analysis completed")
                 else:
                     logger.warning("⚠️ Probe selection analysis did not generate results")
+
+            if enable_locus_reports:
+                logger.info("📊 Running locus report generation...")
+                locus_report_results = self.run_locus_report_postprocessing(
+                    output_dir=output_dir,
+                    output_name=job_id,
+                    data_types=data_types
+                )
+                if locus_report_results:
+                    results['output_files'].update(locus_report_results)
+                    logger.info("✅ Locus report generation completed")
+                else:
+                    logger.warning("⚠️ Locus report generation did not generate results")
 
         except Exception as e:
             logger.error(f"Pipeline failed: {e}")
@@ -965,6 +1038,71 @@ class ExtractionCoordinator:
 
         except Exception as e:
             logger.error(f"Probe selection analysis failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def run_locus_report_postprocessing(
+        self,
+        output_dir: str,
+        output_name: str,
+        data_types: List[DataType]
+    ) -> Optional[Dict[str, str]]:
+        """
+        Run locus report generation on existing parquet files.
+
+        Args:
+            output_dir: Directory containing parquet files
+            output_name: Base name for files (e.g., 'release10')
+            data_types: Data types to analyze
+
+        Returns:
+            Dictionary mapping output file types to file paths, or None if failed
+        """
+        try:
+            from .locus_report_generator import LocusReportGenerator
+
+            # Build parquet file map
+            parquet_files = {}
+            for data_type in data_types:
+                parquet_path = os.path.join(output_dir, f"{output_name}_{data_type.name}.parquet")
+                if os.path.exists(parquet_path):
+                    parquet_files[data_type.name] = parquet_path
+                else:
+                    logger.warning(f"{data_type.name} parquet file not found: {parquet_path}")
+
+            if not parquet_files:
+                logger.warning("No parquet files found for locus report generation")
+                return None
+
+            logger.info(f"Running locus report generation with data types: {list(parquet_files.keys())}")
+
+            # Initialize generator
+            generator = LocusReportGenerator(self.settings)
+
+            # Generate independent reports for each available data type
+            data_types_to_generate = list(parquet_files.keys())
+
+            if not data_types_to_generate:
+                logger.warning("No data types available for locus report generation")
+                return None
+
+            logger.info(f"Generating locus reports for data types: {data_types_to_generate}")
+
+            # Generate reports
+            output_files = generator.generate_reports(
+                parquet_files=parquet_files,
+                output_dir=output_dir,
+                job_name=output_name,
+                data_types=data_types_to_generate
+            )
+
+            logger.info(f"Locus report generation complete. Generated {len(output_files)} files")
+
+            return output_files
+
+        except Exception as e:
+            logger.error(f"Locus report generation failed: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None

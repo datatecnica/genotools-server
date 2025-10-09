@@ -1,53 +1,103 @@
-# Precision Medicine Data Access App
+# Carriers Pipeline Results Viewer
 
-A streamlit application for accessing, viewing, and downloading precision medicine data across multiple releases.
+Frontend for viewing precision medicine carriers pipeline results.
 
 ## Setup
 
-1. **Install dependencies:**
+1. **Clone and install dependencies:**
    ```bash
+   git clone <repository-url>
+   cd precision_med
+
+   # Create virtual environment
+   python -m venv .venv
+   source .venv/bin/activate
+
+   # Install dependencies
    pip install -r requirements.txt
    ```
 
-2. **Ensure GCS mounts are available:**
+2. **Mount GCS buckets (for production):**
    ```bash
-   # Run the setup script if needed
-   ./setup.sh
+   gcsfuse --implicit-dirs gp2tier2_vwb ~/gcs_mounts/gp2tier2_vwb
+   gcsfuse --implicit-dirs genotools-server ~/gcs_mounts/genotools_server
    ```
 
-3. **Run the application:**
-   ```bash
-   streamlit run main.py
-   ```
+## Configuration
+
+The frontend automatically discovers releases in your results directory.
+
+**Default path:**
+```
+~/gcs_mounts/genotools_server/precision_med/results/release10
+```
+
+**Custom path via environment variable:**
+```bash
+export RESULTS_PATH=/path/to/your/results
+./run_frontend.sh
+```
+
+**Custom path via code:**
+Edit `app/config.py` line 40 to change the default path.
+
+## Launch
+
+```bash
+# Production mode (default port 8501)
+./run_frontend.sh
+
+# Debug mode with job selection
+./run_frontend.sh --debug
+
+# Custom port
+./run_frontend.sh 8502
+```
+
+## Expected Data Files
+
+The frontend reads pre-generated pipeline output files:
+
+```
+results/
+└── release10/
+    ├── release10_pipeline_results.json
+    ├── release10_WGS.parquet
+    ├── release10_NBA.parquet
+    ├── release10_IMPUTED.parquet
+    ├── release10_locus_reports_WGS.json
+    ├── release10_locus_reports_NBA.json
+    ├── release10_locus_reports_IMPUTED.json
+    └── release10_probe_selection.json
+```
 
 ## Features
 
-- **Release Selection**: Switch between different data releases (release10, release9)
-- **Data Viewing**: View NBA carriers data in three formats:
-  - **Info**: Variant metadata and frequency information
-  - **Int**: Integer genotype data (0/1/2 format)
-  - **String**: String genotype data (WT/WT, WT/MUT, etc.)
-- **Summary Statistics**: Overview of variants, samples, ancestries, and loci
-- **Data Export**: Download datasets as CSV files
+- **Release Overview**: Pipeline execution summary, variant counts, data type breakdown
+- **Locus Reports**: Per-gene clinical phenotype statistics with ancestry stratification
+- **Probe Validation**: NBA probe quality metrics and selection recommendations
+- **Genotype Viewer**: Interactive genotype matrix visualization
 
-## Data Structure
+## Debug Mode
 
-The app currently supports NBA (Next-generation Biomarker Analysis) carriers data with:
-- **11 ancestries**: AAC, AFR, AJ, AMR, CAH, CAS, EAS, EUR, FIN, MDE, SAS
-- **Multiple loci**: PARK7, PINK1, GBA, PARK2, LRRK2, and others
-- **Release-based organization**: Data organized by release versions
+Debug mode enables:
+- Job selection dropdown (for multiple pipeline runs)
+- Cache clearing tools
+- Extended logging
+- Development features
 
-## Architecture
+## Troubleshooting
 
-- **`src/core/`**: Configuration and exception handling
-- **`src/data/`**: Data models and repository layer
-- **`src/ui/`**: Reusable UI components
-- **`main.py`**: Streamlit application entry point
+**No releases found:**
+- Check that `RESULTS_PATH` points to the correct directory
+- Ensure the directory contains `release*` subdirectories
+- Verify GCS mounts are accessible if using default path
 
-## Adding New Data Sources
+**Missing data:**
+- Ensure pipeline has been run and generated output files
+- Check that JSON and parquet files exist in the release directory
+- Run pipeline without `--skip-locus-reports` to generate all data
 
-The architecture is designed to easily accommodate additional data sources beyond NBA. Simply:
-1. Extend the configuration in `src/core/config.py`
-2. Add new data models in `src/data/models.py`
-3. Create repositories in `src/data/repositories.py`
-4. Update the UI components as needed 
+**Import errors:**
+- Verify all required packages are installed
+- Check Python version (requires Python 3.8+)

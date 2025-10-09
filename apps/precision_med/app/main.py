@@ -9,8 +9,8 @@ import sys
 # Add parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from frontend.config import FrontendConfig
-from frontend.utils.data_loaders import discover_releases, discover_jobs, check_data_availability
+from app.config import FrontendConfig
+from app.utils.data_loaders import discover_releases, discover_jobs, check_data_availability
 
 
 def setup_page_config():
@@ -130,15 +130,15 @@ def render_main_content(release: str, job_name: str, page: str, config: Frontend
 
     # Lazy load pages
     if page == "Release Overview":
-        from frontend.page_modules.overview import render_overview
+        from app.page_modules.overview import render_overview
         render_overview(release, job_name, config)
 
     elif page == "Locus Reports":
-        from frontend.page_modules.locus_reports import render_locus_reports
+        from app.page_modules.locus_reports import render_locus_reports
         render_locus_reports(release, job_name, config)
 
     elif page == "Probe Validation":
-        from frontend.page_modules.probe_validation import render_probe_validation
+        from app.page_modules.probe_validation import render_probe_validation
         render_probe_validation(release, job_name, config)
 
 
@@ -162,9 +162,14 @@ def main():
             st.caption(f"{selected_page} | Precision Medicine Carriers Pipeline")
 
     except Exception as e:
+        import traceback
         st.error("Application Error")
         st.error(f"Failed to initialize: {e}")
         st.info("Try refreshing the page or check GCS mount accessibility")
+
+        # Show detailed traceback for debugging
+        with st.expander("🐛 Debug Information - Click to expand"):
+            st.code(traceback.format_exc())
 
         if st.button("Retry"):
             st.rerun()

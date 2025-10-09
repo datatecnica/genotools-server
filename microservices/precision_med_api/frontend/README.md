@@ -1,138 +1,88 @@
-# Frontend Module - Release Overview Complete
+# Carriers Pipeline Results Viewer
 
-## Overview
-Clean, focused Streamlit-based interface for viewing genomic carrier screening pipeline results. Provides essential overview features with modular architecture ready for future extensions.
+Frontend for viewing precision medicine carriers pipeline results.
 
-## Quick Start
+## Requirements
 
-### Launch Frontend
+```bash
+pip install streamlit pandas pydantic pyarrow
+```
+
+## Configuration
+
+The frontend automatically discovers releases in your results directory.
+
+**Default path:**
+```
+~/gcs_mounts/genotools_server/precision_med/results/release10
+```
+
+**Custom path via environment variable:**
+```bash
+export RESULTS_PATH=/path/to/your/results
+./run_frontend.sh
+```
+
+**Custom path via code:**
+Edit `frontend/config.py` line 40 to change the default path.
+
+## Launch
+
 ```bash
 # Production mode (default port 8501)
 ./run_frontend.sh
 
-# Debug mode (enables job selection)
+# Debug mode with job selection
 ./run_frontend.sh --debug
 
 # Custom port
-./run_frontend.sh 8502 --debug
+./run_frontend.sh 8502
 ```
 
-### Access
-- **URL**: http://localhost:8501 (or specified port)
-- **Refresh**: Manual refresh (F5) after code changes
-- **Debug Mode**: Use `--debug` flag for job selection and cache management
+## Expected Data Files
 
-## Features ✅
+The frontend reads pre-generated pipeline output files:
 
-### Release Overview
-- **Key Metrics**: Release version, total variants (574), pipeline status
-- **Data Type Summary**: Combined table showing variants and samples per data type
-  - NBA: 324 variants, 82,945 samples
-  - WGS: 168 variants, 21,037 samples
-  - IMPUTED: 82 variants, 82,945 samples
-- **Pipeline Summary**: Execution details, file info with proper KB/MB sizing
-
-### Navigation & Debug
-- **Sidebar**: Release selection (job selection in debug mode)
-- **Debug Tools**: Cache clearing and data type information
-- **Simple Workflow**: Make changes → Save → Refresh browser (F5)
-
-### Data Management
-- **Automatic Discovery**: Releases and jobs from GCS filesystem
-- **Cached Loading**: Sub-second response times with Streamlit caching
-- **Error Handling**: Graceful failures with clear user feedback
-- **File Size Display**: Proper formatting (46.9 KB vs 0.0 MB)
-
-## Architecture Highlights
-
-### Design Patterns Implemented
-- **Factory Pattern**: Data loaders for different sources
-- **Facade Pattern**: Simplified data access interface
-- **Strategy Pattern**: Flexible UI component rendering
-- **Builder Pattern**: Clean page assembly
-- **Command Pattern**: User actions encapsulation
-- **Dependency Injection**: Clean configuration management
-
-### Directory Structure
 ```
-frontend/
-├── main.py                 # Main app orchestrator
-├── config.py              # Configuration with DI
-├── state.py               # State management
-├── utils/
-│   ├── data_facade.py     # Simplified data interface
-│   ├── data_loaders.py    # Factory pattern loaders
-│   ├── ui_components.py   # Strategy pattern renderers
-│   ├── commands.py        # Command pattern actions
-│   └── file_utils.py      # File system utilities
-├── pages/
-│   ├── overview.py        # Overview implementation
-│   └── [others].py        # Phase 2 placeholders
-└── models/
-    └── frontend_models.py # Data models
+results/
+└── release10/
+    ├── release10_pipeline_results.json
+    ├── release10_WGS.parquet
+    ├── release10_NBA.parquet
+    ├── release10_IMPUTED.parquet
+    ├── release10_locus_reports_WGS.json
+    ├── release10_locus_reports_NBA.json
+    ├── release10_locus_reports_IMPUTED.json
+    └── release10_probe_selection.json
 ```
 
-## Data Flow
+## Features
 
-1. **Configuration**: `FrontendConfig` loads backend settings
-2. **Discovery**: `DataFacade` finds releases and jobs
-3. **Loading**: Factory pattern loaders retrieve data with caching
-4. **Rendering**: Strategy pattern components display UI
-5. **Actions**: Command pattern handles user interactions
+- **Release Overview**: Pipeline execution summary, variant counts, data type breakdown
+- **Locus Reports**: Per-gene clinical phenotype statistics with ancestry stratification
+- **Probe Validation**: NBA probe quality metrics and selection recommendations
+- **Genotype Viewer**: Interactive genotype matrix visualization
 
-## Performance Features
+## Debug Mode
 
-- **Streamlit Caching**: All data loading operations cached
-- **Lazy Loading**: Data loaded only when needed
-- **Error Recovery**: Graceful handling of missing files
-- **Memory Efficient**: Sample-based loading for large datasets
+Debug mode enables:
+- Job selection dropdown (for multiple pipeline runs)
+- Cache clearing tools
+- Extended logging
+- Development features
 
-## Debug Mode Features
+## Troubleshooting
 
-- **Job Selection**: Choose specific pipeline runs
-- **Configuration Display**: Show backend settings
-- **Cache Management**: Clear cached data
-- **Additional Metrics**: Extended debugging information
+**No releases found:**
+- Check that `RESULTS_PATH` points to the correct directory
+- Ensure the directory contains `release*` subdirectories
+- Verify GCS mounts are accessible if using default path
 
-## Integration Points
+**Missing data:**
+- Ensure pipeline has been run and generated output files
+- Check that JSON and parquet files exist in the release directory
+- Run pipeline without `--skip-locus-reports` to generate all data
 
-- **Backend Config**: Uses `app.core.config.Settings`
-- **Data Compatibility**: Works with existing parquet/JSON files
-- **File Discovery**: Automatic detection of pipeline results
-
-## Testing Results ✅
-
-- **Module Imports**: All components load correctly
-- **Data Discovery**: Successfully finds releases and jobs
-- **Data Loading**: Loads pipeline results, sample counts, file info
-- **UI Components**: All renderers functional
-- **Caching**: Streamlit cache working properly
-- **Error Handling**: Graceful failure recovery
-
-## Implementation Status ✅
-
-### **Completed Features**
-- ✅ **Release Overview**: Clean, focused interface for pipeline results
-- ✅ **Key Metrics**: Release, total variants, pipeline status display
-- ✅ **Data Type Summary**: Combined variants and samples table
-- ✅ **Pipeline Details**: Expandable summary with execution info
-- ✅ **Debug Mode**: Job selection and cache management tools
-- ✅ **Performance**: Sub-second cached data loading
-- ✅ **Error Handling**: Graceful failures with user feedback
-- ✅ **File Management**: Proper KB/MB size formatting
-
-### **Development Workflow**
-1. **Launch**: `./run_frontend.sh --debug`
-2. **Edit**: Modify files in `frontend/` directory
-3. **Save**: Ctrl+S to save changes
-4. **Refresh**: F5 in browser to see updates
-5. **Debug**: Use sidebar tools for cache clearing
-
-### **Architecture Benefits**
-- **Modular Design**: Clean separation with design patterns
-- **Extensible**: Ready foundation for adding features
-- **Performant**: Cached data loading for fast response
-- **Maintainable**: Easy to understand and modify
-- **Reliable**: Simple workflow without auto-reload complexity
-
-**Release Overview Complete - Ready for Future Feature Development**
+**Import errors:**
+- Verify all required packages are installed
+- Check Python version (requires Python 3.8+)
