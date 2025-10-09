@@ -9,7 +9,7 @@ import streamlit as st
 from typing import Optional, Dict, List
 
 
-@st.cache_data
+@st.cache_data(ttl=300)
 def discover_releases(results_base_path: str) -> List[str]:
     """
     Discover available releases in results directory.
@@ -19,6 +19,9 @@ def discover_releases(results_base_path: str) -> List[str]:
 
     Returns:
         List of release names sorted by most recent first
+
+    Note:
+        Cache expires after 5 minutes to allow automatic detection of new releases
     """
     if not os.path.exists(results_base_path):
         return []
