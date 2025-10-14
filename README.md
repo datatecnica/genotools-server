@@ -9,6 +9,12 @@ Streamlit web application for browsing GP2 cohort data releases.
 - **Location**: `apps/gp2_browser/`
 - **Features**: Data releases, quality control, ancestry analysis, SNP metrics, rare variants
 
+### Precision Medicine Viewer
+Interactive Streamlit application for exploring precision medicine carriers pipeline results.
+- **Location**: `apps/precision_med/`
+- **Features**: Release overview, genotype viewer, locus reports, probe validation
+- **Integration**: Visualizes output from Precision Med API pipeline
+
 ## Microservices
 
 ### GenoTools API
@@ -22,10 +28,18 @@ FastAPI + Streamlit application for managing genomic cohort data.
 - **Location**: `microservices/genotracker/`
 - **Features**: Data visualization, local/GCS data support, interactive exploration
 
-### Carriers API
+### Precision Med API
+High-performance genomic carrier screening pipeline for pathogenic variant analysis.
+- **Location**: `microservices/precision_med_api/`
+- **Features**: Real-time allele harmonization, parallel processing, probe validation, clinical phenotype integration
+- **Performance**: ~10 min extraction for 400 variants across 254 PLINK files
+- **Data Sources**: NBA, WGS, and IMPUTED genotypes with ancestry stratification
+
+### Carriers API (DEPRECATED)
 API service for genetic carrier analysis.
 - **Location**: `microservices/carriers_api/`
 - **Features**: Carrier status processing, PLINK integration
+- **Status**: Deprecated in favor of Precision Med API
 
 ### IDAT Utils
 Illumina IDAT file processing toolkit for SNP metrics generation.

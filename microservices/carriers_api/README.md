@@ -1,5 +1,8 @@
 # Carriers API
 
+# DEPRECATED: 
+This API has been superseded by the Precision Medicine Carriers Pipeline (`microservices/precision_med_api`). The new pipeline offers improved performance, real-time harmonization, parallel processing, and integrated probe validation. Please migrate to the new system for all carrier analysis workflows.
+
 A microservice for processing genetic carrier information. This API allows you to extract carrier data from genotype files based on specified SNP lists.
 
 ## Overview
