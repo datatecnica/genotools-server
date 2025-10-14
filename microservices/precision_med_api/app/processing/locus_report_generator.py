@@ -20,16 +20,18 @@ from app.models.locus_report import (
     LocusReportCollection
 )
 from app.models.analysis import DataType
+from app.utils.probe_selector_loader import ProbeSelectionLoader
 
 
 class LocusReportGenerator:
     """Generates per-locus clinical phenotype reports from extraction results."""
 
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, probe_selection_path: Optional[str] = None):
         """Initialize with configuration settings.
 
         Args:
             settings: Application configuration settings
+            probe_selection_path: Optional path to probe selection JSON file
         """
         self.settings = settings
         self.logger = logging.getLogger(__name__)
@@ -38,6 +40,17 @@ class LocusReportGenerator:
         self.master_key = self._load_master_key()
         self.extended_clinical = self._load_extended_clinical()
         self.snp_list = self._load_snp_list()
+
+        # Load probe selection if provided
+        self.probe_selector = ProbeSelectionLoader(probe_selection_path)
+        if self.probe_selector.has_probe_selection():
+            stats = self.probe_selector.get_statistics()
+            self.logger.info(
+                f"Probe selection enabled: {stats['mutations_with_selection']} mutations, "
+                f"{stats['probes_excluded']} inferior probes will be filtered"
+            )
+        else:
+            self.logger.info("Probe selection disabled or not available")
 
     def _load_master_key(self) -> pd.DataFrame:
         """Load master key file with ancestry labels."""
@@ -94,6 +107,74 @@ class LocusReportGenerator:
         df = df.rename(columns={'snp_name': 'snp_list_id'})
 
         return df
+
+    def _filter_to_selected_probes(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Filter DataFrame to include only selected probes for multi-probe mutations.
+
+        For mutations with multiple probes, keeps only the recommended variant.
+        For mutations with single probe, keeps that probe (default selected).
+        For multi-probe mutations not in probe selection (no WGS comparison), keeps all probes.
+
+        Args:
+            df: Genotype DataFrame with variant_id and snp_list_id columns
+
+        Returns:
+            Filtered DataFrame with only selected probes
+        """
+        if df.empty:
+            return df
+
+        initial_count = len(df)
+        self.logger.info(f"Applying probe selection filter: {initial_count} variants before filtering")
+
+        # Group by snp_list_id to identify single vs multiple probe mutations
+        snp_counts = df.groupby('snp_list_id').size()
+
+        # Track mutations without probe selection
+        mutations_without_selection = set()
+
+        # Build filter mask
+        keep_mask = pd.Series([False] * len(df), index=df.index)
+
+        for idx, row in df.iterrows():
+            snp_list_id = row['snp_list_id']
+            variant_id = row['variant_id']
+            probe_count = snp_counts.get(snp_list_id, 1)
+
+            # Single probe mutation: keep (default selected)
+            if probe_count == 1:
+                keep_mask[idx] = True
+            else:
+                # Multiple probes: check if this is the recommended one
+                recommended = self.probe_selector.get_recommended_variant(snp_list_id)
+                if recommended:
+                    # We have a recommendation, only keep the selected probe
+                    if recommended == variant_id:
+                        keep_mask[idx] = True
+                else:
+                    # No recommendation (mutation not in WGS for comparison)
+                    # Keep all probes for this mutation (can't determine which is better)
+                    keep_mask[idx] = True
+                    mutations_without_selection.add(snp_list_id)
+
+        # Apply filter
+        filtered_df = df[keep_mask].copy()
+        final_count = len(filtered_df)
+        removed_count = initial_count - final_count
+
+        # Log summary
+        if mutations_without_selection:
+            self.logger.info(
+                f"Note: {len(mutations_without_selection)} multi-probe mutations not in probe selection "
+                f"(no WGS comparison available), kept all probes for these mutations"
+            )
+
+        self.logger.info(
+            f"Probe selection filtering complete: {final_count} variants kept, "
+            f"{removed_count} inferior probes removed"
+        )
+
+        return filtered_df
 
     def generate_reports(
         self,
@@ -177,6 +258,10 @@ class LocusReportGenerator:
         # Load genotype data
         self.logger.info(f"Loading {data_type} data from: {data_path}")
         df = pd.read_parquet(data_path)
+
+        # Apply probe selection filtering (NBA only)
+        if data_type == "NBA" and self.probe_selector.has_probe_selection():
+            df = self._filter_to_selected_probes(df)
 
         # Calculate variant-level carrier counts
         variant_details_by_variant = self._calculate_variant_carrier_counts(df)

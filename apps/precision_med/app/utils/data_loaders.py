@@ -170,8 +170,8 @@ def check_data_availability(release: str, job_name: str, results_base_path: str)
 
     return {
         'pipeline_results': os.path.exists(os.path.join(release_path, f"{job_name}_pipeline_results.json")),
-        'locus_reports_nba': os.path.exists(os.path.join(release_path, f"{job_name}_locus_reports_WGS_NBA.json")),
-        'locus_reports_imputed': os.path.exists(os.path.join(release_path, f"{job_name}_locus_reports_WGS_IMPUTED.json")),
+        'locus_reports_nba': os.path.exists(os.path.join(release_path, f"{job_name}_locus_reports_NBA.json")),
+        'locus_reports_imputed': os.path.exists(os.path.join(release_path, f"{job_name}_locus_reports_IMPUTED.json")),
         'probe_validation': os.path.exists(os.path.join(release_path, f"{job_name}_probe_selection.json"))
     }
 
@@ -208,11 +208,14 @@ def get_selected_probe_ids(release: str, job_name: str, results_base_path: str) 
         if recommended:
             selected_ids.add(recommended)
 
-    total_mutations = probe_data.get('summary', {}).get('total_mutations_analyzed', 0)
+    summary = probe_data.get('summary', {})
+    total_mutations_analyzed = summary.get('total_mutations_analyzed', 0)
+    mutations_with_multiple_probes = summary.get('mutations_with_multiple_probes', 0)
 
     return {
         'selected_ids': selected_ids,
-        'total_mutations': total_mutations,
+        'total_mutations': total_mutations_analyzed,
+        'mutations_with_multiple_probes': mutations_with_multiple_probes,
         'has_probe_selection': True
     }
 

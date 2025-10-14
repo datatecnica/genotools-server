@@ -440,10 +440,11 @@ class ExtractionCoordinator:
             DataFrame with metadata columns first, then normalized sample columns
         """
         # Define metadata columns in desired order
+        # Note: 'ancestry' removed - not meaningful for multi-ancestry merged data
         METADATA_COLUMNS = [
             'chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
             'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
-            'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry'
+            'pgen_a1', 'pgen_a2', 'data_type', 'source_file'
         ]
         
         # Optional metadata that might be added later
@@ -546,17 +547,26 @@ class ExtractionCoordinator:
                       'counted_allele', 'alt_allele']
 
         # Metadata columns that should be consistent across ancestries
+        # Note: 'ancestry' column is intentionally excluded because:
+        # - Merged data contains samples from multiple ancestries
+        # - Each sample's ancestry is implicit in its ID (cohort prefix)
+        # - A single 'ancestry' value would be misleading for multi-ancestry data
         metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
                          'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
-                         'pgen_a1', 'pgen_a2', 'data_type', 'ancestry']
+                         'pgen_a1', 'pgen_a2', 'data_type']
 
         # Start with the first DataFrame
         merged_df = result_dfs[0].copy()
 
+        # Drop ancestry column from merged result since it contains multiple ancestries
+        if 'ancestry' in merged_df.columns:
+            merged_df = merged_df.drop(columns=['ancestry'])
+
         # For subsequent DataFrames, merge on variant keys
         for df in result_dfs[1:]:
             # Get sample columns from this DataFrame (columns not in metadata)
-            df_sample_cols = [col for col in df.columns if col not in metadata_cols and col not in merge_keys]
+            # Also exclude 'ancestry' since it's not meaningful for multi-ancestry merged data
+            df_sample_cols = [col for col in df.columns if col not in metadata_cols and col not in merge_keys and col != 'ancestry']
 
             # Select only merge keys and new sample columns for merging
             cols_to_merge = merge_keys + df_sample_cols
@@ -1076,8 +1086,17 @@ class ExtractionCoordinator:
 
             logger.info(f"Running locus report generation with data types: {list(parquet_files.keys())}")
 
-            # Initialize generator
-            generator = LocusReportGenerator(self.settings)
+            # Check for probe selection file
+            probe_selection_path = os.path.join(output_dir, f"{output_name}_probe_selection.json")
+            if os.path.exists(probe_selection_path):
+                logger.info(f"Probe selection file found: {probe_selection_path}")
+                logger.info("NBA locus reports will be filtered to use only selected probes")
+            else:
+                logger.info("No probe selection file found, all variants will be included")
+                probe_selection_path = None
+
+            # Initialize generator with probe selection
+            generator = LocusReportGenerator(self.settings, probe_selection_path=probe_selection_path)
 
             # Generate independent reports for each available data type
             data_types_to_generate = list(parquet_files.keys())

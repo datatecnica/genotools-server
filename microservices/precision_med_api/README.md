@@ -58,7 +58,29 @@ This microservice processes ~400 pathogenic SNPs across 242+ PLINK 2.0 files (>1
 
 ## Usage
 
-### Quick Start
+### Three Ways to Run the Pipeline
+
+**1. Direct CLI** - Direct script execution (fastest for development)
+```bash
+source .venv/bin/activate
+python run_carriers_pipeline.py --ancestries AAC AFR
+```
+
+**2. API Client Script** - Submit via API with CLI-like interface
+```bash
+python start_api.py  # Start API server first
+python run_carriers_pipeline_api.py --ancestries AAC AFR
+```
+
+**3. REST API** - Programmatic HTTP access (Python, R, curl, etc.)
+```bash
+python start_api.py  # Start API server
+# Then use HTTP requests: POST http://localhost:8000/api/v1/carriers/pipeline
+```
+
+See [API_README.md](API_README.md) for complete API documentation.
+
+### Quick Start (CLI)
 
 ```bash
 # Activate environment

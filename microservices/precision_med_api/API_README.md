@@ -12,7 +12,12 @@ pip install -r requirements.txt
 
 ### 2. Start API Server
 ```bash
-./run_api.sh
+# Python script (recommended)
+python start_api.py
+
+# Or direct uvicorn
+source .venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at:
@@ -167,6 +172,38 @@ Custom output directory. Uses config-based results path if not specified.
 - **Type**: string or null
 - **Default**: null (use config-based path)
 
+## CLI-Style API Client
+
+For users who prefer command-line interfaces but want to use the API backend, we provide `run_carriers_pipeline_api.py`:
+
+```bash
+# Start API server first
+python start_api.py
+
+# In another terminal, run pipeline via API
+python run_carriers_pipeline_api.py --ancestries AAC AFR
+python run_carriers_pipeline_api.py --job-name my_analysis --skip-extraction
+python run_carriers_pipeline_api.py --no-follow  # Submit and exit immediately
+```
+
+**Features:**
+- Same argument interface as `run_carriers_pipeline.py`
+- Automatic job submission and status polling
+- Real-time progress updates
+- Clean result summary
+
+**Additional Arguments:**
+- `--api-host` - API server hostname (default: localhost)
+- `--api-port` - API server port (default: 8000)
+- `--poll-interval` - Status check interval in seconds (default: 5)
+- `--max-wait` - Maximum wait time in seconds (default: 3600)
+- `--no-follow` - Submit job and exit without waiting
+
+**When to Use:**
+- ✅ Prefer CLI but need API benefits (remote execution, job tracking)
+- ✅ Want same interface as direct CLI script
+- ✅ Need to run pipeline on remote server without SSH
+
 ## Usage Examples
 
 ### Example 1: Full Pipeline (All Data Types, All Ancestries)
@@ -256,22 +293,41 @@ if status["status"] == "completed":
     print(f"Execution time: {results['execution_time_seconds']}s")
 ```
 
-## CLI vs API Comparison
+## Comparison: Three Execution Methods
 
-The API provides identical functionality to the CLI script:
+| Feature | Direct CLI | API Client Script | Raw API |
+|---------|-----------|-------------------|---------|
+| **Command** | `python run_carriers_pipeline.py` | `python run_carriers_pipeline_api.py` | HTTP POST request |
+| **Setup Required** | Virtual env only | Start API server first | Start API server first |
+| **Interface** | Command line args | Command line args | JSON request body |
+| **Execution** | Direct/synchronous | API/async with polling | API/async |
+| **Progress Updates** | Real-time logs | Polling status updates | Manual status checks |
+| **Remote Access** | SSH required | HTTP (no SSH) | HTTP (no SSH) |
+| **Job Tracking** | None | Job ID with status | Job ID with status |
+| **Use Case** | Development, debugging | CLI UX with API benefits | Programmatic integration |
+| **Best For** | Interactive dev work | Remote execution from CLI | Python/R scripts, automation |
 
-| CLI Flag | API Parameter | Description |
-|----------|---------------|-------------|
-| `--job-name` | `job_name` | Job name for output files |
-| `--ancestries` | `ancestries` | Ancestries to process |
-| `--data-types` | `data_types` | Data types to process |
-| `--parallel` | `parallel` | Enable parallel processing |
-| `--max-workers` | `max_workers` | Maximum workers |
-| `--optimize` | `optimize` | Use performance optimizations |
-| `--skip-extraction` | `skip_extraction` | Skip extraction phase |
-| `--skip-probe-selection` | `skip_probe_selection` | Skip probe selection |
-| `--skip-locus-reports` | `skip_locus_reports` | Skip locus reports |
-| `--output` | `output_dir` | Custom output directory |
+### Parameter Mapping
+
+All three methods support identical parameters:
+
+| CLI Flag | API Client Flag | API JSON Field | Description |
+|----------|----------------|----------------|-------------|
+| `--job-name` | `--job-name` | `job_name` | Job name for output files |
+| `--ancestries` | `--ancestries` | `ancestries` | Ancestries to process |
+| `--data-types` | `--data-types` | `data_types` | Data types to process |
+| `--parallel` | `--parallel` | `parallel` | Enable parallel processing |
+| `--max-workers` | `--max-workers` | `max_workers` | Maximum workers |
+| `--optimize` | `--optimize` | `optimize` | Use performance optimizations |
+| `--skip-extraction` | `--skip-extraction` | `skip_extraction` | Skip extraction phase |
+| `--skip-probe-selection` | `--skip-probe-selection` | `skip_probe_selection` | Skip probe selection |
+| `--skip-locus-reports` | `--skip-locus-reports` | `skip_locus_reports` | Skip locus reports |
+| `--output` | `--output-dir` | `output_dir` | Custom output directory |
+| N/A | `--api-host` | N/A | API server hostname |
+| N/A | `--api-port` | N/A | API server port |
+| N/A | `--poll-interval` | N/A | Status polling interval |
+| N/A | `--max-wait` | N/A | Maximum wait time |
+| N/A | `--no-follow` | N/A | Submit and exit immediately |
 
 ## Architecture
 
