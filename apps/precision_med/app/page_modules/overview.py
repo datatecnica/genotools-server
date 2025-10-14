@@ -105,11 +105,15 @@ def render_data_type_breakdown(by_data_type: Dict[str, Any], release: str, job_n
             variants = stats.get('variants', 0)
             samples = stats.get('samples', 0)
 
-            # Add note for NBA if probe selection is available
+            # Calculate unique variants for NBA if probe selection is available
             variant_str = f"{variants:,}"
             if data_type == 'NBA' and probe_info.get('has_probe_selection'):
-                selected_count = len(probe_info['selected_ids'])
-                variant_str = f"{variants:,} ({selected_count} selected)"
+                # Calculate unique variants: total_probes - rejected_multi_probe_variants
+                mutations_with_multiple_probes = probe_info.get('mutations_with_multiple_probes', 0)
+                mutations_with_selection = probe_info.get('total_mutations', 0)
+                rejected_variants = mutations_with_multiple_probes - mutations_with_selection
+                unique_variants = variants - rejected_variants
+                variant_str = f"{unique_variants:,}"
 
             table_data.append({
                 'Data Type': data_type,

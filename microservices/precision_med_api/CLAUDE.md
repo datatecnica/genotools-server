@@ -1,58 +1,103 @@
-# CLAUDE.md - Claude Code Development Instructions
+# CLAUDE.md - Development Instructions
 
-## ⚠️ ALWAYS RUN FIRST ⚠️
+## Always Run First
+
 ```bash
 source .venv/bin/activate
 # Without this, imports will fail (pydantic, pandas, pgenlib, etc.)
 ```
 
-## Project Status: Phase 4B - Dosage Support & Cross-Dataset Analysis
-**Current Goal**: Complete imputed data dosage handling and cross-dataset analysis features.
-✅ Multi-ancestry merge fix completed
-✅ Genotype viewer frontend added
-🔄 Next: Imputed dosage support (continuous values 0.0-2.0 instead of discrete 0/1/2)
+## Quick Commands
+
+### Running the Pipeline
+
+```bash
+# Direct CLI (fastest for development)
+python run_carriers_pipeline.py --ancestries AAC AFR
+
+# Full pipeline
+python run_carriers_pipeline.py --job-name release10
+
+# Skip extraction (rapid iteration)
+python run_carriers_pipeline.py --job-name release10 --skip-extraction
+
+# Via API
+python start_api.py  # Terminal 1
+python run_carriers_pipeline_api.py --job-name release10  # Terminal 2
+```
+
+### Frontend
+
+```bash
+./run_frontend.sh              # Production mode
+./run_frontend.sh --debug      # Debug mode with job selection
+```
+
+### Testing
+
+```bash
+python -m pytest tests/ -v     # Unit tests
+python test_nba_pipeline.py    # NBA ProcessPool test
+```
+
+## File Paths
+
+```
+Input:  ~/gcs_mounts/gp2tier2_vwb/release10/
+Cache:  ~/gcs_mounts/genotools_server/precision_med/cache/
+Output: ~/gcs_mounts/genotools_server/precision_med/results/release10/
+SNP List: ~/gcs_mounts/genotools_server/precision_med/summary_data/precision_med_snp_list.csv
+```
+
+## Critical Fixes (Don't Regress)
+
+### Allele Counting
+- Counts **pathogenic alleles**, not reference alleles
+- Fixed in `extractor.py` with proper genotype transformation
+- Genotype values: 0=none, 1=het carrier, 2=hom carrier
+
+### Sample IDs
+- Normalized without '0_' prefix
+- WGS duplicates fixed: `SAMPLE_001234_SAMPLE_001234` → `SAMPLE_001234`
+- Applied consistently across all data types
+
+### Multiple Probes
+- Fixed deduplication to preserve different variant_id values
+- 77 SNPs have multiple probes (different NBA probes for same position)
+- Probe selection validates quality against WGS ground truth
+
+### Multi-Ancestry Merge
+- NBA/IMPUTED properly merge (not concat) across ancestries
+- Outer join ensures all samples have genotypes for all variants
+- Fixed in `coordinator.py` with `_merge_ancestry_results()`
+
+### Probe Selection Integration
+- Locus reports now filter to use only selected probes
+- Single-probe mutations kept by default
+- Multi-probe mutations: keep consensus-recommended probe only
+- Implemented in `locus_report_generator.py` + `probe_selector_loader.py`
+
+## Core Files (Test After Changes)
+
+```
+app/processing/extractor.py              # Allele counting logic
+app/processing/coordinator.py            # ProcessPool orchestration
+app/processing/locus_report_generator.py # Clinical phenotype analysis
+app/models/harmonization.py              # Data models (many dependencies)
+```
 
 ## Implementation Rules
-- **If changing >3 files or adding new module** → Create plan first in `.claude/tasks/TASK_NAME.md`
-- **If fixing bug or enhancing existing function** → Direct implementation
-- **If touching app/processing/extractor.py** → Run `test_nba_pipeline.py` after
-- **If modifying frontend/** → Test with `./run_frontend.sh --debug`
-- **If working on Phase 4B analysis** → Use `--skip-extraction` for rapid iteration
 
-## Quick Development Patterns
-- **Testing UI changes**: Edit `frontend/components/` → `./run_frontend.sh --debug`
-- **Testing extraction logic**: Use `--skip-extraction` with existing job
-- **Adding metrics**: Extend `app/models/probe_validation.py`, not new files
-- **Rapid iteration**: `python run_carriers_pipeline.py --job-name existing_analysis --skip-extraction`
+- If changing >3 files or adding new module: Create plan first
+- If fixing bug or enhancing existing function: Direct implementation
+- Never create files unless absolutely necessary
+- Always prefer editing existing files to creating new ones
+- Never create documentation unless explicitly requested
 
-## Never Do This
-- **DON'T** create new test files (use existing `tests/` directory)
-- **DON'T** duplicate functionality (check `app/processing/` first)
-- **DON'T** run full pipeline for testing (use `--skip-extraction`)
-- **DON'T** create documentation unless explicitly asked
-- **DON'T** create files unless absolutely necessary
-- **DON'T** proactively create README or *.md files
-- **ALWAYS** prefer editing existing files over creating new ones
+## Pipeline Execution
 
-## Recent Critical Fixes (Don't Regress)
-- **Allele counting**: Now counts pathogenic, not reference alleles (fixed in extractor.py)
-- **Sample IDs**: Normalized without '0_' prefix (WGS duplicates also fixed)
-- **Multiple probes**: Fixed deduplication to preserve different variant_id values (77 SNPs with multiple probes)
-- **Multi-ancestry merge**: Fixed NBA/IMPUTED to properly merge (not concat) across ancestries (coordinator.py)
-- **Imputed data**: Currently extracts as discrete 0/1/2 via PLINK2, but data is actually dosages (0.0-2.0)
-
-## Core Files (Edit with Caution)
-```
-app/processing/extractor.py     # Allele counting logic - test after changes
-app/processing/coordinator.py   # ProcessPool orchestration - handles parallelization
-app/models/harmonization.py     # Data models - many dependencies
-app/processing/probe_selector.py # Probe quality validation against WGS
-frontend/components/             # UI components - test with --debug mode
-```
-
-## Pipeline Execution Commands
 ```bash
-# Full pipeline run (~45 minutes)
+# Full pipeline (~45 minutes)
 python run_carriers_pipeline.py --job-name my_analysis
 
 # Rapid development (0.0s - reuses existing results)
@@ -61,73 +106,23 @@ python run_carriers_pipeline.py --job-name existing_analysis --skip-extraction
 # Quick validation (5-10 minutes)
 python run_carriers_pipeline.py --ancestries AAC AFR
 
-# Probe selection (enabled by default, can be skipped)
+# Probe selection (enabled by default)
 python run_carriers_pipeline.py                        # probe selection enabled
 python run_carriers_pipeline.py --skip-probe-selection # skip probe selection
 ```
 
-## Frontend Interface
-```bash
-# Production mode
-./run_frontend.sh
-
-# Debug mode with job selection
-./run_frontend.sh --debug
-
-# Custom port
-./run_frontend.sh 8502 --debug
-
-# Legacy Streamlit viewer (deprecated)
-streamlit run streamlit_viewer.py
-```
-
-### Frontend Development Notes
-- **Streamlit API**: Use `width='stretch'` instead of deprecated `use_container_width=True`
-  - `use_container_width` will be removed after 2025-12-31
-  - `width='stretch'` for full width, `width='content'` for auto width
-- **Component Architecture**: Use factory/facade patterns in `frontend/utils/ui_components.py`
-- **Data Loading**: Use `DataLoaderFactory` for consistent data access patterns
-
-## Test Execution
-```bash
-source .venv/bin/activate
-python -m pytest tests/ -v  # 3 tests, zero warnings
-
-# Pipeline integration tests
-python test_nba_pipeline.py        # NBA ProcessPool test
-python test_imputed_pipeline.py    # IMPUTED ProcessPool test
-```
-
-## File Paths
-```
-Input:  ~/gcs_mounts/gp2tier2_vwb/release{10}/
-Cache:  ~/gcs_mounts/genotools_server/precision_med/cache/
-Output: ~/gcs_mounts/genotools_server/precision_med/results/
-```
-
 ## Architecture Context
-- **Core Pipeline**: Stable with probe selection, allele counting fixes, sample ID normalization
-- **Frontend**: Modular architecture with factory/facade patterns in `frontend/` directory
-  - New genotype viewer page with interactive matrix visualization
-  - Component-based UI system with specialized renderers
-- **Phase 4B Focus**: Imputed dosage support, cross-dataset analysis, population stratification
-  - Multi-ancestry merge fixed with proper outer join logic
-  - Genotype viewer supports filtering by data type, genes, carrier status
-- **Mature Codebase**: Prefer enhancing existing modules over creating new files
-- **Performance**: ProcessPool parallelization, chunk_size auto-optimization, <10min for 400 variants
 
-## Imputed Data Dosage Notes
-- **Current State**: PLINK2 extraction produces discrete 0/1/2 genotypes via `.traw` format
-- **Actual Data**: Imputed files contain continuous dosage values (0.0-2.0)
-- **Required Change**: Need to use pgenlib's dosage reading capabilities or PLINK2's dosage export
-- **Frontend Impact**: Genotype viewer will need gradient display for dosages vs discrete colors
-- **Carrier Calling**: May need configurable thresholds (e.g., dosage > 0.5 = carrier)
+- Core pipeline stable with probe selection, allele counting fixes, sample ID normalization
+- Frontend: Modular architecture with factory/facade patterns
+- Probe selection: Validates NBA probes against WGS ground truth
+- Locus reports: Per-gene clinical phenotype statistics stratified by ancestry
+- Mature codebase: Prefer enhancing existing modules over creating new files
+- Performance: ProcessPool parallelization, <10min for 400 variants
 
-## Important Development Instructions
-- Do what has been asked; nothing more, nothing less
-- NEVER create files unless they're absolutely necessary for achieving your goal
-- ALWAYS prefer editing an existing file to creating a new one
-- NEVER proactively create documentation files (*.md) or README files unless explicitly requested
-- Use `--skip-extraction` for rapid iteration during Phase 4B development
-- Consider frontend architecture patterns when adding UI features
-- Test changes incrementally - the pipeline is in production use
+## Development Tips
+
+- Use `--skip-extraction` for rapid iteration on postprocessing logic
+- Test changes incrementally - pipeline is in production use
+- Run unit tests before committing: `python -m pytest tests/ -v`
+- Frontend changes: Test with `./run_frontend.sh --debug`

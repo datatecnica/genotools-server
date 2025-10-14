@@ -1,0 +1,100 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebooks
+*.ipynb_checkpoints
+.ipynb_checkpoints/
+*.ipynb
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+
+# Logs
+*.log
+test_api.log
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+*.orig
+
+# Archive directory
+archive/
+
+# Results and data (large files)
+results/
+cache/
+*.parquet
+*.pgen
+*.pvar
+*.psam
+*.traw
+
+# Configuration (if contains sensitive data)
+.env
+.env.local
+*.secret
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Claude Code
+.claude/settings.local.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Backup files from editors
+*~
+*.swp
+*.swo
+*.bak
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Documentation builds
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Project-specific
+pmed_postprocessing_test.py
+test_api.py
+run_api.sh.old
+*.test.py
+.pytest_cache
+.claude
+.streamlit

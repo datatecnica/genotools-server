@@ -56,7 +56,7 @@ def render_validation_summary(data: Dict[str, Any]):
 
     with col1:
         total_mutations = summary.get('total_mutations_analyzed', 0)
-        st.metric("Mutations Analyzed", f"{total_mutations:,}")
+        st.metric("Probes Selected", f"{total_mutations:,}")
 
     with col2:
         multiple_probes = summary.get('mutations_with_multiple_probes', 0)
@@ -64,7 +64,7 @@ def render_validation_summary(data: Dict[str, Any]):
 
     with col3:
         probe_comparisons = summary.get('total_probe_comparisons', 0)
-        st.metric("Probe Comparisons", f"{probe_comparisons:,}")
+        st.metric("Probe Comparisons with WGS", f"{probe_comparisons:,}")
 
     with col4:
         samples_compared = summary.get('samples_compared', 0)
