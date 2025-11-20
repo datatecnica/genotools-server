@@ -30,6 +30,14 @@ class PipelineParams:
     output_file: str = "final_merged.vcf.gz"
     max_workers: int = 10
     work_dir: Optional[str] = None
+    merge_cpus: int = 2
+    merge_memory_gb: int = 8
+    concat_cpus: int = 4
+    concat_memory_gb: int = 16
+    merge_cpus: int = 2
+    merge_memory_gb: int = 8
+    concat_cpus: int = 4
+    concat_memory_gb: int = 16
 
 
 @dataclass
@@ -47,17 +55,6 @@ class VCFMergePipeline:
     2. Gather: Concatenate all processed shards into final output
     """
     
-    # Process configurations
-    MERGE_CONFIG = ProcessConfig(
-        cpu=2,
-        memory_gb=8
-    )
-    
-    CONCAT_CONFIG = ProcessConfig(
-        cpu=4,
-        memory_gb=16
-    )
-    
     def __init__(self, params: PipelineParams):
         """
         Initialize the pipeline with parameters
@@ -70,6 +67,17 @@ class VCFMergePipeline:
         self.work_dir.mkdir(parents=True, exist_ok=True)
         self.shard_dir = self.work_dir / "shards"
         self.shard_dir.mkdir(exist_ok=True)
+        
+        # Process configurations from params
+        self.merge_config = ProcessConfig(
+            cpu=params.merge_cpus,
+            memory_gb=params.merge_memory_gb
+        )
+        
+        self.concat_config = ProcessConfig(
+            cpu=params.concat_cpus,
+            memory_gb=params.concat_memory_gb
+        )
         
         # Validate inputs
         self._validate_inputs()
@@ -156,7 +164,7 @@ class VCFMergePipeline:
         # Build bcftools merge command
         cmd = [
             "bcftools", "merge",
-            "--threads", str(self.MERGE_CONFIG.cpu),
+            "--threads", str(self.merge_config.cpu),
             "-r", region,
             "-Ou",  # Uncompressed BCF output
             "-o", str(output_file)
@@ -212,7 +220,7 @@ class VCFMergePipeline:
             "-f", str(file_list),
             "-Oz",  # Compressed VCF output
             "-o", str(output_path),
-            "--threads", str(self.CONCAT_CONFIG.cpu)
+            "--threads", str(self.concat_config.cpu)
         ]
         
         # Run concatenation
@@ -232,7 +240,7 @@ class VCFMergePipeline:
             "bcftools", "index",
             "-t",  # Create TBI index
             str(output_path),
-            "--threads", str(self.CONCAT_CONFIG.cpu)
+            "--threads", str(self.concat_config.cpu)
         ]
         
         returncode, stdout, stderr = self._run_command(
@@ -325,7 +333,11 @@ def merge_vcf_files(vcf_files: List[str],
                    regions_file: str,
                    output_file: str = "final_merged.vcf.gz",
                    max_workers: int = 10,
-                   work_dir: Optional[str] = None) -> bool:
+                   work_dir: Optional[str] = None,
+                   merge_cpus: int = 2,
+                   merge_memory_gb: int = 8,
+                   concat_cpus: int = 4,
+                   concat_memory_gb: int = 16) -> bool:
     """
     Main method to execute the VCF merge pipeline with scatter-gather pattern
     
@@ -335,6 +347,10 @@ def merge_vcf_files(vcf_files: List[str],
         output_file: Path for the final merged VCF.gz output
         max_workers: Maximum number of parallel workers for scatter phase
         work_dir: Working directory for temporary files (auto-created if None)
+        merge_cpus: Number of CPUs for each merge process (default: 2)
+        merge_memory_gb: Memory in GB for each merge process (default: 8)
+        concat_cpus: Number of CPUs for concatenation process (default: 4)
+        concat_memory_gb: Memory in GB for concatenation process (default: 16)
     
     Returns:
         True if pipeline completed successfully, False otherwise
@@ -342,14 +358,19 @@ def merge_vcf_files(vcf_files: List[str],
     Example:
         >>> vcf_files = ["sample1.vcf.gz", "sample2.vcf.gz", "sample3.vcf.gz"]
         >>> regions_file = "regions.txt"  # Contains: chr1:1-10000000, chr1:10000001-20000000, etc.
-        >>> success = merge_vcf_files(vcf_files, regions_file, "merged_output.vcf.gz")
+        >>> success = merge_vcf_files(vcf_files, regions_file, "merged_output.vcf.gz",
+        ...                          max_workers=20, merge_cpus=4, concat_cpus=8)
     """
     params = PipelineParams(
         vcf_files=vcf_files,
         regions_file=regions_file,
         output_file=output_file,
         max_workers=max_workers,
-        work_dir=work_dir
+        work_dir=work_dir,
+        merge_cpus=merge_cpus,
+        merge_memory_gb=merge_memory_gb,
+        concat_cpus=concat_cpus,
+        concat_memory_gb=concat_memory_gb
     )
     
     pipeline = VCFMergePipeline(params)
@@ -366,6 +387,10 @@ if __name__ == "__main__":
     parser.add_argument("--output", default="final_merged.vcf.gz", help="Output file path")
     parser.add_argument("--max-workers", type=int, default=10, help="Max parallel workers")
     parser.add_argument("--work-dir", help="Working directory for temporary files")
+    parser.add_argument("--merge-cpus", type=int, default=2, help="CPUs per merge process (default: 2)")
+    parser.add_argument("--merge-memory-gb", type=int, default=8, help="Memory GB per merge process (default: 8)")
+    parser.add_argument("--concat-cpus", type=int, default=4, help="CPUs for concatenation (default: 4)")
+    parser.add_argument("--concat-memory-gb", type=int, default=16, help="Memory GB for concatenation (default: 16)")
     
     args = parser.parse_args()
     
@@ -374,7 +399,11 @@ if __name__ == "__main__":
         regions_file=args.regions_file,
         output_file=args.output,
         max_workers=args.max_workers,
-        work_dir=args.work_dir
+        work_dir=args.work_dir,
+        merge_cpus=args.merge_cpus,
+        merge_memory_gb=args.merge_memory_gb,
+        concat_cpus=args.concat_cpus,
+        concat_memory_gb=args.concat_memory_gb
     )
     
     exit(0 if success else 1)
