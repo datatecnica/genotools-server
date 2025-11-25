@@ -8,9 +8,6 @@ from utils.rare_variants_utils import (
     load_rare_variant_data,
     filter_rare_variant_data
 )
-from utils.config import AppConfig
-
-config = AppConfig()
 
 def main():
     """Main function for the GP2 Rare Variant Browser."""
@@ -18,9 +15,9 @@ def main():
     st.title("GP2 Rare Variant Browser")
 
     # Load data
-    bucket_name = "gt_app_utils"
-    file_path = "gp2_RV_browser_input.csv"
-    rv_data = load_rare_variant_data(config.FRONTEND_BUCKET_NAME+"/", file_path)
+    bucket_name = "genotools-server"
+    file_path = "cohort_browser/nba/rare_variants/gp2_RV_browser_input.csv"
+    rv_data = load_rare_variant_data(bucket_name, file_path)
 
     # User selections
     rv_select(rv_data)
