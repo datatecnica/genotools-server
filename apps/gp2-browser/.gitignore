@@ -1,3 +1,4 @@
+data/*
 *.json
 test.py
 __pycache__/*
@@ -6,5 +7,7 @@ __pycache__/*
 .secrets
 visualization/__pycache__/*
 utils/__pycache__/*
+data
 .secrets/
 .venv/
+data/
