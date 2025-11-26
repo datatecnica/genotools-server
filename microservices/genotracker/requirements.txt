@@ -11,7 +11,7 @@ geneview==0.2.1
 matplotlib==3.10.0
 pydantic_settings==2.7.1
 google-cloud-storage
-pg8000==1.31.2
+pg8000==1.31.5
 SQLAlchemy==2.0.40
 cloud-sql-python-connector==1.18.1
 gunicorn==23.0.0
