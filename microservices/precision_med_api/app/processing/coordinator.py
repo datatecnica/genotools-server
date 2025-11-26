@@ -250,7 +250,20 @@ class ExtractionCoordinator:
                             files.append(imputed_path)
                             if ancestry not in source_ancestries:
                                 source_ancestries.append(ancestry)
-            
+
+            elif data_type == DataType.EXOMES:
+                # Single EXOMES file (like WGS, not split by ancestry)
+                try:
+                    exomes_path = self.settings.get_exomes_path() + ".pgen"
+                    if os.path.exists(exomes_path):
+                        files.append(exomes_path)
+                        logger.info(f"Found EXOMES data at: {exomes_path}")
+                    else:
+                        logger.info(f"EXOMES file not found at: {exomes_path}")
+                except ValueError as e:
+                    # Handle releases where EXOMES is not available
+                    logger.info(f"EXOMES not available: {e}")
+
             if files:
                 plan.add_data_source(data_type.value, files, source_ancestries)
                 total_files += len(files)

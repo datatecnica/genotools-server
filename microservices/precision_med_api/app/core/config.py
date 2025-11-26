@@ -183,10 +183,10 @@ class Settings(BaseModel):
     def get_imputed_path(self, ancestry: str, chrom: str) -> str:
         if ancestry not in self.ANCESTRIES:
             raise ValueError(f"Invalid ancestry: {ancestry}. Must be one of {self.ANCESTRIES}")
-        
+
         if chrom not in self.CHROMOSOMES:
             raise ValueError(f"Invalid chromosome: {chrom}. Must be one of {self.CHROMOSOMES}")
-        
+
         base_path = os.path.join(
             self.release_path,
             "imputed_genotypes",
@@ -194,6 +194,37 @@ class Settings(BaseModel):
             f"chr{chrom}_{ancestry}_release{self.release}_vwb"
         )
         return base_path
+
+    def get_exomes_path(self, chrom: Optional[str] = None) -> str:
+        """
+        Get path to clinical exomes PLINK files.
+
+        Args:
+            chrom: Optional chromosome (1-22, X, Y, MT). If None, returns all_chrs
+
+        Returns:
+            Base path to PLINK file set (without extension)
+
+        Note:
+            Clinical exomes only available starting from release 8
+        """
+        # Check if EXOMES is available for this release
+        if int(self.release) < 8:
+            raise ValueError(f"Clinical exomes not available for release {self.release}. Available from release 8+")
+
+        base_dir = os.path.join(
+            self.release_path,
+            "clinical_exomes",
+            "deepvariant_joint_calling",
+            "plink"
+        )
+
+        if chrom:
+            if chrom not in self.CHROMOSOMES:
+                raise ValueError(f"Invalid chromosome: {chrom}. Must be one of {self.CHROMOSOMES}")
+            return os.path.join(base_dir, f"chr{chrom}")
+        else:
+            return os.path.join(base_dir, "all_chrs")
     
     def get_clinical_paths(self) -> Dict[str, str]:
         clinical_base = os.path.join(self.release_path, "clinical_data")

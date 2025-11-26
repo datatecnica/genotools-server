@@ -51,9 +51,9 @@ def parse_args():
         '--data-types',
         type=str,
         nargs='+',
-        choices=['NBA', 'WGS', 'IMPUTED'],
+        choices=['NBA', 'WGS', 'IMPUTED', 'EXOMES'],
         default=['NBA', 'WGS', 'IMPUTED'],
-        help='Data types to process (default: all)'
+        help='Data types to process (default: NBA, WGS, IMPUTED. EXOMES available for release 8+)'
     )
     parser.add_argument(
         '--parallel',
