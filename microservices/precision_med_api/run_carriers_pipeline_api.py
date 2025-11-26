@@ -6,6 +6,8 @@ This script provides the same interface as run_carriers_pipeline.py but
 executes the pipeline through the REST API instead of directly calling
 the coordinator. Requires the API server to be running (python start_api.py).
 
+NOTE: Keep CLI arguments in sync with run_carriers_pipeline.py
+
 Quick Start:
     # Terminal 1: Start API server
     python start_api.py
@@ -88,9 +90,15 @@ Examples:
         '--data-types',
         type=str,
         nargs='+',
-        choices=['NBA', 'WGS', 'IMPUTED'],
+        choices=['NBA', 'WGS', 'IMPUTED', 'EXOMES'],
         default=['NBA', 'WGS', 'IMPUTED'],
-        help='Data types to process (default: all)'
+        help='Data types to process (default: NBA, WGS, IMPUTED. EXOMES available for release 8+)'
+    )
+    parser.add_argument(
+        '--release',
+        type=str,
+        default='10',
+        help='GP2 release version (default: 10, EXOMES requires 8+)'
     )
     parser.add_argument(
         '--parallel',
@@ -203,6 +211,7 @@ def submit_pipeline_job(api_base_url: str, args) -> Optional[Dict[str, Any]]:
     # Build request payload
     request_data = {
         "job_name": args.job_name,
+        "release": args.release,
         "ancestries": args.ancestries,  # None = all ancestries
         "data_types": args.data_types,
         "parallel": args.parallel,
@@ -216,6 +225,7 @@ def submit_pipeline_job(api_base_url: str, args) -> Optional[Dict[str, Any]]:
 
     logger.info("=== Pipeline Configuration ===")
     logger.info(f"📋 Job name: {args.job_name}")
+    logger.info(f"📦 Release: {args.release}")
     logger.info(f"📊 Data types: {args.data_types}")
     logger.info(f"🌍 Ancestries: {args.ancestries or 'all'}")
     logger.info(f"⚡ Parallel: {args.parallel}")

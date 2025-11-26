@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Run carriers pipeline for harmonization/extraction across ALL datatypes (NBA, WGS, IMPUTED).
+Run carriers pipeline for harmonization/extraction across ALL datatypes (NBA, WGS, IMPUTED, EXOMES).
 Executes the full genomic carrier screening pipeline with separate data type outputs.
+
+NOTE: Keep CLI arguments in sync with run_carriers_pipeline_api.py
 """
 
 import sys
@@ -54,6 +56,12 @@ def parse_args():
         choices=['NBA', 'WGS', 'IMPUTED', 'EXOMES'],
         default=['NBA', 'WGS', 'IMPUTED'],
         help='Data types to process (default: NBA, WGS, IMPUTED. EXOMES available for release 8+)'
+    )
+    parser.add_argument(
+        '--release',
+        type=str,
+        default='10',
+        help='GP2 release version (default: 10, EXOMES requires 8+)'
     )
     parser.add_argument(
         '--parallel',
@@ -179,13 +187,13 @@ def main():
     try:
         print_system_info()
         
-        # Initialize settings with optimization
+        # Initialize settings with optimization and release
         if args.optimize:
             logger.info("🚀 Using auto-optimized performance settings")
-            settings = Settings.create_optimized()
+            settings = Settings.create_optimized(release=args.release)
         else:
             logger.info("📊 Using default settings")
-            settings = Settings()
+            settings = Settings(release=args.release)
         
         logger.info(f"⚙️  Performance settings: {settings.max_workers} workers, {settings.chunk_size} chunk_size, {settings.process_cap} process_cap")
         
@@ -225,6 +233,7 @@ def main():
         enable_locus_reports = not args.skip_locus_reports
 
         logger.info("=== Pipeline Configuration ===")
+        logger.info(f"📦 Release: {args.release}")
         logger.info(f"📊 Data types: {args.data_types}")
         logger.info(f"🌍 Ancestries ({len(args.ancestries)}): {args.ancestries}")
         logger.info(f"📋 SNP list: {snp_list_path}")

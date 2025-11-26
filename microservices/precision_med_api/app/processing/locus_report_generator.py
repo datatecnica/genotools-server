@@ -66,7 +66,19 @@ class LocusReportGenerator:
 
     def _load_extended_clinical(self) -> pd.DataFrame:
         """Load extended clinical data file."""
-        clin_path = Path(self.settings.release_path) / "clinical_data" / f"r{self.settings.release}_extended_clinical_data_vwb.csv"
+        import glob
+
+        clinical_dir = Path(self.settings.release_path) / "clinical_data"
+
+        # Use glob to find extended clinical file (handles varying naming patterns across releases)
+        # Patterns: r8_extended_clinical_data_vwb_2024-09-11.csv, r10_extended_clinical_data_vwb.csv, r11_extended_clinical_data.csv
+        pattern = str(clinical_dir / f"r{self.settings.release}_extended_clinical_data*.csv")
+        matches = glob.glob(pattern)
+
+        if not matches:
+            raise FileNotFoundError(f"No extended clinical file found matching pattern: {pattern}")
+
+        clin_path = Path(matches[0])  # Use first match
         self.logger.info(f"Loading extended clinical from: {clin_path}")
 
         df = pd.read_csv(clin_path, low_memory=False)

@@ -405,7 +405,8 @@ class ExtractionCoordinator:
         wgs_results = [df for df in all_results if (df['data_type'] == 'WGS').all()]
         nba_results = [df for df in all_results if (df['data_type'] == 'NBA').all()]
         imputed_results = [df for df in all_results if (df['data_type'] == 'IMPUTED').all()]
-        
+        exomes_results = [df for df in all_results if (df['data_type'] == 'EXOMES').all()]
+
         # Combine within each data type (only deduplicating within same data type)
         if wgs_results:
             wgs_combined = pd.concat(wgs_results, ignore_index=True)
@@ -434,7 +435,18 @@ class ExtractionCoordinator:
             imputed_combined = self._reorder_dataframe_columns(imputed_combined)
             results_by_datatype['IMPUTED'] = imputed_combined
             logger.info(f"IMPUTED combined: {len(imputed_combined)} variants")
-        
+
+        if exomes_results:
+            # EXOMES is single file like WGS (not split by ancestry)
+            exomes_combined = pd.concat(exomes_results, ignore_index=True)
+            exomes_combined = exomes_combined.drop_duplicates(
+                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'],
+                keep='first'
+            )
+            exomes_combined = self._reorder_dataframe_columns(exomes_combined)
+            results_by_datatype['EXOMES'] = exomes_combined
+            logger.info(f"EXOMES combined: {len(exomes_combined)} variants")
+
         execution_time = time.time() - start_time
         total_variants = sum(len(df) for df in results_by_datatype.values())
         logger.info(f"ProcessPool extraction completed in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
