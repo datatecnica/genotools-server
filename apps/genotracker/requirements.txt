@@ -10,7 +10,7 @@ seaborn==0.13.2
 streamlit==1.41.1
 google-cloud-secret-manager
 google-cloud-storage
-pg8000==1.31.2
+pg8000==1.31.5
 SQLAlchemy==2.0.40
 cloud-sql-python-connector==1.18.1
 gunicorn==23.0.0
