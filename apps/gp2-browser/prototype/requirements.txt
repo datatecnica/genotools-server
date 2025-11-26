@@ -1,4 +1,4 @@
 pandas==2.2.3
-protobuf==5.29.3
+protobuf==5.29.5
 streamlit==1.41.1
 google-cloud-storage

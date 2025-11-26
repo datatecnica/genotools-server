@@ -4,7 +4,7 @@ numpy==2.2.2
 pandas==2.2.3
 Pillow==11.1.0
 plotly==5.24.1
-protobuf==5.29.3
+protobuf==5.29.5
 pydantic_settings==2.7.1
 seaborn==0.13.2
 streamlit==1.41.1
