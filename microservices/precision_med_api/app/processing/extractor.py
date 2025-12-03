@@ -367,8 +367,79 @@ class VariantExtractor:
             harmonized_df = pd.DataFrame(columns=harmonized_df.columns)
         
         return harmonized_df
-    
-    
+
+    def _apply_maf_correction(self, harmonized_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply minor allele frequency correction to ensure we count the minor allele.
+
+        If ALT AF > 0.5, flip genotypes so we count REF (the minor allele) instead.
+        This ensures we always count the pathogenic/minor allele regardless of which
+        allele is REF vs ALT in the source data.
+
+        Args:
+            harmonized_df: DataFrame with harmonized genotypes
+
+        Returns:
+            DataFrame with MAF-corrected genotypes and new columns:
+            - maf_corrected: bool indicating if correction was applied
+            - original_alt_af: float with the original ALT allele frequency
+        """
+        if harmonized_df.empty:
+            return harmonized_df
+
+        # Define metadata columns to exclude from sample columns
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
+                         'pgen_a1', 'pgen_a2', 'data_type', 'source_file']
+        sample_cols = [c for c in harmonized_df.columns if c not in metadata_cols]
+
+        corrected_rows = []
+        for idx, row in harmonized_df.iterrows():
+            row_copy = row.copy()
+
+            # Calculate ALT AF from valid genotypes
+            genotypes = pd.to_numeric(row[sample_cols], errors='coerce')
+            valid_gt = genotypes.dropna()
+
+            if len(valid_gt) == 0:
+                row_copy['maf_corrected'] = False
+                row_copy['original_alt_af'] = None
+                corrected_rows.append(row_copy)
+                continue
+
+            total_alleles = len(valid_gt) * 2
+            alt_allele_count = valid_gt.sum()
+            alt_af = alt_allele_count / total_alleles
+
+            if alt_af > 0.5:
+                # Flip genotypes: 0→2, 1→1, 2→0
+                for col in sample_cols:
+                    if pd.notna(row_copy[col]):
+                        try:
+                            gt = float(row_copy[col])
+                            row_copy[col] = 2.0 - gt
+                        except:
+                            pass
+
+                # Swap counted/alt allele labels
+                old_counted = row_copy.get('counted_allele', '')
+                old_alt = row_copy.get('alt_allele', '')
+                row_copy['counted_allele'] = old_alt
+                row_copy['alt_allele'] = old_counted
+                row_copy['COUNTED'] = old_alt
+                row_copy['ALT'] = old_counted
+                row_copy['maf_corrected'] = True
+
+                logger.info(f"MAF correction applied to {row_copy.get('variant_id', 'unknown')}: "
+                           f"ALT AF={alt_af:.3f}, now counting {old_alt}")
+            else:
+                row_copy['maf_corrected'] = False
+
+            row_copy['original_alt_af'] = alt_af
+            corrected_rows.append(row_copy)
+
+        return pd.DataFrame(corrected_rows)
+
     def extract_single_file_harmonized(
         self, 
         pgen_path: str, 
@@ -425,7 +496,10 @@ class VariantExtractor:
         
         # Apply harmonization
         harmonized_df = self._harmonize_extracted_genotypes(raw_df, plan_df)
-        
+
+        # Apply MAF correction to ensure minor allele counting
+        harmonized_df = self._apply_maf_correction(harmonized_df)
+
         logger.info(f"Extracted and harmonized {len(harmonized_df)} variants from {pgen_path}")
         return harmonized_df
     
