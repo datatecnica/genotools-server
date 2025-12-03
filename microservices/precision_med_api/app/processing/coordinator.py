@@ -469,7 +469,8 @@ class ExtractionCoordinator:
         METADATA_COLUMNS = [
             'chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
             'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
-            'pgen_a1', 'pgen_a2', 'data_type', 'source_file'
+            'pgen_a1', 'pgen_a2', 'data_type', 'source_file',
+            'maf_corrected', 'original_alt_af'  # MAF correction columns
         ]
         
         # Optional metadata that might be added later
@@ -578,7 +579,7 @@ class ExtractionCoordinator:
         # - A single 'ancestry' value would be misleading for multi-ancestry data
         metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
                          'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
-                         'pgen_a1', 'pgen_a2', 'data_type']
+                         'pgen_a1', 'pgen_a2', 'data_type', 'maf_corrected', 'original_alt_af']
 
         # Start with the first DataFrame
         merged_df = result_dfs[0].copy()
