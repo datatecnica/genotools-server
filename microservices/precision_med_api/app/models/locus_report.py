@@ -47,6 +47,7 @@ class ClinicalMetrics(BaseModel):
     dat_caudate_available: int = Field(0, description="Carriers with DAT caudate mean available")
 
     # Disease duration metrics
+    disease_duration_lte_3_years: int = Field(0, description="Carriers with disease duration ≤ 3 years")
     disease_duration_lte_5_years: int = Field(0, description="Carriers with disease duration ≤ 5 years")
     disease_duration_lte_7_years: int = Field(0, description="Carriers with disease duration ≤ 7 years")
 

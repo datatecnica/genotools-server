@@ -66,7 +66,23 @@ class LocusReportGenerator:
 
     def _load_extended_clinical(self) -> pd.DataFrame:
         """Load extended clinical data file."""
-        clin_path = Path(self.settings.release_path) / "clinical_data" / f"r{self.settings.release}_extended_clinical_data_vwb.csv"
+        import glob
+
+        clinical_dir = Path(self.settings.release_path) / "clinical_data"
+
+        # Use glob to find extended clinical file (handles varying naming patterns across releases)
+        # Patterns: r8_extended_clinical_data_vwb_2024-09-11.csv, r10_extended_clinical_data_vwb.csv, r11_extended_clinical_data.csv
+        # Exclude data dictionary files (*_dictionary.csv)
+        pattern = str(clinical_dir / f"r{self.settings.release}_extended_clinical_data*.csv")
+        matches = glob.glob(pattern)
+
+        # Filter out dictionary files
+        matches = [m for m in matches if 'dictionary' not in m.lower()]
+
+        if not matches:
+            raise FileNotFoundError(f"No extended clinical file found matching pattern: {pattern}")
+
+        clin_path = Path(matches[0])  # Use first match
         self.logger.info(f"Loading extended clinical from: {clin_path}")
 
         df = pd.read_csv(clin_path, low_memory=False)
@@ -625,10 +641,12 @@ class LocusReportGenerator:
         dat_caudate_available = unique_carriers['dat_sbr_caudate_mean'].notna().sum() if 'dat_sbr_caudate_mean' in unique_carriers.columns else 0
 
         # Disease duration metrics
+        disease_duration_lte_3 = 0
         disease_duration_lte_5 = 0
         disease_duration_lte_7 = 0
         if 'age_at_baseline' in unique_carriers.columns and 'age_at_onset' in unique_carriers.columns:
             duration = pd.to_numeric(unique_carriers['age_at_baseline'], errors='coerce') - pd.to_numeric(unique_carriers['age_at_onset'], errors='coerce')
+            disease_duration_lte_3 = (duration <= 3).sum()
             disease_duration_lte_5 = (duration <= 5).sum()
             disease_duration_lte_7 = (duration <= 7).sum()
 
@@ -643,6 +661,7 @@ class LocusReportGenerator:
             moca_gte_20=int(moca_gte_20),
             moca_gte_24=int(moca_gte_24),
             dat_caudate_available=int(dat_caudate_available),
+            disease_duration_lte_3_years=int(disease_duration_lte_3),
             disease_duration_lte_5_years=int(disease_duration_lte_5),
             disease_duration_lte_7_years=int(disease_duration_lte_7)
         )
@@ -725,6 +744,7 @@ class LocusReportGenerator:
                     'moca_gte_20': metrics.moca_gte_20,
                     'moca_gte_24': metrics.moca_gte_24,
                     'dat_caudate_available': metrics.dat_caudate_available,
+                    'disease_duration_lte_3_years': metrics.disease_duration_lte_3_years,
                     'disease_duration_lte_5_years': metrics.disease_duration_lte_5_years,
                     'disease_duration_lte_7_years': metrics.disease_duration_lte_7_years,
                     'clinical_data_availability_pct': f"{metrics.clinical_data_availability_pct:.1f}%"
@@ -746,6 +766,7 @@ class LocusReportGenerator:
                 'moca_gte_20': total.moca_gte_20,
                 'moca_gte_24': total.moca_gte_24,
                 'dat_caudate_available': total.dat_caudate_available,
+                'disease_duration_lte_3_years': total.disease_duration_lte_3_years,
                 'disease_duration_lte_5_years': total.disease_duration_lte_5_years,
                 'disease_duration_lte_7_years': total.disease_duration_lte_7_years,
                 'clinical_data_availability_pct': f"{total.clinical_data_availability_pct:.1f}%"

@@ -4,10 +4,11 @@ Genomic carrier screening system for identifying carriers of pathogenic variants
 
 ## Overview
 
-Processes ~400 pathogenic SNPs across 254 PLINK 2.0 files from three data sources:
+Processes ~760 pathogenic SNPs across 254+ PLINK 2.0 files from four data sources:
 - **NBA (NeuroBooster Array)**: 11 files split by ancestry
 - **WGS (Whole Genome Sequencing)**: 1 consolidated file
 - **IMPUTED**: 242 files (11 ancestries × 22 chromosomes)
+- **EXOMES (Clinical Exomes)**: 1 consolidated file (release 8+ only)
 
 ### Key Features
 
@@ -103,7 +104,8 @@ python run_carriers_pipeline.py --output /path/to/output
 ```
 --job-name TEXT          Job name for output files (default: carriers_analysis)
 --ancestries [list]      Ancestries to process (default: all 11)
---data-types [list]      Data types: NBA, WGS, IMPUTED (default: all)
+--data-types [list]      Data types: NBA, WGS, IMPUTED, EXOMES (default: NBA, WGS, IMPUTED)
+--release INT            GP2 release version (default: 10, EXOMES requires 8+)
 --parallel               Enable parallel processing (default: True)
 --max-workers INT        Maximum workers (default: auto-detect)
 --optimize               Use performance optimizations (default: True)
@@ -274,6 +276,11 @@ results/release10/
 - Processing: Multi-chromosome with automatic combination
 - Note: Contains dosage values (0.0-2.0) instead of discrete genotypes
 
+**EXOMES (Clinical Exomes)**
+- Format: `clinical_exomes/deepvariant_joint_calling/plink/all_chrs.{pgen|pvar|psam}`
+- Processing: Single consolidated file (like WGS, not split by ancestry)
+- Availability: Release 8+ only
+
 ## Architecture
 
 ```
@@ -339,6 +346,18 @@ SNP List: ~/gcs_mounts/genotools_server/precision_med/summary_data/precision_med
 - **Storage**: Parquet files (columnar storage)
 - **Frontend**: Streamlit (interactive visualization)
 - **API**: uvicorn, FastAPI with background tasks
+
+## Changelog
+
+### November 2025 Update
+
+**SNP List v2**: 431 → 762 variants (+77%), 8 → 11 genes
+- New genes: ATP13A2, RAB39B, SYNJ1
+- Major expansions: GBA1 (+79%), PRKN (+75%), PINK1 (+47%)
+
+**EXOMES Support**: Added clinical exomes as fourth data type (release 8+)
+
+**Clinical Variables**: Added 3-year disease duration filter (alongside 5/7 years)
 
 ## Development
 

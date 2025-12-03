@@ -12,13 +12,15 @@ class DataType(str, Enum):
     NBA = "NBA"
     WGS = "WGS"
     IMPUTED = "IMPUTED"
-    
+    EXOMES = "EXOMES"
+
     @property
     def description(self) -> str:
         descriptions = {
             "NBA": "NeuroBooster Array - Split by ancestry",
             "WGS": "Whole Genome Sequencing - Single consolidated file",
-            "IMPUTED": "Imputed genotypes - Split by ancestry and chromosome"
+            "IMPUTED": "Imputed genotypes - Split by ancestry and chromosome",
+            "EXOMES": "Clinical Exomes - Single consolidated file (not split by ancestry)"
         }
         return descriptions.get(self.value, "Unknown data type")
 

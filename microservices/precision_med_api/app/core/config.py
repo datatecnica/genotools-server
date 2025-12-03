@@ -157,7 +157,23 @@ class Settings(BaseModel):
     
     @cached_property
     def release_path(self) -> str:
-        return os.path.join(self.mnt_path, "gp2tier2_vwb", f"release{self.release}")
+        """Get release directory path, handling date suffixes (e.g., release8_13092024)."""
+        import glob
+        base_dir = os.path.join(self.mnt_path, "gp2tier2_vwb")
+
+        # Try exact match first (e.g., release10)
+        exact_path = os.path.join(base_dir, f"release{self.release}")
+        if os.path.isdir(exact_path):
+            return exact_path
+
+        # Try pattern match for date suffix (e.g., release8_13092024)
+        pattern = os.path.join(base_dir, f"release{self.release}_*")
+        matches = glob.glob(pattern)
+        if matches:
+            return matches[0]  # Return first match
+
+        # Fall back to exact path (will fail gracefully later if doesn't exist)
+        return exact_path
     
     def get_nba_path(self, ancestry: str) -> str:
         if ancestry not in self.ANCESTRIES:
@@ -183,10 +199,10 @@ class Settings(BaseModel):
     def get_imputed_path(self, ancestry: str, chrom: str) -> str:
         if ancestry not in self.ANCESTRIES:
             raise ValueError(f"Invalid ancestry: {ancestry}. Must be one of {self.ANCESTRIES}")
-        
+
         if chrom not in self.CHROMOSOMES:
             raise ValueError(f"Invalid chromosome: {chrom}. Must be one of {self.CHROMOSOMES}")
-        
+
         base_path = os.path.join(
             self.release_path,
             "imputed_genotypes",
@@ -194,10 +210,41 @@ class Settings(BaseModel):
             f"chr{chrom}_{ancestry}_release{self.release}_vwb"
         )
         return base_path
+
+    def get_exomes_path(self, chrom: Optional[str] = None) -> str:
+        """
+        Get path to clinical exomes PLINK files.
+
+        Args:
+            chrom: Optional chromosome (1-22, X, Y, MT). If None, returns all_chrs
+
+        Returns:
+            Base path to PLINK file set (without extension)
+
+        Note:
+            Clinical exomes only available starting from release 8
+        """
+        # Check if EXOMES is available for this release
+        if int(self.release) < 8:
+            raise ValueError(f"Clinical exomes not available for release {self.release}. Available from release 8+")
+
+        base_dir = os.path.join(
+            self.release_path,
+            "clinical_exomes",
+            "deepvariant_joint_calling",
+            "plink"
+        )
+
+        if chrom:
+            if chrom not in self.CHROMOSOMES:
+                raise ValueError(f"Invalid chromosome: {chrom}. Must be one of {self.CHROMOSOMES}")
+            return os.path.join(base_dir, f"chr{chrom}")
+        else:
+            return os.path.join(base_dir, "all_chrs")
     
     def get_clinical_paths(self) -> Dict[str, str]:
         clinical_base = os.path.join(self.release_path, "clinical_data")
-        
+
         return {
             "master_key": os.path.join(
                 clinical_base,
@@ -205,11 +252,11 @@ class Settings(BaseModel):
             ),
             "data_dictionary": os.path.join(
                 clinical_base,
-                f"data_dictionary_release{self.release}.csv"
+                f"master_key_release{self.release}_data_dictionary.csv"
             ),
             "extended_clinical": os.path.join(
                 clinical_base,
-                f"extended_clinical_release{self.release}.csv"
+                f"r{self.release}_extended_clinical_data_vwb.csv"
             )
         }
     
