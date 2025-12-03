@@ -86,12 +86,26 @@ def setup_sidebar(config: FrontendConfig):
     # Check data availability
     data_available = check_data_availability(selected_release, selected_job, config.results_base_path)
 
+    # Show available data types in sidebar
+    available_types = []
+    for dt in ['WGS', 'NBA', 'IMPUTED', 'EXOMES']:
+        if data_available.get(f'genotypes_{dt.lower()}', False) or data_available.get(f'locus_reports_{dt.lower()}', False):
+            available_types.append(dt)
+    if available_types:
+        st.sidebar.caption(f"Available: {', '.join(available_types)}")
+
     # Page navigation
     st.sidebar.header("📊 Navigation")
     page_options = ["Release Overview"]
 
     # Add pages based on data availability
-    if data_available['locus_reports_nba'] or data_available['locus_reports_imputed'] or data_available.get('locus_reports_exomes', False):
+    has_any_locus_reports = (
+        data_available.get('locus_reports_wgs', False) or
+        data_available.get('locus_reports_nba', False) or
+        data_available.get('locus_reports_imputed', False) or
+        data_available.get('locus_reports_exomes', False)
+    )
+    if has_any_locus_reports:
         page_options.append("Locus Reports")
     if data_available['probe_validation']:
         page_options.append("Probe Validation")
@@ -113,8 +127,8 @@ def setup_sidebar(config: FrontendConfig):
         st.rerun()
 
     # Show info for unavailable pages
-    if not data_available['locus_reports_nba'] and not data_available['locus_reports_imputed']:
-        st.sidebar.info("📊 **Locus Reports**\nRequires locus report data")
+    if not has_any_locus_reports:
+        st.sidebar.info("📊 **Locus Reports**\nNo locus report data available")
     if not data_available['probe_validation']:
         st.sidebar.info("🔬 **Probe Validation**\nRequires probe selection data")
 

@@ -1,8 +1,14 @@
 #!/bin/bash
 # Launch script for Streamlit application
 
-# Activate virtual environment
-source .venv/bin/activate
+# Get the directory of this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Activate virtual environment (located in parent directory)
+source "$SCRIPT_DIR/../.venv/bin/activate"
+
+# Change to frontend directory for relative imports
+cd "$SCRIPT_DIR"
 
 # Parse arguments
 PORT=8501

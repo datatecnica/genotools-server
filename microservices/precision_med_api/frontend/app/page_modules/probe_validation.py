@@ -120,7 +120,7 @@ def render_probe_comparisons(data: Dict[str, Any]):
                 df['Probe/Variant ID'].str.contains(search, case=False, na=False)
             ]
 
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width='stretch', hide_index=True)
         st.caption(f"Showing {len(df):,} probe comparisons")
 
 
@@ -170,4 +170,4 @@ def render_recommendations(data: Dict[str, Any]):
             if disagreement_details:
                 st.markdown("**Disagreements:**")
                 disagreement_df = pd.DataFrame(disagreement_details)
-                st.dataframe(disagreement_df, use_container_width=True, hide_index=True)
+                st.dataframe(disagreement_df, width='stretch', hide_index=True)

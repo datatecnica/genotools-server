@@ -244,7 +244,7 @@ class Settings(BaseModel):
     
     def get_clinical_paths(self) -> Dict[str, str]:
         clinical_base = os.path.join(self.release_path, "clinical_data")
-        
+
         return {
             "master_key": os.path.join(
                 clinical_base,
@@ -252,11 +252,11 @@ class Settings(BaseModel):
             ),
             "data_dictionary": os.path.join(
                 clinical_base,
-                f"data_dictionary_release{self.release}.csv"
+                f"master_key_release{self.release}_data_dictionary.csv"
             ),
             "extended_clinical": os.path.join(
                 clinical_base,
-                f"extended_clinical_release{self.release}.csv"
+                f"r{self.release}_extended_clinical_data_vwb.csv"
             )
         }
     

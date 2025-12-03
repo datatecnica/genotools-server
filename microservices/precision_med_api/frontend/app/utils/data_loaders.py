@@ -35,7 +35,14 @@ def discover_releases(results_base_path: str) -> List[str]:
             if os.path.isdir(item_path) and item.startswith('release'):
                 releases.append(item)
 
-    return sorted(releases, reverse=True)
+    # Sort numerically by release number (highest first)
+    def get_release_num(release_name: str) -> int:
+        try:
+            return int(release_name.replace('release', ''))
+        except ValueError:
+            return 0
+
+    return sorted(releases, key=get_release_num, reverse=True)
 
 
 @st.cache_data
@@ -164,17 +171,45 @@ def check_data_availability(release: str, job_name: str, results_base_path: str)
         results_base_path: Base path to results directory
 
     Returns:
-        Dict with availability flags for each data type
+        Dict with availability flags for each data type (genotypes and locus reports)
     """
     release_path = os.path.join(os.path.dirname(results_base_path), release)
 
     return {
         'pipeline_results': os.path.exists(os.path.join(release_path, f"{job_name}_pipeline_results.json")),
+        # Locus reports by data type
+        'locus_reports_wgs': os.path.exists(os.path.join(release_path, f"{job_name}_locus_reports_WGS.json")),
         'locus_reports_nba': os.path.exists(os.path.join(release_path, f"{job_name}_locus_reports_NBA.json")),
         'locus_reports_imputed': os.path.exists(os.path.join(release_path, f"{job_name}_locus_reports_IMPUTED.json")),
         'locus_reports_exomes': os.path.exists(os.path.join(release_path, f"{job_name}_locus_reports_EXOMES.json")),
+        # Genotypes by data type
+        'genotypes_wgs': os.path.exists(os.path.join(release_path, f"{job_name}_WGS.parquet")),
+        'genotypes_nba': os.path.exists(os.path.join(release_path, f"{job_name}_NBA.parquet")),
+        'genotypes_imputed': os.path.exists(os.path.join(release_path, f"{job_name}_IMPUTED.parquet")),
+        'genotypes_exomes': os.path.exists(os.path.join(release_path, f"{job_name}_EXOMES.parquet")),
+        # Other
         'probe_validation': os.path.exists(os.path.join(release_path, f"{job_name}_probe_selection.json"))
     }
+
+
+def get_available_data_types(release: str, job_name: str, results_base_path: str) -> List[str]:
+    """
+    Return list of data types that have genotype data available.
+
+    Args:
+        release: Release identifier
+        job_name: Job name
+        results_base_path: Base path to results directory
+
+    Returns:
+        List of available data type names (e.g., ['WGS', 'NBA', 'IMPUTED'])
+    """
+    availability = check_data_availability(release, job_name, results_base_path)
+    available = []
+    for dt in ['WGS', 'NBA', 'IMPUTED', 'EXOMES']:
+        if availability.get(f'genotypes_{dt.lower()}', False):
+            available.append(dt)
+    return available
 
 
 @st.cache_data
@@ -242,7 +277,7 @@ def load_variant_to_mutation_map(release: str, job_name: str, results_base_path:
     variant_map = {}
 
     # Try each data type in order of preference
-    data_types = ['WGS', 'NBA', 'IMPUTED']
+    data_types = ['WGS', 'NBA', 'IMPUTED', 'EXOMES']
 
     for data_type in data_types:
         parquet_path = os.path.join(release_path, f"{job_name}_{data_type}.parquet")

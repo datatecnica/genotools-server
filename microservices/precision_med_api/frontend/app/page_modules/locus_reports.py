@@ -44,6 +44,7 @@ def render_locus_reports(release: str, job_name: str, config: FrontendConfig):
         return
 
     # Data type selector
+    all_data_types = ['WGS', 'NBA', 'IMPUTED', 'EXOMES']
     available_data_types = []
     data_map = {}
     if wgs_data:
@@ -58,6 +59,11 @@ def render_locus_reports(release: str, job_name: str, config: FrontendConfig):
     if exomes_data:
         available_data_types.append("EXOMES")
         data_map["EXOMES"] = exomes_data
+
+    # Show which data types are unavailable
+    unavailable = [dt for dt in all_data_types if dt not in available_data_types]
+    if unavailable:
+        st.caption(f"Data types not available for this release: {', '.join(unavailable)}")
 
     data_type = st.selectbox(
         "Select data type:",
@@ -137,7 +143,7 @@ def render_loci_table(data: Dict[str, Any], variant_map: Dict[str, str] = None):
     # Display summary table
     if summary_rows:
         df = pd.DataFrame(summary_rows)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width='stretch', hide_index=True)
 
         # Locus selector for detailed view
         locus_names = [entry.get('locus', 'Unknown') for entry in loci_list]
@@ -181,7 +187,7 @@ def render_locus_details(locus_data: Dict[str, Any], locus_name: str, variant_ma
 
     if ancestry_rows:
         df = pd.DataFrame(ancestry_rows)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width='stretch', hide_index=True)
 
     # Show total metrics
     total_metrics = locus_data.get('total_metrics', {})
@@ -223,4 +229,4 @@ def render_locus_details(locus_data: Dict[str, Any], locus_name: str, variant_ma
 
             if variant_rows:
                 df_variants = pd.DataFrame(variant_rows)
-                st.dataframe(df_variants, use_container_width=True, hide_index=True)
+                st.dataframe(df_variants, width='stretch', hide_index=True)

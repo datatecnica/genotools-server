@@ -5,7 +5,7 @@ Release overview page - displays pipeline summary and metrics.
 import streamlit as st
 from typing import Dict, Any
 from app.config import FrontendConfig
-from app.utils.data_loaders import load_pipeline_results, get_selected_probe_ids
+from app.utils.data_loaders import load_pipeline_results, get_selected_probe_ids, check_data_availability
 from app.utils.methods_descriptions import MethodsDescriptions
 
 
@@ -35,6 +35,9 @@ def render_overview(release: str, job_name: str, config: FrontendConfig):
     # Pipeline status
     render_pipeline_status(pipeline_data)
 
+    # Data availability
+    render_data_availability(release, job_name, config)
+
     # Summary metrics
     if 'summary' in pipeline_data:
         render_summary_metrics(pipeline_data['summary'])
@@ -46,6 +49,31 @@ def render_overview(release: str, job_name: str, config: FrontendConfig):
     # Output files
     if 'output_files' in pipeline_data:
         render_output_files(pipeline_data['output_files'])
+
+
+def render_data_availability(release: str, job_name: str, config: FrontendConfig):
+    """Render data availability summary showing which data types are available."""
+    availability = check_data_availability(release, job_name, config.results_base_path)
+
+    st.subheader("Data Availability")
+
+    data_types = ['WGS', 'NBA', 'IMPUTED', 'EXOMES']
+    cols = st.columns(len(data_types))
+
+    for i, dt in enumerate(data_types):
+        with cols[i]:
+            has_genotypes = availability.get(f'genotypes_{dt.lower()}', False)
+            has_locus = availability.get(f'locus_reports_{dt.lower()}', False)
+
+            if has_genotypes:
+                st.success(f"{dt}")
+                if has_locus:
+                    st.caption("Locus reports available")
+                else:
+                    st.caption("Genotypes only")
+            else:
+                st.info(f"{dt}")
+                st.caption("Not available")
 
 
 def render_pipeline_status(data: Dict[str, Any]):

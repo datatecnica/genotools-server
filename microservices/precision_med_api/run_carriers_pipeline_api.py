@@ -91,8 +91,8 @@ Examples:
         type=str,
         nargs='+',
         choices=['NBA', 'WGS', 'IMPUTED', 'EXOMES'],
-        default=['NBA', 'WGS', 'IMPUTED'],
-        help='Data types to process (default: NBA, WGS, IMPUTED. EXOMES available for release 8+)'
+        default=['NBA', 'WGS', 'IMPUTED', 'EXOMES'],
+        help='Data types to process (default: all four - NBA, WGS, IMPUTED, EXOMES)'
     )
     parser.add_argument(
         '--release',

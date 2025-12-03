@@ -72,8 +72,12 @@ class LocusReportGenerator:
 
         # Use glob to find extended clinical file (handles varying naming patterns across releases)
         # Patterns: r8_extended_clinical_data_vwb_2024-09-11.csv, r10_extended_clinical_data_vwb.csv, r11_extended_clinical_data.csv
+        # Exclude data dictionary files (*_dictionary.csv)
         pattern = str(clinical_dir / f"r{self.settings.release}_extended_clinical_data*.csv")
         matches = glob.glob(pattern)
+
+        # Filter out dictionary files
+        matches = [m for m in matches if 'dictionary' not in m.lower()]
 
         if not matches:
             raise FileNotFoundError(f"No extended clinical file found matching pattern: {pattern}")
