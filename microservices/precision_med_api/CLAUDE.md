@@ -56,6 +56,13 @@ SNP List: ~/gcs_mounts/genotools_server/precision_med/summary_data/precision_med
 - Fixed in `extractor.py` with proper genotype transformation
 - Genotype values: 0=none, 1=het carrier, 2=hom carrier
 
+### Minor Allele Frequency (MAF) Correction
+- Automatically flips genotypes when ALT AF > 0.5 to count the minor allele
+- Critical for rs3115534 (GBA1) where pathogenic G allele is only 3% frequency
+- Adds `maf_corrected` (bool) and `original_alt_af` (float) columns to output
+- Implemented in `extractor.py::_apply_maf_correction()`
+- Without this fix, carriers of the pathogenic G allele would be missed
+
 ### Sample IDs
 - Normalized without '0_' prefix
 - WGS duplicates fixed: `SAMPLE_001234_SAMPLE_001234` → `SAMPLE_001234`

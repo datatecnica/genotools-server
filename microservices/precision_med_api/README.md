@@ -13,6 +13,7 @@ Processes ~760 pathogenic SNPs across 254+ PLINK 2.0 files from four data source
 ### Key Features
 
 - Correct pathogenic allele counting (not reference alleles)
+- Minor allele frequency (MAF) correction for variants where pathogenic allele is minor
 - Real-time harmonization without pre-processing
 - ProcessPool parallelization for concurrent file extraction
 - Sample ID normalization across data types
@@ -246,6 +247,7 @@ results/release10/
 **.parquet** - Optimized columnar storage with:
 - Normalized sample IDs (consistent across data types)
 - Correct pathogenic allele counting (0=none, 1=het, 2=hom)
+- MAF correction columns: `maf_corrected` (bool), `original_alt_af` (float)
 - Metadata columns first, then sorted sample columns
 
 **_probe_selection.json** - Probe quality validation:
@@ -348,6 +350,14 @@ SNP List: ~/gcs_mounts/genotools_server/precision_med/summary_data/precision_med
 - **API**: uvicorn, FastAPI with background tasks
 
 ## Changelog
+
+### December 2025 Update
+
+**MAF Correction**: Automatic minor allele frequency correction
+- Flips genotypes when ALT AF > 0.5 to ensure minor allele counting
+- Critical fix for rs3115534 (GBA1) where pathogenic G allele is ~3% frequency
+- Adds `maf_corrected` and `original_alt_af` columns to output
+- Without this fix, carriers of minor pathogenic alleles would be incorrectly identified
 
 ### November 2025 Update
 
