@@ -225,11 +225,19 @@ class ExtractionCoordinator:
             source_ancestries = []
             
             if data_type == DataType.WGS:
-                # Single WGS file
-                wgs_path = self.settings.get_wgs_path() + ".pgen"
-                if os.path.exists(wgs_path):
-                    files.append(wgs_path)
-                
+                # WGS files by ancestry and chromosome (like IMPUTED)
+                available_ancestries = ancestries or self.settings.list_available_ancestries("WGS")
+                for ancestry in available_ancestries:
+                    available_chroms = self.settings.list_available_chromosomes(ancestry, data_type="WGS")
+                    for chrom in available_chroms:
+                        wgs_path = self.settings.get_wgs_path(ancestry, chrom) + ".pgen"
+                        if os.path.exists(wgs_path):
+                            files.append(wgs_path)
+                            if ancestry not in source_ancestries:
+                                source_ancestries.append(ancestry)
+                if files:
+                    logger.info(f"Found {len(files)} WGS files across {len(source_ancestries)} ancestries")
+
             elif data_type == DataType.NBA:
                 # NBA files by ancestry
                 available_ancestries = ancestries or self.settings.list_available_ancestries("NBA")
@@ -252,14 +260,15 @@ class ExtractionCoordinator:
                                 source_ancestries.append(ancestry)
 
             elif data_type == DataType.EXOMES:
-                # Single EXOMES file (like WGS, not split by ancestry)
+                # EXOMES: Per-chromosome files
                 try:
-                    exomes_path = self.settings.get_exomes_path() + ".pgen"
-                    if os.path.exists(exomes_path):
-                        files.append(exomes_path)
-                        logger.info(f"Found EXOMES data at: {exomes_path}")
-                    else:
-                        logger.info(f"EXOMES file not found at: {exomes_path}")
+                    available_chroms = self.settings.list_available_exomes_chromosomes()
+                    for chrom in available_chroms:
+                        exomes_path = self.settings.get_exomes_path(chrom) + ".pgen"
+                        if os.path.exists(exomes_path):
+                            files.append(exomes_path)
+                    if files:
+                        logger.info(f"Found {len(files)} EXOMES files")
                 except ValueError as e:
                     # Handle releases where EXOMES is not available
                     logger.info(f"EXOMES not available: {e}")

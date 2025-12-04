@@ -187,12 +187,29 @@ class Settings(BaseModel):
         )
         return base_path
     
-    def get_wgs_path(self) -> str:
+    def get_wgs_path(self, ancestry: str, chrom: str) -> str:
+        """
+        Get path to WGS PLINK files (per-chromosome, per-ancestry).
+
+        Args:
+            ancestry: Ancestry code (e.g., 'EUR')
+            chrom: Chromosome (1-22, X, Y, MT)
+
+        Returns:
+            Base path to PLINK file set (without extension)
+        """
+        if ancestry not in self.ANCESTRIES:
+            raise ValueError(f"Invalid ancestry: {ancestry}. Must be one of {self.ANCESTRIES}")
+        if chrom not in self.CHROMOSOMES:
+            raise ValueError(f"Invalid chromosome: {chrom}. Must be one of {self.CHROMOSOMES}")
+
         base_path = os.path.join(
-            self.carriers_path,
+            self.release_path,
             "wgs",
-            "raw_genotypes",
-            f"R{self.release}_wgs_carrier_vars"
+            "deepvariant_joint_calling",
+            "plink",
+            ancestry,
+            f"chr{chrom}_{ancestry}_release{self.release}"
         )
         return base_path
     
@@ -211,36 +228,88 @@ class Settings(BaseModel):
         )
         return base_path
 
-    def get_exomes_path(self, chrom: Optional[str] = None) -> str:
+    def get_exomes_path(self, chrom: str) -> str:
         """
-        Get path to clinical exomes PLINK files.
+        Get path to clinical exomes PLINK files (per-chromosome).
 
         Args:
-            chrom: Optional chromosome (1-22, X, Y, MT). If None, returns all_chrs
+            chrom: Chromosome (1-22, X, Y, MT)
 
         Returns:
             Base path to PLINK file set (without extension)
 
         Note:
-            Clinical exomes only available starting from release 8
+            Clinical exomes only available starting from release 8.
         """
         # Check if EXOMES is available for this release
         if int(self.release) < 8:
             raise ValueError(f"Clinical exomes not available for release {self.release}. Available from release 8+")
 
-        base_dir = os.path.join(
+        if chrom not in self.CHROMOSOMES:
+            raise ValueError(f"Invalid chromosome: {chrom}. Must be one of {self.CHROMOSOMES}")
+
+        # Try new structure first (release 11+): clinical_exomes/plink/
+        new_base_dir = os.path.join(
+            self.release_path,
+            "clinical_exomes",
+            "plink"
+        )
+
+        # Legacy structure: clinical_exomes/deepvariant_joint_calling/plink/
+        legacy_base_dir = os.path.join(
             self.release_path,
             "clinical_exomes",
             "deepvariant_joint_calling",
             "plink"
         )
 
-        if chrom:
-            if chrom not in self.CHROMOSOMES:
-                raise ValueError(f"Invalid chromosome: {chrom}. Must be one of {self.CHROMOSOMES}")
-            return os.path.join(base_dir, f"chr{chrom}")
+        # Determine which base directory exists
+        if os.path.isdir(new_base_dir):
+            base_dir = new_base_dir
         else:
-            return os.path.join(base_dir, "all_chrs")
+            base_dir = legacy_base_dir
+
+        return os.path.join(base_dir, f"chr{chrom}")
+
+    def list_available_exomes_chromosomes(self, filter_by_snp_list: bool = True) -> List[str]:
+        """List available chromosomes for EXOMES data."""
+        # Check if EXOMES is available for this release
+        if int(self.release) < 8:
+            return []
+
+        # Try new structure first (release 11+): clinical_exomes/plink/
+        new_base_dir = os.path.join(
+            self.release_path,
+            "clinical_exomes",
+            "plink"
+        )
+
+        # Legacy structure: clinical_exomes/deepvariant_joint_calling/plink/
+        legacy_base_dir = os.path.join(
+            self.release_path,
+            "clinical_exomes",
+            "deepvariant_joint_calling",
+            "plink"
+        )
+
+        # Determine which base directory exists
+        if os.path.isdir(new_base_dir):
+            base_dir = new_base_dir
+        elif os.path.isdir(legacy_base_dir):
+            base_dir = legacy_base_dir
+        else:
+            return []
+
+        # Use SNP-based chromosome filtering by default
+        chromosomes_to_check = self.get_snp_chromosomes() if filter_by_snp_list else self.CHROMOSOMES
+
+        available = []
+        for chrom in chromosomes_to_check:
+            pgen_file = os.path.join(base_dir, f"chr{chrom}.pgen")
+            if os.path.exists(pgen_file):
+                available.append(chrom)
+
+        return available
     
     def get_clinical_paths(self) -> Dict[str, str]:
         clinical_base = os.path.join(self.release_path, "clinical_data")
@@ -283,11 +352,13 @@ class Settings(BaseModel):
             "cache"
         )
     
-    def get_pvar_file_path(self, data_type: str, ancestry: Optional[str] = None, 
+    def get_pvar_file_path(self, data_type: str, ancestry: Optional[str] = None,
                           chrom: Optional[str] = None) -> str:
         """Get path to PVAR file for given data type and parameters."""
         if data_type == "WGS":
-            return self.get_wgs_path() + ".pvar"
+            if not ancestry or not chrom:
+                raise ValueError("Ancestry and chromosome required for WGS PVAR file")
+            return self.get_wgs_path(ancestry, chrom) + ".pvar"
         elif data_type == "NBA":
             if not ancestry:
                 raise ValueError("Ancestry required for NBA PVAR file")
@@ -298,12 +369,14 @@ class Settings(BaseModel):
             return self.get_imputed_path(ancestry, chrom) + ".pvar"
         else:
             raise ValueError(f"Invalid data type: {data_type}")
-    
-    def get_pgen_file_path(self, data_type: str, ancestry: Optional[str] = None, 
+
+    def get_pgen_file_path(self, data_type: str, ancestry: Optional[str] = None,
                           chrom: Optional[str] = None) -> str:
         """Get path to PGEN file for given data type and parameters."""
         if data_type == "WGS":
-            return self.get_wgs_path() + ".pgen"
+            if not ancestry or not chrom:
+                raise ValueError("Ancestry and chromosome required for WGS PGEN file")
+            return self.get_wgs_path(ancestry, chrom) + ".pgen"
         elif data_type == "NBA":
             if not ancestry:
                 raise ValueError("Ancestry required for NBA PGEN file")
@@ -343,57 +416,89 @@ class Settings(BaseModel):
     
     def list_available_ancestries(self, data_type: str) -> List[str]:
         if data_type == "WGS":
-            return []  # WGS is not split by ancestry
-        
+            base_path = os.path.join(
+                self.release_path,
+                "wgs",
+                "deepvariant_joint_calling",
+                "plink"
+            )
+            if not os.path.exists(base_path):
+                return []
+            available = []
+            for ancestry in self.ANCESTRIES:
+                ancestry_path = os.path.join(base_path, ancestry)
+                if os.path.exists(ancestry_path):
+                    available.append(ancestry)
+            return available
+
         if data_type == "NBA":
             base_path = os.path.join(self.release_path, "raw_genotypes")
         elif data_type == "IMPUTED":
             base_path = os.path.join(self.release_path, "imputed_genotypes")
         else:
             raise ValueError(f"Invalid data type: {data_type}")
-        
+
         if not os.path.exists(base_path):
             return []
-        
+
         available = []
         for ancestry in self.ANCESTRIES:
             ancestry_path = os.path.join(base_path, ancestry)
             if os.path.exists(ancestry_path):
                 available.append(ancestry)
-        
+
         return available
     
-    def list_available_chromosomes(self, ancestry: str, filter_by_snp_list: bool = True) -> List[str]:
-        base_path = os.path.join(self.release_path, "imputed_genotypes", ancestry)
-        
+    def list_available_chromosomes(self, ancestry: str, filter_by_snp_list: bool = True, data_type: str = "IMPUTED") -> List[str]:
+        """
+        List available chromosomes for a given ancestry and data type.
+
+        Args:
+            ancestry: Ancestry code (e.g., 'EUR')
+            filter_by_snp_list: If True, only check chromosomes present in SNP list
+            data_type: Data type - 'IMPUTED' or 'WGS'
+
+        Returns:
+            List of available chromosome identifiers
+        """
+        if data_type == "WGS":
+            base_path = os.path.join(
+                self.release_path,
+                "wgs",
+                "deepvariant_joint_calling",
+                "plink",
+                ancestry
+            )
+            file_pattern = f"chr{{chrom}}_{ancestry}_release{self.release}.pgen"
+        else:  # IMPUTED
+            base_path = os.path.join(self.release_path, "imputed_genotypes", ancestry)
+            file_pattern = f"chr{{chrom}}_{ancestry}_release{self.release}_vwb.pgen"
+
         if not os.path.exists(base_path):
             return []
-        
+
         # Use SNP-based chromosome filtering by default
         chromosomes_to_check = self.get_snp_chromosomes() if filter_by_snp_list else self.CHROMOSOMES
-        
+
         # Add validation logging for chromosome filtering
         if filter_by_snp_list and len(chromosomes_to_check) < len(self.CHROMOSOMES):
             import logging
             logger = logging.getLogger(__name__)
-            logger.info(f"Chromosome filtering active: checking {len(chromosomes_to_check)} SNP-list chromosomes ({chromosomes_to_check}) for ancestry {ancestry}")
-        
+            logger.info(f"Chromosome filtering active: checking {len(chromosomes_to_check)} SNP-list chromosomes ({chromosomes_to_check}) for {data_type} ancestry {ancestry}")
+
         available = []
         for chrom in chromosomes_to_check:
             # Check if any of the PLINK files exist for this chromosome
-            pgen_file = os.path.join(
-                base_path,
-                f"chr{chrom}_{ancestry}_release{self.release}_vwb.pgen"
-            )
+            pgen_file = os.path.join(base_path, file_pattern.format(chrom=chrom))
             if os.path.exists(pgen_file):
                 available.append(chrom)
-        
+
         # Add validation warning if no chromosomes match
         if not available and filter_by_snp_list:
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"No available chromosomes found for ancestry {ancestry} after SNP-list filtering. Target chromosomes were: {chromosomes_to_check}")
-        
+            logger.warning(f"No available chromosomes found for {data_type} ancestry {ancestry} after SNP-list filtering. Target chromosomes were: {chromosomes_to_check}")
+
         return available
     
     model_config = ConfigDict(
