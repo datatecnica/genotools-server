@@ -109,6 +109,8 @@ def setup_sidebar(config: FrontendConfig):
         page_options.append("Locus Reports")
     if data_available['probe_validation']:
         page_options.append("Probe Validation")
+    if data_available['coverage_reports']:
+        page_options.append("Coverage Reports")
 
     # Ensure selected page is valid
     if st.session_state.selected_page not in page_options:
@@ -131,6 +133,8 @@ def setup_sidebar(config: FrontendConfig):
         st.sidebar.info("📊 **Locus Reports**\nNo locus report data available")
     if not data_available['probe_validation']:
         st.sidebar.info("🔬 **Probe Validation**\nRequires probe selection data")
+    if not data_available['coverage_reports']:
+        st.sidebar.info("📈 **Coverage Reports**\nNo coverage data available")
 
     return selected_release, selected_job, selected_page
 
@@ -154,6 +158,10 @@ def render_main_content(release: str, job_name: str, page: str, config: Frontend
     elif page == "Probe Validation":
         from app.page_modules.probe_validation import render_probe_validation
         render_probe_validation(release, job_name, config)
+
+    elif page == "Coverage Reports":
+        from app.page_modules.coverage_reports import render_coverage_reports
+        render_coverage_reports(release, job_name, config)
 
 
 def main():
