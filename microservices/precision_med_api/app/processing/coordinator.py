@@ -631,12 +631,16 @@ class ExtractionCoordinator:
         """
         Merge results from different ancestries for the same data type.
 
-        When extracting from multiple ancestry files (e.g., NBA AAC, AFR, AMR, etc.),
-        each file contains only its ancestry's samples. This method properly merges
-        them so all samples have genotypes for all variants.
+        Uses a two-phase approach for efficiency:
+        1. Concat within ancestry (same samples, different variants from different chromosomes)
+        2. Merge across ancestries (different samples, potentially overlapping variants)
+
+        This is more efficient than sequential merging of all DataFrames because:
+        - Concat is O(n) row stacking vs O(n²) for repeated merges
+        - Only ~11 ancestry merges needed vs 75-150 file merges
 
         Args:
-            result_dfs: List of DataFrames from different ancestry files
+            result_dfs: List of DataFrames from different ancestry/chromosome files
             data_type: The data type being merged (NBA/IMPUTED)
 
         Returns:
@@ -646,8 +650,11 @@ class ExtractionCoordinator:
             return pd.DataFrame()
 
         if len(result_dfs) == 1:
-            # Single ancestry - no merge needed
-            return result_dfs[0]
+            # Single file - no merge needed
+            df = result_dfs[0].copy()
+            if 'ancestry' in df.columns:
+                df = df.drop(columns=['ancestry'])
+            return df
 
         # Define key columns for merging (variant identifier columns)
         merge_keys = ['snp_list_id', 'variant_id', 'chromosome', 'position',
@@ -663,18 +670,51 @@ class ExtractionCoordinator:
                          'pgen_a1', 'pgen_a2', 'data_type', 'source_file',
                          'maf_corrected', 'original_alt_af']
 
-        # Start with the first DataFrame
-        merged_df = result_dfs[0].copy()
+        # ===== Phase 1: Group DataFrames by ancestry =====
+        ancestry_groups = {}
+        for df in result_dfs:
+            # Try to extract ancestry from source_file first, then ancestry column
+            if 'source_file' in df.columns and df['source_file'].notna().any():
+                source = df['source_file'].iloc[0]
+                ancestry = self._extract_ancestry_from_path(source)
+            elif 'ancestry' in df.columns and df['ancestry'].notna().any():
+                ancestry = df['ancestry'].iloc[0]
+            else:
+                ancestry = 'unknown'
 
-        # Drop ancestry column from merged result since it contains multiple ancestries
-        if 'ancestry' in merged_df.columns:
-            merged_df = merged_df.drop(columns=['ancestry'])
+            if ancestry not in ancestry_groups:
+                ancestry_groups[ancestry] = []
+            ancestry_groups[ancestry].append(df)
 
-        # For subsequent DataFrames, merge on variant keys
-        for df in result_dfs[1:]:
-            # Get sample columns from this DataFrame (columns not in metadata)
-            # Also exclude 'ancestry' since it's not meaningful for multi-ancestry merged data
-            df_sample_cols = [col for col in df.columns if col not in metadata_cols and col not in merge_keys and col != 'ancestry']
+        logger.debug(f"Grouped {len(result_dfs)} {data_type} files into {len(ancestry_groups)} ancestry groups: {list(ancestry_groups.keys())}")
+
+        # ===== Phase 2: Concat within each ancestry (same samples, different variants) =====
+        ancestry_dfs = {}
+        for ancestry, dfs in ancestry_groups.items():
+            if len(dfs) == 1:
+                combined = dfs[0].copy()
+            else:
+                # Simple concat - these have the same samples, just stacking variant rows
+                combined = pd.concat(dfs, ignore_index=True)
+                # Deduplicate variants within ancestry
+                combined = combined.drop_duplicates(subset=merge_keys, keep='first')
+
+            # Drop ancestry column (will be implicit in sample IDs)
+            if 'ancestry' in combined.columns:
+                combined = combined.drop(columns=['ancestry'])
+
+            ancestry_dfs[ancestry] = combined
+            logger.debug(f"  {ancestry}: {len(combined)} variants from {len(dfs)} chromosome files")
+
+        # ===== Phase 3: Merge across ancestries (different samples, overlapping variants) =====
+        ancestry_list = list(ancestry_dfs.keys())
+        merged_df = ancestry_dfs[ancestry_list[0]].copy()
+
+        for ancestry in ancestry_list[1:]:
+            df = ancestry_dfs[ancestry]
+            # Get sample columns from this DataFrame (columns not in metadata or merge keys)
+            df_sample_cols = [col for col in df.columns
+                              if col not in metadata_cols and col not in merge_keys]
 
             # Select only merge keys and new sample columns for merging
             cols_to_merge = merge_keys + df_sample_cols
@@ -690,9 +730,8 @@ class ExtractionCoordinator:
             )
 
             # Combine duplicate columns: take non-NaN value from either column
-            # This is necessary because different chromosome files have the same samples
-            # but different variants - an outer join creates _dup columns with NaN for
-            # variants that only exist in one file
+            # This handles variants that exist in multiple ancestries where metadata
+            # columns (like source_file) might differ
             dup_cols = [col for col in merged_df.columns if col.endswith('_dup')]
             for dup_col in dup_cols:
                 base_col = dup_col[:-4]  # Remove '_dup' suffix
@@ -703,15 +742,36 @@ class ExtractionCoordinator:
             if dup_cols:
                 merged_df = merged_df.drop(columns=dup_cols)
 
-        # Remove duplicate variants if any (keeping first occurrence)
+        # Final deduplication (shouldn't be needed after proper merge, but safety net)
         merged_df = merged_df.drop_duplicates(
             subset=merge_keys,
             keep='first'
         )
 
-        logger.info(f"Merged {len(result_dfs)} {data_type} ancestry files into {len(merged_df)} variants")
+        logger.info(f"Merged {len(result_dfs)} {data_type} files ({len(ancestry_groups)} ancestries) into {len(merged_df)} variants")
 
         return merged_df
+
+    def _extract_ancestry_from_path(self, path: str) -> str:
+        """
+        Extract ancestry code from file path.
+
+        Handles paths like:
+        - /path/AAC/chr1_AAC_release11.pgen
+        - /path/to/file_AFR_something.pgen
+
+        Args:
+            path: File path string
+
+        Returns:
+            Ancestry code (e.g., 'AAC', 'AFR') or 'unknown' if not found
+        """
+        if not path:
+            return 'unknown'
+        for ancestry in self.settings.ANCESTRIES:
+            if f'/{ancestry}/' in path or f'_{ancestry}_' in path:
+                return ancestry
+        return 'unknown'
 
     def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
         """Calculate optimal process count based on system resources and settings."""

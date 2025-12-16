@@ -145,18 +145,18 @@ gba1 = df[df['variant_id'] == 'chr1:155235878:G:T']
 
 ---
 
-## 🔧 PLANNED REFACTOR: Concat + Merge Approach
+## ✅ COMPLETED REFACTOR: Concat + Merge Approach (2025-12-15)
 
-### Why Refactor?
+### Why This Refactor Was Needed
 
-The current `_merge_ancestry_results()` function uses merge for ALL DataFrames, but this is semantically incorrect and inefficient:
+The previous `_merge_ancestry_results()` function used merge for ALL DataFrames, which was semantically incorrect and inefficient:
 
 1. **Same ancestry, different chromosomes** → Should use `pd.concat` (stacking different variants)
 2. **Different ancestries, same variants** → Should use `pd.merge` (adding sample columns)
 
-The current approach works after the `combine_first` fix but does unnecessary work.
+The old approach worked after the `combine_first` fix but did unnecessary work.
 
-### Current Data Flow (Inefficient)
+### Old Data Flow (Inefficient)
 
 ```
 imputed_results = [
@@ -172,7 +172,7 @@ imputed_results = [
 # This is O(n²) work when it should be O(n)
 ```
 
-### Proposed Data Flow (Efficient)
+### New Data Flow (Implemented)
 
 ```
 Step 1: Group by ancestry
@@ -195,95 +195,18 @@ for ancestry in ['AFR', 'AMR', ...]:
     final = pd.merge(final, ancestry_dfs[ancestry], on=merge_keys, how='outer')
 ```
 
-### Implementation Plan
+### Implementation (COMPLETED 2025-12-15)
 
 **File:** `app/processing/coordinator.py`
 
-**Function to modify:** `_merge_ancestry_results()` (lines ~625-714)
+**Functions modified:**
+- `_merge_ancestry_results()` (lines ~630-753) - refactored to use concat+merge
+- `_extract_ancestry_from_path()` (lines ~755-773) - new helper function
 
-**Step-by-step changes:**
-
-1. **Add ancestry grouping logic at the start:**
-```python
-def _merge_ancestry_results(self, result_dfs: List[pd.DataFrame], data_type: str) -> pd.DataFrame:
-    if not result_dfs:
-        return pd.DataFrame()
-
-    if len(result_dfs) == 1:
-        return result_dfs[0]
-
-    # Step 1: Group DataFrames by ancestry (from source_file path)
-    ancestry_groups = {}
-    for df in result_dfs:
-        # Extract ancestry from source_file or use 'unknown'
-        if 'source_file' in df.columns and df['source_file'].notna().any():
-            source = df['source_file'].iloc[0]
-            ancestry = self._extract_ancestry_from_path(source)
-        elif 'ancestry' in df.columns:
-            ancestry = df['ancestry'].iloc[0]
-        else:
-            ancestry = 'unknown'
-
-        if ancestry not in ancestry_groups:
-            ancestry_groups[ancestry] = []
-        ancestry_groups[ancestry].append(df)
-```
-
-2. **Concat within each ancestry group:**
-```python
-    # Step 2: Concat within each ancestry (same samples, different variants)
-    ancestry_dfs = {}
-    for ancestry, dfs in ancestry_groups.items():
-        if len(dfs) == 1:
-            ancestry_dfs[ancestry] = dfs[0]
-        else:
-            # Simple concat - same samples, just stacking variant rows
-            combined = pd.concat(dfs, ignore_index=True)
-            # Deduplicate variants within ancestry
-            combined = combined.drop_duplicates(subset=merge_keys, keep='first')
-            ancestry_dfs[ancestry] = combined
-```
-
-3. **Merge across ancestries:**
-```python
-    # Step 3: Merge across ancestries (different samples, may have overlapping variants)
-    ancestry_list = list(ancestry_dfs.keys())
-    merged_df = ancestry_dfs[ancestry_list[0]].copy()
-
-    if 'ancestry' in merged_df.columns:
-        merged_df = merged_df.drop(columns=['ancestry'])
-
-    for ancestry in ancestry_list[1:]:
-        df = ancestry_dfs[ancestry]
-        df_sample_cols = [col for col in df.columns if col not in metadata_cols and col not in merge_keys and col != 'ancestry']
-        cols_to_merge = merge_keys + df_sample_cols
-        df_to_merge = df[cols_to_merge].copy()
-
-        merged_df = pd.merge(merged_df, df_to_merge, on=merge_keys, how='outer', suffixes=('', '_dup'))
-
-        # Combine duplicate columns (still needed for variants present in multiple ancestries)
-        dup_cols = [col for col in merged_df.columns if col.endswith('_dup')]
-        for dup_col in dup_cols:
-            base_col = dup_col[:-4]
-            if base_col in merged_df.columns:
-                merged_df[base_col] = merged_df[base_col].combine_first(merged_df[dup_col])
-        if dup_cols:
-            merged_df = merged_df.drop(columns=dup_cols)
-
-    return merged_df
-```
-
-4. **Add helper function:**
-```python
-def _extract_ancestry_from_path(self, path: str) -> str:
-    """Extract ancestry code from file path like /path/AAC/chr1_AAC_release11.pgen"""
-    if not path:
-        return 'unknown'
-    for ancestry in self.settings.ANCESTRIES:
-        if f'/{ancestry}/' in path or f'_{ancestry}_' in path:
-            return ancestry
-    return 'unknown'
-```
+**Three-phase approach implemented:**
+1. **Phase 1:** Group DataFrames by ancestry (extracted from `source_file` or `ancestry` column)
+2. **Phase 2:** Concat within each ancestry group (same samples, different variant rows)
+3. **Phase 3:** Merge across ancestries (different samples, outer join with `combine_first` for overlap)
 
 ### Benefits of Refactor
 
@@ -291,21 +214,12 @@ def _extract_ancestry_from_path(self, path: str) -> str:
 2. **Clarity:** Code matches the actual data semantics
 3. **Fewer edge cases:** Less reliance on `combine_first` to fix incorrect merges
 
-### Testing After Refactor
+### Verification
 
-```bash
-# Quick test with 2 ancestries
-python run_carriers_pipeline.py --job-name refactor_test --data-types IMPUTED --ancestries AAC AFR --release 11
-
-# Verify GBA1 has correct sample count
-python -c "
-import pandas as pd
-df = pd.read_parquet('path/to/refactor_test_IMPUTED.parquet')
-gba1 = df[df['variant_id'] == 'chr1:155235878:G:T']
-print(f'GBA1 non-NaN samples: {gba1.iloc[:, 10:].notna().sum().sum()}')
-# Should be AAC(1382) + AFR(7246) = 8628
-"
-```
+Unit tests pass and mock data test confirms:
+- AAC chr1 + chr22 files correctly concatenated (3 variants from 2 files)
+- AAC + AFR samples correctly merged (4 sample columns)
+- chr22-only variant (v3) preserves AAC samples, shows NaN for AFR samples
 
 ---
 
