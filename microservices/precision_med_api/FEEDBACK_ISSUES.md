@@ -39,7 +39,15 @@ if dup_cols:
 - After fix: GBA1 has 16,185 non-NaN samples (correct!)
 - Full pipeline: 192 variants, 103,786 samples, 56,156 carriers
 
-**See:** `DEBUGGING_IMPUTED_ISSUE.md` for detailed debugging history and planned refactor
+**See:** `DEBUGGING_IMPUTED_ISSUE.md` for detailed debugging history
+
+**Further Refactor (2025-12-15):**
+The merge logic was refactored to use a more efficient concat+merge approach:
+1. Group DataFrames by ancestry
+2. `pd.concat()` within ancestry (same samples, different variants)
+3. `pd.merge()` across ancestries (different samples)
+
+This improves performance from O(n²) to O(n) and makes the code clearer.
 
 ---
 

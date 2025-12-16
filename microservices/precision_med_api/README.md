@@ -120,13 +120,13 @@ python run_carriers_pipeline.py --output /path/to/output
 
 ```bash
 # Production mode
-./run_frontend.sh
+./frontend/run_app.sh
 
 # Debug mode (with job selection)
-./run_frontend.sh --debug
+./frontend/run_app.sh --debug
 
 # Custom port
-./run_frontend.sh 8502
+./frontend/run_app.sh 8502
 ```
 
 **Pages**: Release Overview, Genotype Viewer, Locus Reports, Probe Validation

@@ -29,8 +29,8 @@ python run_carriers_pipeline_api.py --job-name release10  # Terminal 2
 ### Frontend
 
 ```bash
-./run_frontend.sh              # Production mode
-./run_frontend.sh --debug      # Debug mode with job selection
+./frontend/run_app.sh              # Production mode
+./frontend/run_app.sh --debug      # Debug mode with job selection
 ```
 
 ### Testing
@@ -73,12 +73,13 @@ SNP List: ~/gcs_mounts/genotools_server/precision_med/summary_data/precision_med
 - 77 SNPs have multiple probes (different NBA probes for same position)
 - Probe selection validates quality against WGS ground truth
 
-### Multi-Ancestry Merge (CRITICAL - Data Loss Bug Fixed 2025-12-15)
-- NBA/IMPUTED merge across ancestries using outer join
-- **CRITICAL FIX:** When merging, `_dup` columns must be **combined** before dropping
-- Without `combine_first()`, variants from "later" DataFrames lose all genotype data
-- Fixed in `coordinator.py` `_merge_ancestry_results()` lines ~692-704
-- See `DEBUGGING_IMPUTED_ISSUE.md` for details and planned concat+merge refactor
+### Multi-Ancestry Merge (CRITICAL - Refactored 2025-12-15)
+- NBA/IMPUTED merge uses efficient concat+merge approach:
+  1. Group DataFrames by ancestry
+  2. `pd.concat()` within ancestry (same samples, different variants)
+  3. `pd.merge()` across ancestries (different samples)
+- `combine_first()` handles any `_dup` columns from cross-ancestry overlap
+- See `DEBUGGING_IMPUTED_ISSUE.md` for full history and implementation details
 
 ### Probe Selection Integration
 - Locus reports now filter to use only selected probes
@@ -134,4 +135,4 @@ python run_carriers_pipeline.py --skip-probe-selection # skip probe selection
 - Use `--skip-extraction` for rapid iteration on postprocessing logic
 - Test changes incrementally - pipeline is in production use
 - Run unit tests before committing: `python -m pytest tests/ -v`
-- Frontend changes: Test with `./run_frontend.sh --debug`
+- Frontend changes: Test with `./frontend/run_app.sh --debug`
