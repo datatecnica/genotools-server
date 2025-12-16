@@ -689,8 +689,17 @@ class ExtractionCoordinator:
                 suffixes=('', '_dup')  # Avoid column name conflicts
             )
 
-            # Drop any duplicate columns that might have been created
+            # Combine duplicate columns: take non-NaN value from either column
+            # This is necessary because different chromosome files have the same samples
+            # but different variants - an outer join creates _dup columns with NaN for
+            # variants that only exist in one file
             dup_cols = [col for col in merged_df.columns if col.endswith('_dup')]
+            for dup_col in dup_cols:
+                base_col = dup_col[:-4]  # Remove '_dup' suffix
+                if base_col in merged_df.columns:
+                    # Combine: use base_col where not NaN, otherwise use dup_col
+                    merged_df[base_col] = merged_df[base_col].combine_first(merged_df[dup_col])
+            # Now drop the _dup columns
             if dup_cols:
                 merged_df = merged_df.drop(columns=dup_cols)
 

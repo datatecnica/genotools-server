@@ -1,33 +1,45 @@
 # Precision Med API - Feedback Issues Tracker
 
 ## Issue 1: Missing Genes in Imputed Genotypes
-**Status:** ✅ ROOT CAUSE FOUND - Ready to fix
+**Status:** ✅ FIXED (2025-12-15)
 
 **Description:** Imputed genotypes only include data on 5 genes. Many other genes are missing, including:
 - GBA1 with the African intronic variant
 - LRRK2 R1628P (note: feedback said LRRK1, likely meant LRRK2)
 - Potentially many others
 
-**Root Cause:**
-The IMPUTED extraction for release11 **failed silently** - only 1 out of 192 variants was actually extracted with genotype data. The extraction plan showed 209 IMPUTED files were supposed to be processed, but only chr15_AAC was actually extracted.
+**Root Cause Found (2025-12-15):**
+The bug was in `_merge_ancestry_results()` function in `coordinator.py`. When merging DataFrames from different chromosome files (which share the same sample columns), pandas outer join creates duplicate columns with `_dup` suffix. The code was **dropping** these `_dup` columns without first **combining** them with the original columns using `combine_first()`.
 
-**Evidence:**
-- 192 unique variants in IMPUTED parquet
-- Only 1 variant (`Arg93Alafs*25` on chr15) has `source_file` set and actual genotype data
-- 191 variants have `source_file = None` and 0 samples with data
-- Variants like G2019S, rs3115534 EXIST in the source PVAR files but weren't extracted
-- The 5 genes showing (ATP7B, C19orf12, MAPT, PLA2G6, SPG11) are from the chr15 data only
+This caused all genotype data for variants from "later" DataFrames in the merge sequence to be lost.
 
-**What SHOULD be present (based on SNP list mapping):**
-- GBA1: 33 variants
-- PRKN: 17 variants
-- LRRK2: 6 variants (including Gly2019Ser, Arg1628Pro)
-- PINK1: 10 variants
-- And many more...
+**Fix Applied:**
+In `coordinator.py` lines ~692-704, changed from:
+```python
+# Old (BROKEN): Just drop _dup columns
+dup_cols = [col for col in merged_df.columns if col.endswith('_dup')]
+if dup_cols:
+    merged_df = merged_df.drop(columns=dup_cols)
+```
 
-**Resolution:**
-1. Implement extraction tracking (see "Agreed Implementation" below)
-2. Re-run the pipeline for IMPUTED data
+To:
+```python
+# New (FIXED): Combine then drop
+dup_cols = [col for col in merged_df.columns if col.endswith('_dup')]
+for dup_col in dup_cols:
+    base_col = dup_col[:-4]
+    if base_col in merged_df.columns:
+        merged_df[base_col] = merged_df[base_col].combine_first(merged_df[dup_col])
+if dup_cols:
+    merged_df = merged_df.drop(columns=dup_cols)
+```
+
+**Verification:**
+- Before fix: GBA1 had 0 non-NaN samples
+- After fix: GBA1 has 16,185 non-NaN samples (correct!)
+- Full pipeline: 192 variants, 103,786 samples, 56,156 carriers
+
+**See:** `DEBUGGING_IMPUTED_ISSUE.md` for detailed debugging history and planned refactor
 
 ---
 

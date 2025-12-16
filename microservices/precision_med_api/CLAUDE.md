@@ -73,10 +73,12 @@ SNP List: ~/gcs_mounts/genotools_server/precision_med/summary_data/precision_med
 - 77 SNPs have multiple probes (different NBA probes for same position)
 - Probe selection validates quality against WGS ground truth
 
-### Multi-Ancestry Merge
-- NBA/IMPUTED properly merge (not concat) across ancestries
-- Outer join ensures all samples have genotypes for all variants
-- Fixed in `coordinator.py` with `_merge_ancestry_results()`
+### Multi-Ancestry Merge (CRITICAL - Data Loss Bug Fixed 2025-12-15)
+- NBA/IMPUTED merge across ancestries using outer join
+- **CRITICAL FIX:** When merging, `_dup` columns must be **combined** before dropping
+- Without `combine_first()`, variants from "later" DataFrames lose all genotype data
+- Fixed in `coordinator.py` `_merge_ancestry_results()` lines ~692-704
+- See `DEBUGGING_IMPUTED_ISSUE.md` for details and planned concat+merge refactor
 
 ### Probe Selection Integration
 - Locus reports now filter to use only selected probes
