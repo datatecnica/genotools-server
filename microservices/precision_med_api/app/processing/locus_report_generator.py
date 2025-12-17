@@ -434,10 +434,16 @@ class LocusReportGenerator:
             # Get genotypes and convert to numeric
             genotypes = pd.to_numeric(row[sample_cols], errors='coerce')
 
-            # Count carriers
-            carrier_count = (genotypes > 0).sum()
-            het_count = (genotypes == 1).sum()
-            hom_count = (genotypes == 2).sum()
+            # Count carriers using configurable thresholds
+            # For discrete genotypes (0,1,2): defaults work correctly
+            # For imputed dosages (0.0-2.0): thresholds categorize appropriately
+            het_min = self.settings.dosage_het_min
+            het_max = self.settings.dosage_het_max
+            hom_min = self.settings.dosage_hom_min
+
+            het_count = ((genotypes >= het_min) & (genotypes < het_max)).sum()
+            hom_count = (genotypes >= hom_min).sum()
+            carrier_count = het_count + hom_count
 
             variant_details[variant_id] = VariantDetail(
                 variant_id=variant_id,

@@ -1630,7 +1630,7 @@ class ExtractionCoordinator:
             from .coverage_profiler import run_coverage_profiling
 
             # Get base path and release from settings
-            base_path = self.settings.mnt_path / "gp2tier2_vwb" / f"release{self.settings.release}"
+            base_path = Path(self.settings.mnt_path) / "gp2tier2_vwb" / f"release{self.settings.release}"
             release = self.settings.release
 
             # Convert data types to string list

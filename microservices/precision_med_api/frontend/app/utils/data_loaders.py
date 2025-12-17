@@ -307,7 +307,15 @@ def load_variant_to_mutation_map(release: str, job_name: str, results_base_path:
 
 
 @st.cache_data
-def load_variant_carrier_counts(release: str, job_name: str, results_base_path: str, data_type: str = 'WGS') -> Dict[str, int]:
+def load_variant_carrier_counts(
+    release: str,
+    job_name: str,
+    results_base_path: str,
+    data_type: str = 'WGS',
+    dosage_het_min: float = 0.5,
+    dosage_het_max: float = 1.5,
+    dosage_hom_min: float = 1.5
+) -> Dict[str, int]:
     """
     Load carrier counts per variant from parquet files.
 
@@ -316,9 +324,12 @@ def load_variant_carrier_counts(release: str, job_name: str, results_base_path: 
         job_name: Job name
         results_base_path: Base path to results directory
         data_type: Data type to load ('WGS', 'NBA', or 'IMPUTED')
+        dosage_het_min: Minimum dosage to call heterozygous (default 0.5)
+        dosage_het_max: Maximum dosage to call heterozygous (default 1.5)
+        dosage_hom_min: Minimum dosage to call homozygous (default 1.5)
 
     Returns:
-        Dict mapping variant_id -> carrier count (number of samples with genotype > 0)
+        Dict mapping variant_id -> carrier count (het + hom based on thresholds)
         Returns empty dict if parquet doesn't exist
     """
     release_path = os.path.join(os.path.dirname(results_base_path), release)
@@ -345,9 +356,10 @@ def load_variant_carrier_counts(release: str, job_name: str, results_base_path: 
             # Get genotypes and convert to numeric
             genotypes = pd.to_numeric(row[sample_cols], errors='coerce')
 
-            # Count carriers (genotype > 0)
-            carrier_count = (genotypes > 0).sum()
-            carrier_counts[variant_id] = int(carrier_count)
+            # Count carriers using thresholds (het + hom)
+            het_count = ((genotypes >= dosage_het_min) & (genotypes < dosage_het_max)).sum()
+            hom_count = (genotypes >= dosage_hom_min).sum()
+            carrier_counts[variant_id] = int(het_count + hom_count)
 
         return carrier_counts
 

@@ -112,6 +112,24 @@ def parse_args():
         metavar='FAILED_FILES_JSON',
         help='Path to a failed_files.json from a previous run. Retries only failed files and merges with existing results.'
     )
+    parser.add_argument(
+        '--dosage-het-min',
+        type=float,
+        default=0.5,
+        help='Minimum dosage to call heterozygous (default: 0.5 for soft calls, use 0.9 for hard calls)'
+    )
+    parser.add_argument(
+        '--dosage-het-max',
+        type=float,
+        default=1.5,
+        help='Maximum dosage to call heterozygous (default: 1.5 for soft calls, use 1.1 for hard calls)'
+    )
+    parser.add_argument(
+        '--dosage-hom-min',
+        type=float,
+        default=1.5,
+        help='Minimum dosage to call homozygous (default: 1.5 for soft calls, use 1.9 for hard calls)'
+    )
     return parser.parse_args()
 
 
@@ -175,11 +193,6 @@ def analyze_results(results: dict, logger):
                 for data_type, count in summary['by_data_type'].items():
                     logger.info(f"   {data_type}: {count} variants")
             
-            # Ancestry breakdown if available  
-            if 'by_ancestry' in summary:
-                logger.info("🌍 Variants by ancestry:")
-                for ancestry, count in summary['by_ancestry'].items():
-                    logger.info(f"   {ancestry}: {count} variants")
         
         return True
         
@@ -201,14 +214,20 @@ def main():
         print_system_info()
         
         # Initialize settings with optimization and release
+        dosage_overrides = {
+            'dosage_het_min': args.dosage_het_min,
+            'dosage_het_max': args.dosage_het_max,
+            'dosage_hom_min': args.dosage_hom_min,
+        }
         if args.optimize:
             logger.info("🚀 Using auto-optimized performance settings")
-            settings = Settings.create_optimized(release=args.release)
+            settings = Settings.create_optimized(release=args.release, **dosage_overrides)
         else:
             logger.info("📊 Using default settings")
-            settings = Settings(release=args.release)
+            settings = Settings(release=args.release, **dosage_overrides)
         
         logger.info(f"⚙️  Performance settings: {settings.max_workers} workers, {settings.chunk_size} chunk_size, {settings.process_cap} process_cap")
+        logger.info(f"🧬 Dosage thresholds: het=[{settings.dosage_het_min}, {settings.dosage_het_max}), hom>={settings.dosage_hom_min}")
         
         # Initialize components
         extractor = VariantExtractor(settings)

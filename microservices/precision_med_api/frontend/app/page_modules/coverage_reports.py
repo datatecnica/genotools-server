@@ -156,7 +156,7 @@ def render_locus_table(locus_df: pd.DataFrame):
 
     st.dataframe(
         display_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         height=400
     )
@@ -175,7 +175,7 @@ def render_locus_table(locus_df: pd.DataFrame):
         if pos_cols:
             pos_df = locus_df[pos_cols].copy()
             pos_df = pos_df.sort_values('total_variants', ascending=False)
-            st.dataframe(pos_df, use_container_width=True, hide_index=True)
+            st.dataframe(pos_df, width="stretch", hide_index=True)
 
 
 def render_variant_table(variant_df: pd.DataFrame):
@@ -233,7 +233,7 @@ def render_variant_table(variant_df: pd.DataFrame):
 
     st.dataframe(
         display_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         height=400
     )
@@ -265,4 +265,4 @@ def render_variant_table(variant_df: pd.DataFrame):
                 if col.endswith('_position'):
                     pos_df[col] = pos_df[col].apply(lambda x: '✓' if x else '✗')
 
-            st.dataframe(pos_df, use_container_width=True, hide_index=True)
+            st.dataframe(pos_df, width="stretch", hide_index=True)
