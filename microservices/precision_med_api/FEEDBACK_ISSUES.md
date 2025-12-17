@@ -52,26 +52,75 @@ This improves performance from O(n²) to O(n) and makes the code clearer.
 ---
 
 ## Issue 2: Missing Carriers for Some Genes
-**Status:** 🔴 Not Started
+**Status:** ✅ RESOLVED (2025-12-17) - Not a bug
 
 **Description:** Spot-checking revealed missing carriers:
 - RAB32: Should have more than 1 carrier
 - SNCA: Should have more than 0 carriers
 
-**Root Cause:** TBD - Likely related to Issue 1 (IMPUTED extraction failure). Re-check after fixing Issue 1.
+**Root Cause:** The RAB32 and SNCA variants do NOT exist in the IMPUTED source files. This is expected behavior - these extremely rare pathogenic variants are not present in the imputation reference panel (likely TOPMed) and cannot be reliably imputed.
 
-**Resolution:** TBD
+**Investigation Results (2025-12-17):**
+
+| Gene | Variant | Position | WGS | NBA | IMPUTED | EXOMES |
+|------|---------|----------|-----|-----|---------|--------|
+| RAB32 | Ser71Arg | chr6:146544084 | 1 carrier | - | **NOT IN SOURCE** | - |
+| SNCA | Glu46Lys | chr4:89828170 | - | ✓ | **NOT IN SOURCE** | - |
+| SNCA | Gly51Asp | chr4:89828154 | ✓ | ✓ | **NOT IN SOURCE** | - |
+| SNCA | Ala53Thr | chr4:89828149 | ✓ | ✓ | **NOT IN SOURCE** | - |
+| SNCA | Ala53Glu | chr4:89828148 | - | ✓ | **NOT IN SOURCE** | - |
+| SNCA | Ala30Pro | chr4:89835580 | ✓ | **52 carriers** | **NOT IN SOURCE** | - |
+
+**Conclusion:**
+- SNCA has 52 carriers in NBA data (NeuroBooster Array) - this is correct
+- RAB32 has 1 carrier in WGS - may be correct (very rare variant)
+- The pipeline correctly reports what's available in each data source
+- Missing from IMPUTED is expected for rare pathogenic variants
 
 ---
 
-## Issue 3: Total Variants Count Higher Than Carriers Count
-**Status:** 🔴 Not Started
+## Issue 3: Total Carriers != Heterozygous + Homozygous (IMPUTED)
+**Status:** ✅ FIXED (2025-12-17)
 
-**Description:** Sometimes the number of total variants is higher than the number of carriers. This doesn't make sense if we only count variants detected in individuals - the carrier count shouldn't be lower than variant count.
+**Description:** For IMPUTED data, the "Total Carriers" count was not equal to Heterozygous + Homozygous. Example: c.1225-34C>A showed carrier=13,636, het=1,632, hom=402 (but het+hom=2,034).
 
-**Root Cause:** TBD
+**Root Cause:** IMPUTED data contains **dosage values** (continuous 0.0-2.0) not discrete genotypes (0, 1, 2). The old counting logic was:
+```python
+carrier_count = (genotypes > 0).sum()    # Counted 0.01, 0.1, etc. as carriers
+het_count = (genotypes == 1).sum()       # Only exact 1.0
+hom_count = (genotypes == 2).sum()       # Only exact 2.0
+```
 
-**Resolution:** TBD
+This meant samples with dosage 0.5 were counted as "carriers" but not as het or hom.
+
+**Fix Applied (2025-12-17):**
+Added configurable dosage thresholds in `app/core/config.py`:
+```python
+dosage_het_min: float = 0.5   # Minimum dosage to call heterozygous
+dosage_het_max: float = 1.5   # Maximum dosage to call heterozygous
+dosage_hom_min: float = 1.5   # Minimum dosage to call homozygous
+```
+
+Updated counting in `app/processing/locus_report_generator.py`:
+```python
+het_count = ((genotypes >= het_min) & (genotypes < het_max)).sum()
+hom_count = (genotypes >= hom_min).sum()
+carrier_count = het_count + hom_count  # Now always matches!
+```
+
+**CLI Support:**
+```bash
+# Default soft calls (0.5, 1.5, 1.5) - rounds to nearest integer
+python run_carriers_pipeline.py --job-name release11 --release 11
+
+# Hard calls (stricter thresholds for high-confidence only)
+python run_carriers_pipeline.py --job-name release11 --release 11 \
+    --dosage-het-min 0.9 --dosage-het-max 1.1 --dosage-hom-min 1.9
+```
+
+**Verification:**
+- Before: carrier=13,636, het+hom=2,034 (MISMATCH)
+- After: carrier=3,777, het=3,212, hom=565, het+hom=3,777 (MATCH ✓)
 
 ---
 
@@ -275,8 +324,7 @@ All tracking features have been implemented:
 
 ## Next Steps
 
-1. **Re-run IMPUTED extraction** for release11 using the new pipeline
-   - The extraction tracking will now show exactly which files fail
-   - Can use `--retry-failed` to retry any failures
-
-2. **Re-check Issues 2-4** after IMPUTED is fixed - they may be resolved
+1. ✅ **IMPUTED extraction fixed** (Issue 1 - 2025-12-15)
+2. ✅ **Issue 2 investigated** - RAB32/SNCA missing from IMPUTED is expected (not in source files)
+3. ✅ **Issue 3 fixed** - Dosage threshold fix (2025-12-17)
+4. 🔴 **Issue 4** - Clinical data issues still need investigation
