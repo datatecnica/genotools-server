@@ -68,83 +68,6 @@ if dup_cols:
 
 ---
 
-## Previous Fix: `source_file` tracking bug (2025-12-11)
-
-Added `'source_file'` to `metadata_cols` in `_merge_ancestry_results()` function. This was a secondary issue - the main data loss bug was the duplicate column drop.
-
----
-
----
-
-## Debugging Flow
-
-### Step 1: Confirmed Variant Exists in Source
-```
-PVAR file: /home/vitaled2/gcs_mounts/gp2tier2_vwb/release11/imputed_genotypes/AAC/chr1_AAC_release11_vwb.pvar
-Position 155235878 has variant: chr1:155235878:G:T (REF=G, ALT=T) ✓
-```
-
-### Step 2: Confirmed SNP List Entry
-```
-snp_name: c.1225-34C>A
-hg38: 1:155235878:G:T
-chromosome: 1, position: 155235878, ref: G, alt: T ✓
-```
-
-### Step 3: Tested Direct Extraction (WORKS)
-```python
-# Testing extraction for chr1 variants only
-aac_result = extractor.extract_single_file_harmonized(aac_pgen, snp_list_ids, chr1_snp)
-# Result: 10 variants extracted, including GBA1 with actual genotype data!
-```
-
-**Key Finding:** Extraction WORKS when run directly with the extractor.
-
-### Step 4: Tested Ancestry Merge (WORKS)
-```python
-# Simulating ancestry merge with AAC + EUR
-merged = coordinator._merge_ancestry_results([aac_result, eur_result], 'IMPUTED')
-# Result: GBA1 is in merged with sample values preserved!
-```
-
-**Key Finding:** Merge WORKS when run directly.
-
-### Step 5: Ran Full Pipeline with Verbose Logging
-```bash
-python run_carriers_pipeline.py --job-name release11_debug --data-types IMPUTED --release 11
-```
-
-**Pipeline Log Shows Successful Extraction:**
-```
-Extracted and harmonized 10 variants from chr1_AAC_release11_vwb.pgen
-Extracted and harmonized 18 variants from chr1_AFR_release11_vwb.pgen
-Extracted and harmonized 16 variants from chr1_AMR_release11_vwb.pgen
-... (successful extractions for all 11 ancestries)
-```
-
-### Step 6: Checked Pipeline Output (STILL BROKEN)
-```python
-# After pipeline completes
-df = pd.read_parquet("release11_debug_IMPUTED.parquet")
-gba1 = df[df['variant_id'] == 'chr1:155235878:G:T']
-# Result: source_file=None, Non-NaN genotypes=0 !!!
-```
-
----
-
-## Current State
-
-| What | Status | Notes |
-|------|--------|-------|
-| Variant exists in source | ✓ | Confirmed in PVAR file |
-| SNP list entry correct | ✓ | Correct format and values |
-| Direct extraction works | ✓ | Returns 10 variants including GBA1 |
-| Direct merge works | ✓ | Preserves genotype data |
-| Pipeline logs show success | ✓ | "Extracted and harmonized 10 variants from chr1_AAC" |
-| Pipeline output has data | ✗ | 0 genotypes, source_file=None |
-
----
-
 ## ✅ COMPLETED REFACTOR: Concat + Merge Approach (2025-12-15)
 
 ### Why This Refactor Was Needed
@@ -155,22 +78,6 @@ The previous `_merge_ancestry_results()` function used merge for ALL DataFrames,
 2. **Different ancestries, same variants** → Should use `pd.merge` (adding sample columns)
 
 The old approach worked after the `combine_first` fix but did unnecessary work.
-
-### Old Data Flow (Inefficient)
-
-```
-imputed_results = [
-    chr1_AAC,   # 10 variants, 1382 samples
-    chr22_AAC,  # 1 variant, 1382 samples (SAME samples as chr1_AAC!)
-    chr1_AFR,   # 18 variants, 7246 samples
-    chr22_AFR,  # 2 variants, 7246 samples (SAME samples as chr1_AFR!)
-    ...
-]
-
-# Current: merge ALL 75 DataFrames one-by-one
-# Each merge creates _dup columns for ALL sample columns, then combines them
-# This is O(n²) work when it should be O(n)
-```
 
 ### New Data Flow (Implemented)
 
@@ -195,74 +102,71 @@ for ancestry in ['AFR', 'AMR', ...]:
     final = pd.merge(final, ancestry_dfs[ancestry], on=merge_keys, how='outer')
 ```
 
-### Implementation (COMPLETED 2025-12-15)
-
-**File:** `app/processing/coordinator.py`
-
-**Functions modified:**
-- `_merge_ancestry_results()` (lines ~630-753) - refactored to use concat+merge
-- `_extract_ancestry_from_path()` (lines ~755-773) - new helper function
-
-**Three-phase approach implemented:**
-1. **Phase 1:** Group DataFrames by ancestry (extracted from `source_file` or `ancestry` column)
-2. **Phase 2:** Concat within each ancestry group (same samples, different variant rows)
-3. **Phase 3:** Merge across ancestries (different samples, outer join with `combine_first` for overlap)
-
 ### Benefits of Refactor
 
 1. **Performance:** O(n) concat + O(ancestries) merges instead of O(n²) merges
 2. **Clarity:** Code matches the actual data semantics
 3. **Fewer edge cases:** Less reliance on `combine_first` to fix incorrect merges
 
+---
+
+## ✅ DOSAGE THRESHOLD FIX (2025-12-17)
+
+### Problem
+For IMPUTED data, carrier counts showed `Total Carriers != Heterozygous + Homozygous`:
+- Example: c.1225-34C>A showed carrier=13,636, het=1,632, hom=402, but het+hom=2,034
+
+### Root Cause
+IMPUTED data contains **dosage values** (0.0-2.0) not discrete genotypes (0, 1, 2).
+The old counting logic:
+```python
+carrier_count = (genotypes > 0).sum()    # Counted 0.01, 0.1, etc. as carriers
+het_count = (genotypes == 1).sum()       # Only exact 1.0
+hom_count = (genotypes == 2).sum()       # Only exact 2.0
+```
+
+### Fix Applied
+Added configurable dosage thresholds in `app/core/config.py`:
+```python
+dosage_het_min: float = 0.5   # Minimum dosage to call heterozygous
+dosage_het_max: float = 1.5   # Maximum dosage to call heterozygous
+dosage_hom_min: float = 1.5   # Minimum dosage to call homozygous
+```
+
+Updated counting in `app/processing/locus_report_generator.py`:
+```python
+het_count = ((genotypes >= het_min) & (genotypes < het_max)).sum()
+hom_count = (genotypes >= hom_min).sum()
+carrier_count = het_count + hom_count  # Now always matches!
+```
+
+### CLI Support
+```bash
+# Default soft calls (0.5, 1.5, 1.5)
+python run_carriers_pipeline.py --job-name release11 --release 11
+
+# Hard calls (stricter thresholds)
+python run_carriers_pipeline.py --job-name release11 --release 11 \
+    --dosage-het-min 0.9 --dosage-het-max 1.1 --dosage-hom-min 1.9
+```
+
 ### Verification
-
-Unit tests pass and mock data test confirms:
-- AAC chr1 + chr22 files correctly concatenated (3 variants from 2 files)
-- AAC + AFR samples correctly merged (4 sample columns)
-- chr22-only variant (v3) preserves AAC samples, shows NaN for AFR samples
-
----
-
-## Historical Hypotheses (RESOLVED)
-
-These hypotheses were investigated before finding the root cause:
-
-### Hypothesis 1: Data Loss in ProcessPool Worker (NOT the issue)
-The extraction runs correctly in ProcessPool - data is returned properly.
-
-### Hypothesis 2: Data Loss in Result Combining (THIS WAS IT!)
-The merge call `imputed_combined = self._merge_ancestry_results(imputed_results, 'IMPUTED')` was dropping `_dup` columns without combining them first.
-
-### Hypothesis 3: Empty DataFrame Placeholder Issue (NOT the issue)
-No placeholder rows were being created.
-
----
-
-## Next Steps to Investigate
-
-1. **Add Debugging to ProcessPool Results Collection**
-   - Log the number of columns and non-NaN values in each DataFrame that gets appended to `all_results`
-   - Check if GBA1 is in `all_results` before merge
-
-2. **Add Debugging to Merge**
-   - Log the state of GBA1 before and after `_merge_ancestry_results()`
-   - Check column names and values at each step
-
-3. **Check Result Export**
-   - Log what `imputed_combined` looks like before it's written to parquet
-
-4. **Try Serial Execution**
-   - Run without ProcessPool to see if the issue is parallelization-related
+- Before: carrier=13,636, het+hom=2,034 (MISMATCH)
+- After: carrier=3,777, het=3,212, hom=565, het+hom=3,777 (MATCH ✓)
 
 ---
 
 ## Files Modified
-- `app/processing/coordinator.py` - Added `source_file` to `metadata_cols`
+
+- `app/processing/coordinator.py` - Concat+merge refactor, combine_first fix
+- `app/core/config.py` - Dosage threshold settings
+- `app/processing/locus_report_generator.py` - Threshold-based carrier counting
+- `frontend/app/utils/data_loaders.py` - Threshold-based counting (frontend)
+- `run_carriers_pipeline.py` - CLI args for dosage thresholds
 
 ## Related Files
 - `app/processing/extractor.py` - Single file extraction
 - `app/processing/harmonizer.py` - Variant harmonization
-- `run_carriers_pipeline.py` - CLI entry point
 
 ## Related Issues
 - See `FEEDBACK_ISSUES.md` for original issue tracking
