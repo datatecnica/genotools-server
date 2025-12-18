@@ -60,8 +60,16 @@ class LocusReportGenerator:
         df = pd.read_csv(key_path)
         self.logger.info(f"Loaded {len(df):,} samples from master key")
 
-        # Select relevant columns
-        df = df[['GP2ID', 'nba_label', 'nba', 'wgs', 'extended_clinical_data']].copy()
+        # Select relevant columns (including age data for disease duration calculation)
+        cols_to_keep = ['GP2ID', 'nba_label', 'nba', 'wgs', 'extended_clinical_data']
+
+        # Add age columns if available (for disease duration calculation)
+        if 'age_at_sample_collection' in df.columns:
+            cols_to_keep.append('age_at_sample_collection')
+        if 'age_of_onset' in df.columns:
+            cols_to_keep.append('age_of_onset')
+
+        df = df[cols_to_keep].copy()
         return df
 
     def _load_extended_clinical(self) -> pd.DataFrame:
@@ -92,13 +100,11 @@ class LocusReportGenerator:
         baseline_df = df[df['visit_month'] == 0].copy()
         self.logger.info(f"Filtered to {len(baseline_df):,} baseline visits")
 
-        # Select and rename relevant columns
+        # Select relevant columns (age data comes from master key, not here)
         clinical_cols = [
             'GP2ID',
             'Phenotype',
             'visit_month',
-            'age_at_baseline',
-            'age_at_onset',
             'moca_total_score',
             'hoehn_and_yahr_stage',
             'dat_sbr_caudate_mean'
@@ -494,9 +500,16 @@ class LocusReportGenerator:
             how='left'
         )
 
-        # Join with master key to get ancestry
+        # Join with master key to get ancestry and age data for disease duration
+        master_key_cols = ['GP2ID', 'nba_label', 'extended_clinical_data']
+        # Include age columns if available
+        if 'age_at_sample_collection' in self.master_key.columns:
+            master_key_cols.append('age_at_sample_collection')
+        if 'age_of_onset' in self.master_key.columns:
+            master_key_cols.append('age_of_onset')
+
         carriers = carriers.merge(
-            self.master_key[['GP2ID', 'nba_label', 'extended_clinical_data']],
+            self.master_key[master_key_cols],
             on='GP2ID',
             how='left'
         )
@@ -646,15 +659,17 @@ class LocusReportGenerator:
         # DAT caudate metrics
         dat_caudate_available = unique_carriers['dat_sbr_caudate_mean'].notna().sum() if 'dat_sbr_caudate_mean' in unique_carriers.columns else 0
 
-        # Disease duration metrics
+        # Disease duration metrics (using age_at_sample_collection - age_of_onset from master key)
         disease_duration_lte_3 = 0
         disease_duration_lte_5 = 0
         disease_duration_lte_7 = 0
-        if 'age_at_baseline' in unique_carriers.columns and 'age_at_onset' in unique_carriers.columns:
-            duration = pd.to_numeric(unique_carriers['age_at_baseline'], errors='coerce') - pd.to_numeric(unique_carriers['age_at_onset'], errors='coerce')
-            disease_duration_lte_3 = (duration <= 3).sum()
-            disease_duration_lte_5 = (duration <= 5).sum()
-            disease_duration_lte_7 = (duration <= 7).sum()
+        if 'age_at_sample_collection' in unique_carriers.columns and 'age_of_onset' in unique_carriers.columns:
+            duration = pd.to_numeric(unique_carriers['age_at_sample_collection'], errors='coerce') - pd.to_numeric(unique_carriers['age_of_onset'], errors='coerce')
+            # Only count valid durations (non-negative)
+            valid_duration = duration[duration >= 0]
+            disease_duration_lte_3 = (valid_duration <= 3).sum()
+            disease_duration_lte_5 = (valid_duration <= 5).sum()
+            disease_duration_lte_7 = (valid_duration <= 7).sum()
 
         return ClinicalMetrics(
             ancestry=ancestry,

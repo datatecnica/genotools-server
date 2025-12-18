@@ -190,11 +190,17 @@ accurate probe for carrier screening.
    - **Consensus Algorithm**:
      - Compare recommended probes from both methods
      - **Agreement**: If both methods select same probe → High confidence recommendation
-     - **Disagreement**: Flag for manual review with detailed metrics comparison
+     - **Disagreement**: Diagnostic method's choice is used as the default selection
      - Report agreement rate across all mutations
 
+   - **Disagreement Resolution**:
+     - When methods disagree, **diagnostic (sensitivity-based) selection wins**
+     - Rationale: For clinical screening, missing a true carrier (false negative) has worse consequences than a false positive
+     - A false positive leads to confirmatory testing; a false negative means a patient doesn't get appropriate monitoring
+     - Disagreements are flagged in output with lowered confidence scores for manual review if needed
+
    - **Interpretation**:
-     - High agreement rate (>90%): Methods are well-aligned
+     - High agreement rate (>90%): Methods are well-aligned, recommendations are robust
      - Low agreement: May indicate trade-offs between carrier detection vs genotyping accuracy
      - Disagreements typically occur when one probe has excellent carrier detection but poor dosage accuracy
 

@@ -125,15 +125,52 @@ python run_carriers_pipeline.py --job-name release11 --release 11 \
 ---
 
 ## Issue 4: Clinical Data Issues
-**Status:** 🔴 Not Started
+**Status:** ✅ FIXED (2025-12-18) - Disease duration now calculates correctly
 
 **Description:**
 - Disease duration always shows 0 carriers (there is no column for this - needs to be calculated based on age and AAO)
 - Some clinical items need editing (minor changes expected)
 
-**Root Cause:** TBD
+**Root Cause (2025-12-18):**
+The code in `locus_report_generator.py` was looking for columns that don't exist:
+- Code expected: `age_at_baseline` and `age_at_onset` (from extended clinical data)
+- Actual columns in master key: `age_at_sample_collection` and `age_of_onset`
 
-**Resolution:** TBD
+The disease duration calculation at lines 653-657 checked:
+```python
+if 'age_at_baseline' in unique_carriers.columns and 'age_at_onset' in unique_carriers.columns:
+    duration = age_at_baseline - age_at_onset
+```
+
+Since neither column existed, the condition was never true, resulting in 0 for all disease duration metrics.
+
+**Fix Applied (2025-12-18):**
+1. Updated `_load_master_key()` to include `age_at_sample_collection` and `age_of_onset` columns
+2. Removed non-existent `age_at_baseline` and `age_at_onset` from `_load_extended_clinical()`
+3. Updated `_join_clinical_data()` to pass age columns from master key to carriers
+4. Updated `_calculate_ancestry_metrics()` to use correct column names:
+```python
+if 'age_at_sample_collection' in unique_carriers.columns and 'age_of_onset' in unique_carriers.columns:
+    duration = age_at_sample_collection - age_of_onset
+    # Only count valid durations (non-negative)
+    valid_duration = duration[duration >= 0]
+    disease_duration_lte_3 = (valid_duration <= 3).sum()
+    ...
+```
+
+**Verification (2025-12-18):**
+Re-ran the pipeline with `--release 11 --skip-extraction`. Disease duration now populates correctly:
+
+| Gene | Total Carriers | ≤3 years | ≤5 years | ≤7 years |
+|------|---------------|----------|----------|----------|
+| GBA1 | 5,646 | 648 | 1,028 | 1,354 |
+| LRRK2 | 2,896 | 191 | 324 | 470 |
+| PRKN | 2,637 | 286 | 450 | 558 |
+| GCH1 | 832 | 86 | 152 | 208 |
+
+Before fix: All disease duration columns showed 0.
+
+**Note:** "Some clinical items need editing" mentioned in original feedback - awaiting clarification on what specific changes are needed
 
 ---
 

@@ -60,8 +60,8 @@ def parse_args():
     parser.add_argument(
         '--release',
         type=str,
-        default='10',
-        help='GP2 release version (default: 10, EXOMES requires 8+)'
+        required=True,
+        help='GP2 release version (required, e.g., 11). EXOMES requires release 8+'
     )
     parser.add_argument(
         '--parallel',
