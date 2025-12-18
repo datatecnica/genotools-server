@@ -1,0 +1,89 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: idat-ped-{{ params.name }}
+  namespace: {{ params.k8s_namespace }} #kns-gtserver # \{\{ .Values.test_namespace \}\}     
+  labels:
+    jobgroup: idat-ped
+spec:
+  template:
+    metadata:
+      name: idat-ped
+      labels:
+        jobgroup: idat-ped
+      annotations:
+        gke-gcsfuse/volumes: "true" 
+        #Optional resource configuration for the sidecar container. Allocate more CPU to the sidecar container if your workloads need higher throughput.
+        gke-gcsfuse/cpu-limit: "1"
+        gke-gcsfuse/memory-limit: "4Gi"
+        gke-gcsfuse/ephemeral-storage-limit: "4Gi"
+    spec:
+      serviceAccountName: {{ params.service_account_name }} #ksa-bucket-access #\{\{ .Values.ksaBucket \}\}
+      restartPolicy: OnFailure
+      containers:
+      - name: script-runner
+        image: google/cloud-sdk:latest # Use a suitable image with gsutil
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            echo "Starting job script execution..."
+            #plink directory
+            echo current directory is $PWD
+
+            # apt-get update && apt-get install -y apt-transport-https ca-certificates gnupg curl
+            apt-get update && apt-get install -y libicu-dev
+
+            # Add the Google Cloud public key
+            # echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+            # curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+
+            # Install gcloud SDK
+            # apt-get update && apt-get install -y google-cloud-sdk            
+            mkdir -p /tmp
+            gsutil -q -m cp -r {{ params.exec_folder_path }} /tmp
+            #gsutil -m cp -r {{ params.exec_folder_path }}/iaap-cli/iaap-cli /tmp/exec/iaap-cli
+            #chmod +x /tmp/exec/plink_modules/plink2_module.sh
+            # cat /tmp/exec/plink_modules/plink2_module.sh
+            #/tmp/exec/plink_modules/plink2_module.sh
+            #echo plink directory contents
+            #ls -l /home/levineks/bin/plink2/
+            #ls -l /etc/modulefiles/plink2/
+            #echo iaap-cli.runtimeconfig.json contents...
+            #cat /tmp/exec/iaap-cli/iaap-cli.runtimeconfig.json
+            gsutil -m cp {{ params.batch_folder_path }}/{{ params.script | replace("\n", "") }} /tmp/script.sh 
+            
+            chmod +x /tmp/script.sh # Make the file executable
+            echo "Script contents... " 
+            cat /tmp/script.sh
+            echo "checking the contents of the directory..."
+            chmod +x /tmp/exec/iaap-cli/iaap-cli
+            /tmp/script.sh # Run the script
+        resources:
+          requests:
+            cpu: "3"
+            memory: "20Gi"
+          limits:
+            cpu: "3"
+            memory: "24Gi" 
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+        volumeMounts:
+        - name: gcs-volume
+          mountPath: /app/input #\{\{ .Values.microservices.idatPedBedPreAPI.mountPath \}\}
+          readOnly: false
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+      volumes:
+      - name: gcs-volume
+        persistentVolumeClaim:
+          claimName: {{ params.pv_claim }} #gtserver-pvc #\{\{ .Values.testPVOLUMECLAIM \}\}  
+          readOnly: false
+      # Ensure pods are scheduled on nodes with the specified GCP VM type
+      nodeSelector:
+        cloud.google.com/gke-nodepool: {{ params.gke_nodepools }} #workflow-idat-ped-bed-nodepool #\{\{ .Values.nodePools.idatPedBedAPINodePool \}\} 
+  activeDeadlineSeconds: 3600 # Terminate if running for more than 2 hours
+  ttlSecondsAfterFinished: 30 # Clean up 1 hour after completion        
+  backoffLimit: 2

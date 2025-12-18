@@ -1,0 +1,75 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mergs-beds-{{ params.name }}
+  namespace: {{ params.k8s_namespace }} #kns-gtserver # \{\{ .Values.test_namespace \}\}     
+  labels:
+    jobgroup: mergs-beds
+spec:
+  template:
+    metadata:
+      name: mergs-beds
+      labels:
+        jobgroup: mergs-beds
+      annotations:
+        gke-gcsfuse/volumes: "true" 
+        #Optional resource configuration for the sidecar container. Allocate more CPU to the sidecar container if your workloads need higher throughput.
+        gke-gcsfuse/cpu-limit: "1"
+        gke-gcsfuse/memory-limit: "4Gi"
+        gke-gcsfuse/ephemeral-storage-limit: "4Gi"
+    spec:
+      serviceAccountName: {{ params.service_account_name }} #ksa-bucket-access #\{\{ .Values.ksaBucket \}\}
+      restartPolicy: OnFailure
+      containers:
+      - name: script-runner
+        image: google/cloud-sdk:latest # Use a suitable image with gsutil
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            echo "Starting job script execution..."
+            # apt-get update && apt-get install -y apt-transport-https ca-certificates gnupg curl
+            apt-get update && apt-get install -y libicu-dev 
+            apt-get update && apt-get install -y unzip
+            #unzip -v
+
+            mkdir -p /tmp
+            gsutil -q -m cp -r {{ params.exec_folder_path }} /tmp
+
+            chmod +x /tmp/exec/plink_modules/plink_module.sh
+            /tmp/exec/plink_modules/plink_module.sh
+            #echo plink directory contents
+            #ls -l /home/plink_package/bin/plink1.9/
+            gsutil -m cp {{ params.batch_folder_path }}/{{ params.script | replace("\n", "") }} /tmp/script.sh 
+            chmod +x /tmp/script.sh # Make the file executable
+            echo "Script contents... " 
+            cat /tmp/script.sh
+            /tmp/script.sh # Run the script
+        resources:
+          requests:
+            cpu: "3"
+            memory: "20Gi"
+          limits:
+            cpu: "3"
+            memory: "24Gi" 
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+        volumeMounts:
+        - name: gcs-volume
+          mountPath: /app/input #\{\{ .Values.microservices.idatPedBedPreAPI.mountPath \}\}
+          readOnly: false
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+      volumes:
+      - name: gcs-volume
+        persistentVolumeClaim:
+          claimName: {{ params.pv_claim }} #gtserver-pvc #\{\{ .Values.testPVOLUMECLAIM \}\}  
+          readOnly: false
+      # Ensure pods are scheduled on nodes with the specified GCP VM type
+      nodeSelector:
+        cloud.google.com/gke-nodepool: {{ params.gke_nodepools }} #workflow-idat-ped-bed-nodepool #\{\{ .Values.nodePools.idatPedBedAPINodePool \}\} 
+  activeDeadlineSeconds: 3600 # Terminate if running for more than 2 hours
+  ttlSecondsAfterFinished: 30 # Clean up 1 hour after completion        
+  backoffLimit: 2
