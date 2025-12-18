@@ -18,7 +18,7 @@ ksaBucket: ksa-bucket-access
 namespace: kns-gtserver
 # namespace: kns-test
 
-dnsName: genotoolsservers.com #genotools-server.com
+dnsName: DNS_NAME #genotoolsservers.com #genotools-server.com
 # ingressName: gtserver-ingress
 # globalIPName: gke-ingress
 
@@ -29,13 +29,13 @@ argoRelated:
   argoWF:
     routeName: argo-route
     namespace: argo
-    hostname: workflows.genotoolsservers.com
+    hostname: workflows.DNS_NAME
     serviceAccountName: argo-ksa
     workflowRoleBindingName: argo-workflow-role-binding
 gatewayAPI:
   gatewayName: gt-server-gwapi
   certKey: gt-server-gateway
-  globalIPName: gt-test-ip
+  globalIPName: STATIC_IP_NAME #gt-test-ip
 #  routeName: genotools-routes
 
 gcpSecretManager:
@@ -75,7 +75,7 @@ appservices:
     iapPolicyBackend: precisionmed-app-iap-backend
     containerPort: 8080
     servicePort: 8000
-    hostname: precision-med.genotoolsservers.com
+    hostname: precision-med.DNS_NAME
     routeName: precisionmed-app-route
     podName: precisionmed-app-pod
     volume: precisionmed-app-vol
@@ -91,7 +91,7 @@ appservices:
     iapPolicyBackend: genotracker-app-iap-backend
     containerPort: 8080
     servicePort: 8000
-    hostname: genotracker-app.genotoolsservers.com
+    hostname: genotracker-app.DNS_NAME
     routeName: genotracker-app-route
     podName: genotracker-app-pod
     volume: genotracker-app-vol
@@ -111,7 +111,7 @@ appservices:
     iapPolicyBackend: gp2browser-iap-backend
     containerPort: 8080
     servicePort: 8000
-    hostname: gp2browser-app.genotoolsservers.com
+    hostname: gp2browser-app.DNS_NAME
     routeName: gp2browser-app-route
     podName: gp2browser-app-pod
     volume: gp2browser-app-vol
@@ -128,7 +128,7 @@ microservices:
     svcName: genotracker-api-svc
     containerPort: 8080
     servicePort: 8000
-    hostname: genotracker-api.genotoolsservers.com
+    hostname: genotracker-api.DNS_NAME
     routeName: genotracker-api-route
     podName: genotracker-api-pod
     volume: genotracker-api-vol
@@ -143,7 +143,7 @@ microservices:
     containerPort: 8080
     servicePort: 8000
     # hostname: genotools-api.genotoolsserver.com
-    hostname: genotools-api.genotoolsservers.com
+    hostname: genotools-api.DNS_NAME
     routeName: genotools-api-route
     podName: genotools-api-pod
     volume: genotools-api-vol
