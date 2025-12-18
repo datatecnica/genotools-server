@@ -1,6 +1,6 @@
 import streamlit as st
 import subprocess
-#from streamlit_ace import st_ace
+from streamlit_ace import st_ace
 import io
 import sys
 

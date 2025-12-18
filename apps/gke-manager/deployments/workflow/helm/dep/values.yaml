@@ -1,0 +1,69 @@
+# values.yaml
+### Important
+# 1. GCS bucket: Bucket is mounted in /aa/input/ folder in the container.
+# 2. Make sure that all paths in the gcs bucket are properly provided in the below variables.
+# 3. EXAMPLE: In the below variables, /app/input/workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results
+#    corresponds to workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results folder in the GCS bucket. THIS PATH MUST BE A VALID FOLDER IN THE GCS BUCKET.
+# 4. logs, batch_files, ped_bed, clinical folders and folders (inside thses for each step) are automatically created by the workflow.
+# 5. User must ensure that the input files (idats, fam, key_file etc.) are already present in the GCS bucket before starting the workflow.
+# 6. User provided folder are below:
+#    a. /app/input/workflows/idat-ped-bed-merge/11-03-2025/new_test_data/idats  --> Input IDAT files folder
+#    b. /app/input/workflows/idat-ped-bed-merge/11-03-2025/new_test_data/syed_test_idats_n313.txt  --> Key file path
+#    c. /app/input/workflows/idat-ped-bed-merge/exec  --> Execution folder path in GCS bucket where iaap-cli and plink executables are present.
+#    exec folder contains:
+#      i. NeuroBooster_20042459_A2.bpm
+#      ii. recluster_09272022.egt
+#     iii. iaap-cli/ (folder with iaap-cli executable and all dependencies)
+#     iv. plink_modules// (folder with plink installer files plink2_module.sh and plink_module.sh)
+#     PLEASE DO NOT CHANGE PATHS IN plink2_module.sh and plink_module.sh FILES AS THESE ARE BEING REFERRED IN VARIOUS STEPS OF THE WORKFLOW.
+# Input arguments passed to the container
+job:
+  flag_idat_ped: "1"
+  flag_ped_bed: "2"
+  flag_merge_bed: "3"
+  log_file_path: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results/logs"
+  study_id: 
+    id1: "KGPAR"
+    id2: "MDGAP-SW"
+    id3: "MAYO"
+  key_path: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/new_test_data/syed_test_idats_n313.txt"
+  fam_path: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results/clinical/merge_by_cohort_10"
+  raw_plink_path: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results/ped_bed"
+  batch_folder_path: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results/batch_files"
+  exec_folder_path: "/app/input/workflows/idat-ped-bed-merge/exec"
+  num_threads: "6"
+  #IDAT -> PED Flags
+  path_idat_ped_jobs: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results/batch_files/idat_ped/job_idat_ped*.yaml"
+  idat_path: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/new_test_data/idats"
+  barcodes_per_job: "8"
+  #PED ->BED flags
+  path_ped_bed_jobs: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results/batch_files/ped_bed/job_ped_bed*.yaml"
+  #PED -> BED and BEDS Merge common flag
+  codes_per_job: "60"
+  #BEDS Merge flags
+  clinical_key_dir: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results/clinical"
+  path_beds_merge_jobs: "/app/input/workflows/idat-ped-bed-merge/11-03-2025/pipe-line-results/batch_files/beds_merge/job_merge_bed*.yaml"
+
+# Container image (use Google Artifact Registry format for GKE)
+image:
+  repository: europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/workflows/idat-ped-bed-merge:latest
+
+gcpSecretManager:
+  kubernetesSecretName: gtserver-secrets
+  patKey:
+    name: genotools-api-sec
+    key: EMAIL_PAT
+user_email: syed@datatecnica.com
+
+# Namespace to run workflow and jobs - WE DO NOT NEED TO CHANGE THESE UNLESS K8S SERVER IS CHANGED 
+namespace: kns-gtserver
+persistentVOLUME: gtserver-pv
+persistentVOLUMECLAIM: gtserver-pvc
+serviceAccountName: ksa-bucket-access
+gkeNodePools: workflow-idat-ped-bed-nodepool
+# Workflow email notification messages
+email_notification:
+  idat_ped_step:
+  start_message_idat_ped: "Workflow step IDAT -> PED has started."
+  success_message_idat_ped: "Workflow step IDAT -> PED has completed successfully. Please check logs to verify."
+  failure_message: "IDAT to PED to BED merge workflow has failed."

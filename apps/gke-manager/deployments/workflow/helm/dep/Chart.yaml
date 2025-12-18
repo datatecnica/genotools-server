@@ -1,0 +1,5 @@
+apiVersion: v2
+name: argo-embedded-job
+description: Argo Workflow that embeds a Kubernetes Job
+type: application
+version: 0.1.0

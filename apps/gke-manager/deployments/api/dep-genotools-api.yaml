@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: genotools-api-pod
+  name: genotools-api-pod
+  namespace: kns-gtserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: genotools-api-pod
+  template:
+    metadata:
+      labels:
+        app: genotools-api-pod
+      annotations:
+        gke-gcsfuse/volumes: "true" 
+        #Optional resource configuration for the sidecar container. Allocate more CPU to the sidecar container if your workloads need higher throughput.
+        gke-gcsfuse/cpu-limit: "2"
+        gke-gcsfuse/memory-limit: 8Gi
+        gke-gcsfuse/ephemeral-storage-limit: 8Gi   
+    spec:
+      serviceAccountName: ksa-bucket-access
+      containers:
+      - image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/server/microservices/genotools-api:latest
+        name: genotools-api-cont
+        imagePullPolicy: Always 
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: genotools-api-vol
+          mountPath: /app/genotools_api/data
+        env:
+          - name: API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: gtserver-secrets
+                key: GENOTOOLS_API_KEY
+          - name: PAT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: gtserver-secrets
+                key: EMAIL_PAT
+      volumes:
+      - name: genotools-api-vol
+        persistentVolumeClaim:
+          claimName: gtserver-pvc
+      # Ensure pods are scheduled on nodes with the specified GCP VM type
+      nodeSelector:
+        cloud.google.com/gke-nodepool: genotools-api-node

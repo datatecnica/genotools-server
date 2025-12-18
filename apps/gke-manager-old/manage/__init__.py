@@ -8,7 +8,6 @@ client = secretmanager.SecretManagerServiceClient()
 
 # secret_name = "projects/664722061460/secrets/gke-manager-sec/versions/1"
 secret_name = "projects/776926281950/secrets/gke-manager-sec/versions/1"
-# secret_name = "projects/719002041197/secrets/gke-manager-sec/versions/1"
 
 
 response = client.access_secret_version(request={"name": secret_name})

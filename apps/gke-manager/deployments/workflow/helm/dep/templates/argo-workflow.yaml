@@ -1,0 +1,685 @@
+# Adding email notification at each step start and end
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  namespace: "{{ .Values.namespace }}" #kns-gtserver 
+  #generateName: idat-ped-bed-merge-
+  name: idat-ped-bed-merge
+spec:
+  entrypoint: idat-ped-bed-pipeline
+  serviceAccountName: "{{ .Values.serviceAccountName }}"
+  templates:
+    # Main workflow
+    - name: idat-ped-bed-pipeline
+      dag:
+        tasks: 
+        # DAG Steps for IDAT to PED Steps
+        - name: step-pre-idat-ped
+          template: pre-idat-ped
+          hooks:
+            exit:
+              template: send-gmail-notification
+              arguments:
+                parameters:
+                  - name: message
+                    value: "Starting Step: IDAT to PED in IDAT-PED-BED-MERGE-BEDS Pipeline."
+        - name: step-wait-pre-idat-ped
+          dependencies: [step-pre-idat-ped]
+          template: wait-for-all-jobs
+          arguments:
+            parameters:
+              - name: jobSucceeded
+                value: "{{`{{tasks.step-pre-idat-ped.outputs.parameters.jobSucceeded}}`}}"
+              - name: jobName
+                value: "{{`{{tasks.step-pre-idat-ped.outputs.parameters.jobName}}`}}"
+        - name: step-execute-idat-ped-jobs
+          dependencies: [step-wait-pre-idat-ped]
+          template: deploy-idat-ped-jobs
+          #arguments:
+            #parameters:
+              #- name: gcs-path
+                #value: "{{`{{item}}`}}"
+          #withParam: "{{`{{tasks.step-list-idat-ped-jobs.outputs.parameters.list_idat_peds}}`}}"
+        - name: step-wait-idat-ped-jobs
+          dependencies: [step-execute-idat-ped-jobs]
+          template: wait-for-all-jobs
+        
+        # DAG Steps for PED -> BED
+        - name: step-pre-ped-bed
+          dependencies: [step-execute-idat-ped-jobs, step-wait-idat-ped-jobs]
+          template: pre-ped-bed
+          hooks:
+            exit:
+              template: send-gmail-notification
+              arguments:
+                parameters:
+                  - name: message
+                    value: "Done Step: IDAT -> PED in IDAT-PED-BED-MERGE-BEDS Pipeline. Now starting Step: Ped -> Bed Step"
+                            
+        - name: step-wait-pre-ped-bed
+          dependencies: [step-pre-ped-bed]
+          template: wait-for-all-jobs
+          arguments:
+            parameters:
+              - name: jobSucceeded
+                value: "{{`{{tasks.step-pre-ped-bed.outputs.parameters.jobSucceeded}}`}}"
+              - name: jobName
+                value: "{{`{{tasks.step-pre-ped-bed.outputs.parameters.jobName}}`}}"
+
+        - name: step-deploy-ped-bed-jobs
+          dependencies: [step-wait-pre-ped-bed]
+          template: deploy-ped-bed-jobs
+          #arguments:
+            #parameters:
+              #- name: gcs-path
+                #value: "{{`{{item}}`}}"
+          #withParam: "{{`{{tasks.step-pre-ped-bed.outputs.parameters.list_ped_bed}}`}}"
+        - name: step-wait-ped-bed-jobs
+          dependencies: [step-deploy-ped-bed-jobs]
+          template: wait-for-all-jobs
+        # DAG Steps for Merge BEDS
+        - name: step-pre-merge-beds
+          template: pre-merge-beds
+          dependencies: [step-deploy-ped-bed-jobs, step-wait-ped-bed-jobs]
+          hooks:
+            exit:
+              template: send-gmail-notification
+              arguments:
+                parameters:
+                  - name: message
+                    value: "Step: PED -> BED Done in IDAT-PED-BED-MERGE-BEDS Pipeline. Now starting Merge-Beds step"
+        - name: step-wait-pre-merge-beds
+          dependencies: [step-pre-merge-beds]
+          template: wait-for-all-jobs
+          arguments:
+            parameters:
+              - name: jobSucceeded
+                value: "{{`{{tasks.step-pre-merge-beds.outputs.parameters.jobSucceeded}}`}}"
+              - name: jobName
+                value: "{{`{{tasks.step-pre-merge-beds.outputs.parameters.jobName}}`}}"
+        - name: step-deploy-merge-beds
+          dependencies: [step-wait-pre-merge-beds]
+          template: deploy-merge-beds-jobs
+          #arguments:
+            #parameters:
+              #- name: gcs-path
+                #value: "{{`{{item}}`}}"
+          #withParam: "{{`{{tasks.step-list-merge-beds.outputs.parameters.list_merge_beds}}`}}"
+        - name: step-wait-merge-beds-jobs
+          dependencies: [step-deploy-merge-beds]
+          template: wait-for-all-jobs
+          hooks:
+            exit:
+              template: send-gmail-notification
+              arguments:
+                parameters:
+                  - name: message
+                    value: "Step: Merge-Beds Done in IDAT-PED-BED-MERGE-BEDS Pipeline. Now starting clean up of ped, bed files."
+        # Final clean-up step
+        - name: step-clean-up
+          template: cleanup-ped-bed
+          dependencies: [step-deploy-merge-beds, step-wait-merge-beds-jobs]
+          hooks:
+            exit:
+              template: send-gmail-notification
+              arguments:
+                parameters:
+                  - name: message
+                    value: "Step: Done ped, bed clean up. Pipeline is now complete."
+          
+    # Steps for IDAT to PED
+    - name: pre-idat-ped
+      resource:
+        action: create
+        successCondition: status.succeeded > 0
+        failureCondition: status.failed > 2
+        manifest: |   
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: pre-idat-ped-job
+            namespace: "{{ .Values.namespace }}"
+            labels:
+              jobgroup: pre-idat-ped-job
+          spec:
+            template:
+              metadata:
+                name: pre-idat-ped-job
+                labels:
+                  jobgroup: pre-idat-ped-job
+                annotations:
+                  gke-gcsfuse/volumes: "true" 
+                  #Optional resource configuration for the sidecar container. Allocate more CPU to the sidecar container if your workloads need higher throughput.
+                  gke-gcsfuse/cpu-limit: "250m"
+                  gke-gcsfuse/memory-limit: "1Gi"
+                  gke-gcsfuse/ephemeral-storage-limit: "1Gi"
+              spec:
+                serviceAccountName: "{{ .Values.serviceAccountName }}" #ksa-bucket-access
+                restartPolicy: OnFailure
+                containers:
+                - name: pre-idat-ped-job-container
+                  image: "{{ .Values.image.repository }}" #europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/workflows/idat-ped-bed-merge:latest #europe-west4-docker.pkg.dev/gp2-code-test-env/gt-server/idat-bed-pipeline:latest
+                  imagePullPolicy: Always
+                  command: ["python", "idat_ped.py"]
+                  args: 
+                  # Common flags
+                    - "--calc-flag"
+                    - "{{ .Values.job.flag_idat_ped }}"
+                    - "--log-file-path"
+                    - "{{ .Values.job.log_file_path }}"
+                    - "--study-id"
+                    - "{{ .Values.job.study_id.id1 }}"
+                    - "{{ .Values.job.study_id.id2 }}"
+                    - "{{ .Values.job.study_id.id3 }}"
+                    - "--key-path"
+                    - "{{ .Values.job.key_path }}"
+                    - "--fam-path"
+                    - "{{ .Values.job.fam_path }}"
+                    - "--raw-plink-path"
+                    - "{{ .Values.job.raw_plink_path }}"
+                    - "--batch-folder-path"
+                    - "{{ .Values.job.batch_folder_path }}"
+                    - "--exec-folder-path"
+                    - "{{ .Values.job.exec_folder_path }}"
+                    - "--num-threads"
+                    - "{{ .Values.job.num_threads }}"
+                    - "--idat-path"
+                    - "{{ .Values.job.idat_path }}"
+                    - "--barcodes-per-job"
+                    - "{{ .Values.job.barcodes_per_job }}"
+                    - "--codes-per-job"
+                    - "{{ .Values.job.codes_per_job }}"
+                    - "--clinical-key-dir"
+                    - "{{ .Values.job.clinical_key_dir }}"
+                    - "--service-account-name"
+                    - "{{ .Values.serviceAccountName }}"
+                    - "--k8s-namespace"
+                    - "{{ .Values.namespace }}"
+                    - "--pv-claim"
+                    - "{{ .Values.persistentVOLUMECLAIM }}"
+                    - "--gke-nodepools"
+                    - "{{ .Values.gkeNodePools }}"
+
+                  volumeMounts:
+                  - name: gcs-volume
+                    mountPath: /app/input
+                    readOnly: false
+                volumes:
+                - name: gcs-volume
+                  persistentVolumeClaim:
+                    claimName: gtserver-pvc #gtserver-test-pvc
+                    readOnly: false
+            activeDeadlineSeconds: 18000 # Terminate if running for more than 5 hours
+            ttlSecondsAfterFinished: 300 # Clean up 5 minutes after completion        
+            backoffLimit: 2
+      # Capture the generated job name as an output parameter
+      outputs:
+        parameters:
+          - name: jobName
+            valueFrom:
+              jsonPath: "{{`{.metadata.name}`}}"
+          - name: jobSucceeded
+            valueFrom:
+              jsonPath: "{{`{.status.succeeded}`}}"
+          - name: jobStatusFull
+            valueFrom:
+              jsonPath: "{{`{ .status }`}}"
+
+    - name: deploy-idat-ped-jobs
+      serviceAccountName: "{{ .Values.serviceAccountName }}"
+      metadata:
+        annotations:
+          gke-gcsfuse/volumes: "true" 
+      script:
+        image: google/cloud-sdk:slim #bitnami/kubectl:latest
+        volumeMounts:
+          - name: workdir
+            mountPath: /app/input #/tmp/workdir2
+            readOnly: false
+        command: [sh]
+        source: |
+          apt-get install kubectl
+          #FILES=$(ls {{ .Values.job.path_idat_ped_jobs }} || echo "")
+          FILES=$(ls {{ .Values.job.path_idat_ped_jobs }})
+          echo Got files $FILES
+          for item in $FILES; do
+            echo "Processing: $item"
+            cp $item ./job.yaml
+            # cat job.yaml
+            #Inject workflow label for tracking
+            cat job.yaml | \
+            kubectl label -f - --local -o yaml workflow={{`{{workflow.name}}`}} | \
+            kubectl apply -f -
+            # Extract Job name (if using generateName, get generated name)
+            JOB_NAME=$(kubectl get -f job.yaml -o jsonpath='{.metadata.name}')
+            if [ -z "$JOB_NAME" ]; then
+              # It uses generateName — get last created Job
+              sleep 2
+              JOB_NAME=$(kubectl get job --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
+            fi
+            echo "JOB_NAME=$JOB_NAME"
+          done
+      volumes:
+        - name: workdir
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistentVOLUMECLAIM }} #gtserver-pvc #gtserver-test-pvc #gcs-pvc
+            readOnly: false
+    # End Steps for IDAT to PED
+    # Steps for PED to BED
+    - name: pre-ped-bed
+      resource:
+        action: create
+        successCondition: status.succeeded > 0
+        failureCondition: status.failed > 2
+        manifest: |   
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: pre-ped-bed-job
+            namespace: "{{ .Values.namespace }}"
+            labels:
+              jobgroup: pre-ped-bed-job
+          spec:
+            template:
+              metadata:
+                name: pre-ped-bed-job
+                labels:
+                  jobgroup: pre-ped-bed-job
+                annotations:
+                  gke-gcsfuse/volumes: "true" 
+                  #Optional resource configuration for the sidecar container. Allocate more CPU to the sidecar container if your workloads need higher throughput.
+                  gke-gcsfuse/cpu-limit: "250m"
+                  gke-gcsfuse/memory-limit: "1Gi"
+                  gke-gcsfuse/ephemeral-storage-limit: "1Gi"
+              spec:
+                serviceAccountName: "{{ .Values.serviceAccountName }}" #ksa-bucket-access
+                restartPolicy: OnFailure
+                containers:
+                - name: pre-ped-bed-job-container
+                  image: "{{ .Values.image.repository }}" #europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/workflows/idat-ped-bed-merge:latest #europe-west4-docker.pkg.dev/gp2-code-test-env/gt-server/idat-bed-pipeline:latest
+                  imagePullPolicy: Always
+                  command: ["python", "idat_ped.py"]
+                  args: 
+                  # Common flags
+                    - "--calc-flag"
+                    - "{{ .Values.job.flag_ped_bed }}"
+                    - "--log-file-path"
+                    - "{{ .Values.job.log_file_path }}"
+                    - "--study-id"
+                    - "{{ .Values.job.study_id.id1 }}"
+                    - "{{ .Values.job.study_id.id2 }}"
+                    - "{{ .Values.job.study_id.id3 }}"
+                    - "--key-path"
+                    - "{{ .Values.job.key_path }}"
+                    - "--fam-path"
+                    - "{{ .Values.job.fam_path }}"
+                    - "--raw-plink-path"
+                    - "{{ .Values.job.raw_plink_path }}"
+                    - "--batch-folder-path"
+                    - "{{ .Values.job.batch_folder_path }}"
+                    - "--exec-folder-path"
+                    - "{{ .Values.job.exec_folder_path }}"
+                    - "--num-threads"
+                    - "{{ .Values.job.num_threads }}"
+                    - "--idat-path"
+                    - "{{ .Values.job.idat_path }}"
+                    - "--barcodes-per-job"
+                    - "{{ .Values.job.barcodes_per_job }}"
+                    - "--codes-per-job"
+                    - "{{ .Values.job.codes_per_job }}"
+                    - "--clinical-key-dir"
+                    - "{{ .Values.job.clinical_key_dir }}"
+                    - "--service-account-name"
+                    - "{{ .Values.serviceAccountName }}"
+                    - "--k8s-namespace"
+                    - "{{ .Values.namespace }}"
+                    - "--pv-claim"
+                    - "{{ .Values.persistentVOLUMECLAIM }}"
+                    - "--gke-nodepools"
+                    - "{{ .Values.gkeNodePools }}"
+
+                  volumeMounts:
+                  - name: gcs-volume
+                    mountPath: /app/input
+                    readOnly: false
+                volumes:
+                - name: gcs-volume
+                  persistentVolumeClaim:
+                    claimName: "{{ .Values.persistentVOLUMECLAIM }}" #gtserver-pvc #gtserver-test-pvc
+                    readOnly: false
+            activeDeadlineSeconds: 18000 # Terminate if running for more than 5 hours
+            ttlSecondsAfterFinished: 300 # Clean up 5 minutes after completion        
+            backoffLimit: 2
+      # Capture the generated job name as an output parameter
+      outputs:
+        parameters:
+          - name: jobName
+            valueFrom:
+              jsonPath: "{{`{.metadata.name}`}}"
+          - name: jobSucceeded
+            valueFrom:
+              jsonPath: "{{`{.status.succeeded}`}}"
+          - name: jobStatusFull
+            valueFrom:
+              jsonPath: "{{`{ .status }`}}"
+
+    - name: deploy-ped-bed-jobs
+      serviceAccountName: "{{ .Values.serviceAccountName }}"
+      metadata:
+        annotations:
+          gke-gcsfuse/volumes: "true" 
+      script:
+        image: google/cloud-sdk:slim #bitnami/kubectl:latest
+        volumeMounts:
+          - name: workdir
+            mountPath: /app/input #/tmp/workdir2
+            readOnly: false
+        command: [sh]
+        source: |
+          apt-get install kubectl
+          FILES=$(ls {{ .Values.job.path_ped_bed_jobs }})
+          echo Got files $FILES
+          for item in $FILES; do
+            echo "Processing: $item"
+            cp $item ./job.yaml
+            # cat job.yaml
+            #Inject workflow label for tracking
+            cat job.yaml | \
+            kubectl label -f - --local -o yaml workflow={{`{{workflow.name}}`}} | \
+            kubectl apply -f -
+            # Extract Job name (if using generateName, get generated name)
+            JOB_NAME=$(kubectl get -f job.yaml -o jsonpath='{.metadata.name}')
+            if [ -z "$JOB_NAME" ]; then
+              # It uses generateName — get last created Job
+              sleep 2
+              JOB_NAME=$(kubectl get job --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
+            fi
+            echo "JOB_NAME=$JOB_NAME"
+          done
+      volumes:
+        - name: workdir
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistentVOLUMECLAIM }} #gtserver-pvc #gtserver-test-pvc #gcs-pvc
+            readOnly: false
+    # End Steps for PED to BED
+
+    # Steps for Merge BEDS
+
+    - name: pre-merge-beds
+      resource:
+        action: create
+        successCondition: status.succeeded > 0
+        failureCondition: status.failed > 2
+        manifest: |   
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: pre-merge-beds
+            namespace: "{{ .Values.namespace }}"
+            labels:
+              jobgroup: pre-merge-beds
+          spec:
+            template:
+              metadata:
+                name: pre-merge-beds
+                labels:
+                  jobgroup: pre-merge-beds
+                annotations:
+                  gke-gcsfuse/volumes: "true" 
+                  #Optional resource configuration for the sidecar container. Allocate more CPU to the sidecar container if your workloads need higher throughput.
+                  gke-gcsfuse/cpu-limit: "250m"
+                  gke-gcsfuse/memory-limit: "1Gi"
+                  gke-gcsfuse/ephemeral-storage-limit: "1Gi"
+              spec:
+                serviceAccountName: "{{ .Values.serviceAccountName }}" #ksa-bucket-access
+                restartPolicy: OnFailure
+                containers:
+                - name: pre-merge-beds-container
+                  image: "{{ .Values.image.repository }}" #europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/workflows/idat-ped-bed-merge:latest #europe-west4-docker.pkg.dev/gp2-code-test-env/gt-server/idat-bed-pipeline:latest
+                  imagePullPolicy: Always
+                  command: ["python", "idat_ped.py"]
+                  args: 
+                  # Common flags
+                    - "--calc-flag"
+                    - "{{ .Values.job.flag_merge_bed }}"
+                    - "--log-file-path"
+                    - "{{ .Values.job.log_file_path }}"
+                    - "--study-id"
+                    - "{{ .Values.job.study_id.id1 }}"
+                    - "{{ .Values.job.study_id.id2 }}"
+                    - "{{ .Values.job.study_id.id3 }}"
+                    - "--key-path"
+                    - "{{ .Values.job.key_path }}"
+                    - "--fam-path"
+                    - "{{ .Values.job.fam_path }}"
+                    - "--raw-plink-path"
+                    - "{{ .Values.job.raw_plink_path }}"
+                    - "--batch-folder-path"
+                    - "{{ .Values.job.batch_folder_path }}"
+                    - "--exec-folder-path"
+                    - "{{ .Values.job.exec_folder_path }}"
+                    - "--num-threads"
+                    - "{{ .Values.job.num_threads }}"
+                    - "--idat-path"
+                    - "{{ .Values.job.idat_path }}"
+                    - "--barcodes-per-job"
+                    - "{{ .Values.job.barcodes_per_job }}"
+                    - "--codes-per-job"
+                    - "{{ .Values.job.codes_per_job }}"
+                    - "--clinical-key-dir"
+                    - "{{ .Values.job.clinical_key_dir }}"
+                    - "--service-account-name"
+                    - "{{ .Values.serviceAccountName }}"
+                    - "--k8s-namespace"
+                    - "{{ .Values.namespace }}"
+                    - "--pv-claim"
+                    - "{{ .Values.persistentVOLUMECLAIM }}"
+                    - "--gke-nodepools"
+                    - "{{ .Values.gkeNodePools }}"
+
+                  volumeMounts:
+                  - name: gcs-volume
+                    mountPath: /app/input
+                    readOnly: false
+                volumes:
+                - name: gcs-volume
+                  persistentVolumeClaim:
+                    claimName: "{{ .Values.persistentVOLUMECLAIM }}" #gtserver-pvc #gtserver-test-pvc
+                    readOnly: false
+            activeDeadlineSeconds: 18000 # Terminate if running for more than 5 hours
+            ttlSecondsAfterFinished: 300 # Clean up 5 minutes after completion        
+            backoffLimit: 2
+      # Capture the generated job name as an output parameter
+      outputs:
+        parameters:
+          - name: jobName
+            valueFrom:
+              jsonPath: "{{`{.metadata.name}`}}"
+          - name: jobSucceeded
+            valueFrom:
+              jsonPath: "{{`{.status.succeeded}`}}"
+          - name: jobStatusFull
+            valueFrom:
+              jsonPath: "{{`{ .status }`}}"
+
+    - name: deploy-merge-beds-jobs
+      serviceAccountName: "{{ .Values.serviceAccountName }}"
+      metadata:
+        annotations:
+          gke-gcsfuse/volumes: "true" 
+      script:
+        image: google/cloud-sdk:slim #bitnami/kubectl:latest
+        volumeMounts:
+          - name: workdir
+            mountPath: /app/input #/tmp/workdir2
+            readOnly: false
+        command: [sh]
+        source: |
+          apt-get install kubectl
+          FILES=$(ls {{ .Values.job.path_beds_merge_jobs }})
+          echo Got files $FILES
+          for item in $FILES; do
+            echo "Processing: $item"
+            cp $item ./job.yaml
+            # cat job.yaml
+            #Inject workflow label for tracking
+            cat job.yaml | \
+            kubectl label -f - --local -o yaml workflow={{`{{workflow.name}}`}} | \
+            kubectl apply -f -
+            # Extract Job name (if using generateName, get generated name)
+            JOB_NAME=$(kubectl get -f job.yaml -o jsonpath='{.metadata.name}')
+            if [ -z "$JOB_NAME" ]; then
+              # It uses generateName — get last created Job
+              sleep 2
+              JOB_NAME=$(kubectl get job --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')
+            fi
+            echo "JOB_NAME=$JOB_NAME"
+          done
+      volumes:
+        - name: workdir
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistentVOLUMECLAIM }} #gtserver-pvc #gtserver-test-pvc #gcs-pvc
+            readOnly: false
+    # End Steps for Merge BEDS    
+
+    - name: send-gmail-notification
+      inputs:
+        parameters:
+          - name: message    
+      script:
+        image: python:3.11-slim
+        env:
+          - name: GMAIL_USER
+            value: "si11080772@gmail.com"
+          - name: TO_EMAIL
+            value: "{{ .Values.user_email }}"
+          - name: GMAIL_APP_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.gcpSecretManager.kubernetesSecretName }}
+                key: {{ .Values.gcpSecretManager.patKey.key }}     
+          - name: TASK_NAME
+            value: "{{`{{inputs.parameters.message}}`}}" 
+          - name: WORKFLOW_STATUS
+            value: "{{`{{workflow.status}}`}}"
+        command: [python]
+        source: |
+          import smtplib
+          from email.mime.text import MIMEText
+          from email.mime.multipart import MIMEMultipart
+          import os
+
+          # Load environment
+          sender = os.getenv("GMAIL_USER")
+          password = os.getenv("GMAIL_APP_PASSWORD")
+          recipient = os.getenv("TO_EMAIL")
+          task_name = os.getenv("TASK_NAME")
+          status = os.getenv("WORKFLOW_STATUS")
+
+          # Create message
+          msg = MIMEMultipart("alternative")
+          msg["Subject"] = f"✅ {task_name}"
+          msg["From"] = sender
+          msg["To"] = recipient
+
+          body = f"""
+          <h2>Argo Workflow Step Completed</h2>
+          <p><strong>Step:</strong> {task_name}</p>
+          <p><strong>Step Status:</strong> {status} </p>
+          <p><strong>Timestamp:</strong> {__import__('datetime').datetime.now()}</p>
+          <p><strong>Logs:</strong> 
+            <p>Please chek log in logs directory for more details.</p>
+          </p>
+          """
+          msg.attach(MIMEText(body, "html"))
+
+          # Send via Gmail SMTP
+          try:
+              with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                  server.starttls()
+                  server.login(sender, password)
+                  server.sendmail(sender, recipient, msg.as_string())
+              print("✅ Email sent successfully")
+          except Exception as e:
+              print(f"❌ Failed to send email: {str(e)}")
+              exit(1)
+    - name: wait-for-all-jobs-old
+      inputs:
+        parameters:
+          - name: jobSucceeded
+          - name: jobName
+      container:
+        #image: alpine:latest
+        image: bitnami/kubectl:latest
+        command: [sh, -c]
+        args:
+          - |
+            echo Job Name: {{`{{inputs.parameters.jobName}}`}}
+            echo Succeeded Count: {{`{{inputs.parameters.jobSucceeded}}`}}
+            if [ {{`{{inputs.parameters.jobSucceeded}}`}} = "1" ]; then
+              echo "✅ Job succeeded!"
+              echo "Now removing job {{`{{inputs.parameters.jobName}}`}}"
+              kubectl delete job {{`{{inputs.parameters.jobName}}`}} --namespace={{ .Values.namespace }}
+            else
+              echo "❌ Job did not succeed."
+              exit 1
+            fi
+    - name: wait-for-all-jobs
+      script:
+        image: bitnami/kubectl:latest
+        command: [sh]
+        source: |
+          LABEL="workflow={{`{{workflow.name}}`}}"
+          TIMEOUT=$((6* 60 * 60))  # 6 hours in seconds
+          INTERVAL=30
+
+          echo "⏳ Waiting up to $TIMEOUT seconds for Jobs labeled '$LABEL' to complete..."
+
+          end_time=$(( $(date +%s) + TIMEOUT ))
+          while [ $(date +%s) -lt $end_time ]; do
+            # Get incomplete jobs (active > 0)
+            INCOMPLETE=$(kubectl get jobs -l "$LABEL" -o jsonpath='{.items[?(@.status.active)].metadata.name}' 2>/dev/null || echo "")
+
+            if [ -z "$INCOMPLETE" ]; then
+              # Check for failed jobs
+              FAILED=$(kubectl get jobs -l "$LABEL" -o jsonpath='{.items[?(@.status.failed)].metadata.name}' 2>/dev/null)
+              if [ -n "$FAILED" ]; then
+                echo "❌ Failed Jobs: $FAILED"
+                kubectl describe jobs -l "$LABEL"
+                exit 1
+              fi
+              echo "✅ All Jobs completed successfully."
+              exit 0
+            fi
+
+            echo "🕒 Waiting... Active Jobs: $INCOMPLETE"
+            sleep $INTERVAL
+          done
+
+          echo "⏰ Timeout: Jobs did not complete within $TIMEOUT seconds."
+          kubectl get jobs -l "$LABEL"
+          exit 1            
+
+    - name: cleanup-ped-bed
+      serviceAccountName: "{{ .Values.serviceAccountName }}"
+      metadata:
+        annotations:
+          gke-gcsfuse/volumes: "true" 
+      script:
+        image: google/cloud-sdk:slim #bitnami/kubectl:latest
+        volumeMounts:
+          - name: workdir
+            mountPath: /app/input #/tmp/workdir2
+            readOnly: false
+        command: [sh]
+        source: |
+          apt-get install kubectl
+          echo "Removing raw plink path {{ .Values.job.raw_plink_path }}"
+          rm -r {{ .Values.job.raw_plink_path }}
+          echo "Done Removing batch folder path {{ .Values.job.batch_folder_path }}"
+      volumes:
+        - name: workdir
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistentVOLUMECLAIM }} #gtserver-pvc #gtserver-test-pvc #gcs-pvc
+            readOnly: false
+          

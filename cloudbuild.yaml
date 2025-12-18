@@ -2,7 +2,7 @@
 steps:
 ### Building Docker Image for gp2-browser-app ####
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/precision-med-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/precision-med-app:${_IMAGE_TAG_GP2_BROWSER}', '-f', 'microservices/precision-med-app/frontend/app/Dockerfile', 'microservices/precision-med-app/frontend/app/' ]
+  args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/precision-med-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/precision-med-app:${_IMAGE_TAG_PRECISION_APP}', '-f', 'microservices/precision_med_api/frontend/app/Dockerfile', 'microservices/precision_med_api/frontend/app/' ]
   id: 'create docker image for precision-med-app'
 
 ### Pushing Docker Image ####
@@ -13,10 +13,10 @@ steps:
   - -c
   - |
     docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/precision-med-app:$SHORT_SHA
-    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/precision-med-app:${_IMAGE_TAG_GP2_BROWSER}
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/precision-med-app:${_IMAGE_TAG_PRECISION_APP}
 ### Building Docker Image for gp2-browser-app ####
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:${_IMAGE_TAG_GP2_BROWSER}', '-f', 'apps/gp2-browser/Dockerfile', 'apps/gp2-browser/' ]
+  args: [ 'build', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser:$SHORT_SHA', '-t', 'europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser:${_IMAGE_TAG_GP2_BROWSER}', '-f', 'apps/gp2-browser/Dockerfile', 'apps/gp2-browser/' ]
   id: 'create docker image for gp2-browser-app'
 
 ### Pushing Docker Image ####
@@ -26,8 +26,8 @@ steps:
   args: 
   - -c
   - |
-    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:$SHORT_SHA
-    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser-app:${_IMAGE_TAG_GP2_BROWSER}
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser:$SHORT_SHA
+    docker push europe-west4-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/gp2-browser:${_IMAGE_TAG_GP2_BROWSER}
           
 # ### Building Docker Image for genotracker-app ####
 # - name: 'gcr.io/cloud-builders/docker'

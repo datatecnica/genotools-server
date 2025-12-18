@@ -1,0 +1,42 @@
+job:
+  flag_idat_ped: '1'
+  flag_ped_bed: '2'
+  flag_merge_bed: '3'
+  log_file_path: /app/input/new_test_data/pipe-line-results/logs
+  study_id:
+    id1: KGPAR
+    id2: MDGAP-SW
+    id3: MAYO
+  key_path: /app/input/new_test_data/syed_test_idats_n313.txt
+  fam_path: /app/input/new_test_data/pipe-line-results/clinical/merge_by_cohort_10
+  raw_plink_path: /app/input/new_test_data/pipe-line-results/ped_bed
+  batch_folder_path: /app/input/new_test_data/pipe-line-results/batch_files
+  exec_folder_path: /app/input/new_test_data/exec
+  num_threads: '6'
+  path_idat_ped_jobs: /app/input/new_test_data/pipe-line-results/batch_files/idat_ped/job_idat_ped*.yaml
+  idat_path: /app/input/new_test_data/idats
+  barcodes_per_job: '8'
+  path_ped_bed_jobs: /app/input/new_test_data/pipe-line-results/batch_files/ped_bed/job_ped_bed*.yaml
+  codes_per_job: '80'
+  clinical_key_dir: /app/input/new_test_data/pipe-line-results/clinical
+  path_beds_merge_jobs: /app/input/new_test_data/pipe-line-results/batch_files/beds_merge/job_merge_bed*.yaml
+image:
+  repository: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/workflows/idat-ped-bed-merge:COMMIT_SHA
+
+gcpSecretManager:
+  kubernetesSecretName: gtserver-secrets
+  patKey:
+    name: genotools-api-sec
+    key: EMAIL_PAT 
+user_email: syed@datatecnica.com    
+namespace: kns-gtserver
+persistentVOLUME: gtserver-pv
+persistentVOLUMECLAIM: gtserver-pvc
+serviceAccountName: ksa-bucket-access
+gkeNodePools: workflow-idat-ped-bed-nodepool
+email_notification:
+  idat_ped_step: null
+  start_message_idat_ped: Workflow step IDAT -> PED has started.
+  success_message_idat_ped: Workflow step IDAT -> PED has completed successfully.
+    Please check logs to verify.
+  failure_message: IDAT to PED to BED merge workflow has failed.

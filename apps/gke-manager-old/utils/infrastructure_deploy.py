@@ -5,7 +5,7 @@ import subprocess
 def configure_infrastructure(select_bash_script):
     output_text = ""
     # Run the script using subprocess.Popen
-    with st.spinner(f":red[**Running {select_bash_script.split('/')[-1]} script, It will take a while, Please wait...**]"):
+    with st.spinner(f":red[**Running {select_bash_script.split('/')[-1]} script, Please wait...**]"):
         text_placeholder = st.empty()
         try:
             process = subprocess.Popen(
