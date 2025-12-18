@@ -53,7 +53,7 @@ stratified by genetic ancestry to identify population-specific carrier patterns.
      - **H&Y Stage**: Hoehn and Yahr disease severity (0-5 scale)
      - **MoCA Score**: Montreal Cognitive Assessment (0-30 scale)
      - **DAT Imaging**: Dopamine transporter SBR caudate mean
-     - **Disease Duration**: Age at baseline minus age at onset
+     - **Disease Duration**: `age_at_sample_collection` − `age_of_onset` (both from master key)
 
 4. **Statistics Calculation**
    - **Per-ancestry metrics**: Carrier counts, clinical data availability, phenotype distributions
@@ -63,7 +63,7 @@ stratified by genetic ancestry to identify population-specific carrier patterns.
 **Output Metrics:**
 - Total carriers identified (all ancestries)
 - Carriers with available clinical data
-- Clinical phenotype distributions (H&Y < 2, MoCA ≥ 24, disease duration ≤ 5/7 years)
+- Clinical phenotype distributions (H&Y < 2, MoCA ≥ 24, disease duration ≤3/≤5/≤7 years)
 - Ancestry-specific carrier frequencies
 - Variant-level genotype counts (heterozygous/homozygous)
 
