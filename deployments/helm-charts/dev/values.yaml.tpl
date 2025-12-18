@@ -2,7 +2,7 @@
 ZONE: europe-west4-a
 # CLUSTER_NAME: gtserver-eu-west4
 CLUSTER_NAME: gke-test-cluster
-PROJECT_ID: gp2-testing-475115
+PROJECT_ID: GOOGLE_CLOUD_PROJECT
 nodePools:
   appsNodePool: apps-node
   genotoolsApiNodePool: genotools-api-node
@@ -70,7 +70,7 @@ sslRelated:
 
 appservices:
   precisionMedApp:
-    image: europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/apps/precision-med-app:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/apps/precision-med-app:COMMIT_SHA
     containerName: precisionmed-app-cont
     svcName: precisionmed-app-svc
     iapPolicyBackend: precisionmed-app-iap-backend
@@ -85,9 +85,8 @@ appservices:
       ClientID: precisionmed_app_id
       ClientSecret: precisionmed_app_secret
 
-    
   genotrackerApp:
-    image: europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/apps/genotracker-app:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/apps/genotracker-app:COMMIT_SHA
     containerName: genotracker-app-cont
     svcName: genotracker-app-svc
     iapPolicyBackend: genotracker-app-iap-backend
@@ -107,7 +106,7 @@ appservices:
     # iapSec: genotracker-app-iap-sec
 
   gp2browserApp:
-    image: europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/apps/gp2-browser:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/apps/gp2-browser:COMMIT_SHA
     containerName: gp2browser-app-cont
     svcName: gp2browser-app-svc
     iapPolicyBackend: gp2browser-iap-backend
@@ -125,7 +124,7 @@ appservices:
 
 microservices:
   genotrackerApi:
-    image: europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/microservices/genotracker-api:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/microservices/genotracker-api:COMMIT_SHA
     containerName: genotracker-api-cont
     svcName: genotracker-api-svc
     containerPort: 8080
@@ -139,8 +138,7 @@ microservices:
       name: genotracker-secret
       key: GENOTRACKER_API_KEY
   genotoolsApi:
-    image: europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/microservices/genotools-api:latest
-    # image: europe-west4-docker.pkg.dev/gp2-testing-475115/genotools-server/genotools_api_old:latest #us-east1-docker.pkg.dev/gp2-release-terra/syed-test/genotools_api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/genotools-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotools-api:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/microservices/genotools-api:COMMIT_SHA
     containerName: genotools-api-cont
     svcName: genotools-api-svc
     containerPort: 8080
@@ -157,25 +155,3 @@ microservices:
     patKey:
       name: genotools-api-sec
       key: EMAIL_PAT #genotools-api-key
-  # gtPrecheckAPI:
-  #   image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/gtprecheck-api:latest 
-  #   svcName: gt-precheck-api-svc
-  #   podName: gt-precheck-api-pod
-  #   mountPath: /app/data
-
-  # carriersAPI:
-  #   image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/carriers-api:latest 
-  #   svcName: carriers-api-svc
-  #   podName: carriers-api-pod
-  #   mountPath: /app/input
-
-  # snpMatrixAPI:
-  #   image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/idat-snp-matrix-job:latest  #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/idat-snp-matrix-api:latest 
-  #   svcName: snp-matrix-api-svc
-  #   podName: snp-matrix-api-pod
-  #   hpaScaler: hpa-snp-matrix-api
-  #   mountPath: /app/input
-  #   patKey:
-  #     name: genotools-api-sec
-  #     key: EMAIL_PAT #genotools-api-key
-

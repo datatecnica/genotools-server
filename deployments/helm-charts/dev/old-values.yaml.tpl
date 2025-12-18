@@ -1,7 +1,7 @@
 #global resources for Genotools Server
 ZONE: europe-west4-a
 CLUSTER_NAME: gtserver-eu-west4
-PROJECT_ID: gp2-code-test-env
+PROJECT_ID: GOOGLE_CLOUD_PROJECT
 nodePools:
   appsNodePool: apps-node-pool
   genotoolsApiNodePool: genotools-api-node
@@ -41,7 +41,7 @@ sslRelated:
 
 appservices:
   gp2browserApp:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/apps/gp2-browser-app:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/apps/gp2-browser/gp2-browser:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/gt-server/gp2-browser-app:COMMIT_SHA
     svcName: gp2-browser-app-svc
     iapBackend: gp2-browser-iap-backend
     iapSec: gp2-browser-iap-sec
@@ -49,7 +49,7 @@ appservices:
     mountPath: /app/data
 
   genotrackerApp:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/apps/genotracker-app:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/apps/genotracker-app:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/gt-server/genotracker-app:COMMIT_SHA 
     svcName: genotracker-app-svc
     iapBackend: genotracker-app-iap-backend
     iapSec: genotracker-app-iap-sec
@@ -57,14 +57,14 @@ appservices:
     ksaPGSQL: ksa-postgresql
 microservices:
   genotrackerApi:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/genotracker-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotracker-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/api/genotracker-fastapi:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/gt-server/genotracker-api:COMMIT_SHA 
     svcName: genotracker-api-svc
     podName: genotracker-api-pod
     apiKey:
       name: genotracker-secret
       key: GENOTRACKER_API_KEY
   genotoolsApi:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/genotools-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotools-api:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/gt-server/genotools-api:COMMIT_SHA 
     svcName: genotools-api-svc
     podName: genotools-api-pod
     mountPath: /app/genotools_api/data
@@ -76,8 +76,7 @@ microservices:
       key: EMAIL_PAT #genotools-api-key
 
   gtPrecheckAPI:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/gtprecheck-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/gt_precheck:latest
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/gt-server/gtprecheck-api:COMMIT_SHA 
     svcName: gt-precheck-api-svc
     podName: gt-precheck-api-pod
     mountPath: /app/data
-

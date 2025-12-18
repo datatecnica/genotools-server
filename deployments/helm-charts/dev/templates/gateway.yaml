@@ -1,0 +1,35 @@
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.gatewayAPI.gatewayName }} #gt-server-gwapi
+  namespace: argo #{{ .Values.namespace }} 
+  annotations:
+    networking.gke.io/certmap: {{ .Values.gatewayAPI.certKey }} #gt-server-gateway
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: https
+    protocol: HTTPS
+    port: 443
+    allowedRoutes:
+      namespaces:
+        from: All
+  addresses:
+  - type: NamedAddress
+    value: {{ .Values.gatewayAPI.globalIPName }} #gt-test-ip
+#  - protocol: TLS  #for argocd
+#    port: 443
+#    name: argocd-listener
+#    tls:
+#      mode: Passthrough
+#    allowedRoutes:
+#      namespaces:
+#        from: All              
+
+    

@@ -1,0 +1,30 @@
+# rbac-job.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.argoRelated.argoRoles.roleName }} #job-manager-role
+  namespace: {{ .Values.namespace }} 
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "create", "delete", "watch", "patch"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch","patch"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflowtaskresults"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]     
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.argoRelated.argoRoles.bindingName }} #argo-job-binding
+  namespace: {{ .Values.namespace }}  #kns-gtserver
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.argoRelated.argoRoles.roleName }} #job-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.ksaBucket }} #ksa-bucket-access #argo-gcs-job-sa #ksa-test-bucket-access
+    namespace: {{ .Values.namespace }}  #kns-gtserver

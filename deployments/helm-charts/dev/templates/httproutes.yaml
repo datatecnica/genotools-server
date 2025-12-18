@@ -1,0 +1,128 @@
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.appservices.precisionMedApp.routeName }} #nginx-https
+  namespace: {{ .Values.namespace }}  #kns-gtserver
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: {{ .Values.gatewayAPI.gatewayName }} #gt-server-gwapi #testgwapi-global-external-managed # Name of the Gateway to use
+    namespace: argo #{{ .Values.namespace }} #kns-gtserver
+    sectionName: https # Which Gateway listener to use
+  hostnames:
+    - {{ .Values.appservices.precisionMedApp.hostname }} 
+  rules:
+  - backendRefs:
+    - name: {{ .Values.appservices.precisionMedApp.svcName }} # Name of the backend service on which traffic will be routed
+      kind: Service
+      namespace: {{ .Values.namespace }} # Namespace where the backend service resides
+      port: {{ .Values.appservices.precisionMedApp.servicePort }}
+      weight: 100
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.appservices.gp2browserApp.routeName }} #nginx-https
+  namespace: {{ .Values.namespace }}  #kns-gtserver
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: {{ .Values.gatewayAPI.gatewayName }} #gt-server-gwapi #testgwapi-global-external-managed # Name of the Gateway to use
+    namespace: argo #{{ .Values.namespace }} #kns-gtserver
+    sectionName: https # Which Gateway listener to use
+  hostnames:
+    - {{ .Values.appservices.gp2browserApp.hostname }}
+  rules:
+  - backendRefs:
+    - name: {{ .Values.appservices.gp2browserApp.svcName }} # Name of the backend service on which traffic will be routed
+      kind: Service
+      namespace: {{ .Values.namespace }} # Namespace where the backend service resides
+      port: {{ .Values.appservices.gp2browserApp.servicePort }}
+      weight: 100
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.appservices.genotrackerApp.routeName }} #nginx-https
+  namespace: {{ .Values.namespace }}  #kns-gtserver
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: {{ .Values.gatewayAPI.gatewayName }} #gt-server-gwapi #testgwapi-global-external-managed # Name of the Gateway to use
+    namespace: argo #{{ .Values.namespace }} #kns-gtserver
+    sectionName: https # Which Gateway listener to use
+  hostnames:
+    - {{ .Values.appservices.genotrackerApp.hostname }}
+  rules:
+  - backendRefs:
+    - name: {{ .Values.appservices.genotrackerApp.svcName }} # Name of the backend service on which traffic will be routed
+      kind: Service
+      namespace: {{ .Values.namespace }} # Namespace where the backend service resides
+      port: {{ .Values.appservices.genotrackerApp.servicePort }}
+      weight: 100
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.microservices.genotrackerApi.routeName }} #nginx-https
+  namespace: {{ .Values.namespace }}  #kns-gtserver
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: {{ .Values.gatewayAPI.gatewayName }} #gt-server-gwapi #testgwapi-global-external-managed # Name of the Gateway to use
+    namespace: argo #{{ .Values.namespace }} #kns-gtserver
+    sectionName: https # Which Gateway listener to use
+  hostnames:
+    - {{ .Values.microservices.genotrackerApi.hostname }}
+  rules:
+  - backendRefs:
+    - name: {{ .Values.microservices.genotrackerApi.svcName }} # Name of the backend service on which traffic will be routed
+      kind: Service
+      namespace: {{ .Values.namespace }} # Namespace where the backend service resides
+      port: {{ .Values.microservices.genotrackerApi.servicePort }}
+      weight: 100
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.microservices.genotoolsApi.routeName }} #nginx-https
+  namespace: {{ .Values.namespace }}  #kns-gtserver
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: {{ .Values.gatewayAPI.gatewayName }} #gt-server-gwapi #testgwapi-global-external-managed # Name of the Gateway to use
+    namespace: argo #{{ .Values.namespace }} #kns-gtserver
+    sectionName: https # Which Gateway listener to use
+  hostnames:
+    - {{ .Values.microservices.genotoolsApi.hostname }}
+  rules:
+  - backendRefs:
+    - name: {{ .Values.microservices.genotoolsApi.svcName }} # Name of the backend service on which traffic will be routed
+      kind: Service
+      namespace: {{ .Values.namespace }} # Namespace where the backend service resides
+      port: {{ .Values.microservices.genotoolsApi.servicePort }}
+      weight: 100
+---
+# For argoWF
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.argoRelated.argoWF.routeName }} #nginx-https
+  namespace: {{ .Values.argoRelated.argoWF.namespace }}  #kns-gtserver
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: {{ .Values.gatewayAPI.gatewayName }} #gt-server-gwapi #testgwapi-global-external-managed # Name of the Gateway to use
+    namespace: argo #{{ .Values.namespace }} #{{ .Values.argoRelated.argoWF.namespace }} #kns-gtserver
+    sectionName: https # Which Gateway listener to use
+  hostnames:
+    - {{ .Values.argoRelated.argoWF.hostname }}
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: argo-server #argo-server # The service name of your Argo Server
+      port: 2746 # The port Argo Server listens on  
+      weight: 100    

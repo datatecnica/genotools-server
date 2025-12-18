@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.microservices.genotrackerApi.podName }} 
+  namespace: {{ .Values.namespace }} 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.microservices.genotrackerApi.podName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.microservices.genotrackerApi.podName }}
+      annotations:
+        gke-gcsfuse/volumes: "true" 
+    spec:
+      #serviceAccountName: {{ .Values.pgSQL.ksaName }} 
+      serviceAccountName: {{ .Values.ksaBucket }} 
+      containers:
+      - name: {{ .Values.microservices.genotrackerApi.containerName }} #genotracker-api
+        image: {{ .Values.microservices.genotrackerApi.image }}
+        resources:
+          requests:
+            cpu: "125m"
+            memory: "1Gi"
+          limits:
+            cpu: "250m"
+            memory: "2Gi"        
+        # This app listens on port 8080 for web traffic by default.
+        ports:
+        - containerPort: {{ .Values.microservices.genotrackerApi.containerPort | int  }} #8080
+        volumeMounts:
+        - name: {{ .Values.microservices.genotrackerApi.volume }} #gcs-volume
+          mountPath: {{ .Values.microservices.genotrackerApi.mountPath }}   
+        env:
+        # Now using secrests from GCP Secret Manager
+        - name: GTRACKER_API
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.gcpSecretManager.kubernetesSecretName }} #{{ .Values.microservices.genotrackerApi.apiKey.name }} 
+              key: {{ .Values.microservices.genotrackerApi.apiKey.key }} 
+      volumes:
+      - name: {{ .Values.microservices.genotrackerApi.volume }} #gcs-volume
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVOLUMECLAIM }}
+
+      nodeSelector:
+        cloud.google.com/gke-nodepool: {{ .Values.nodePools.appsNodePool }}
+        iam.gke.io/gke-metadata-server-enabled: "true"        

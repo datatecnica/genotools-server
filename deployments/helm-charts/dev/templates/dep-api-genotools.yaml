@@ -24,11 +24,12 @@ spec:
       serviceAccountName: {{ .Values.ksaBucket }} 
       containers:
       - image: {{ .Values.microservices.genotoolsApi.image }}
-        name: genotools-api-container
+        name: {{ .Values.microservices.genotoolsApi.containerName }}
+        imagePullPolicy: Always 
         ports:
-        - containerPort: 8080
+        - containerPort: {{ .Values.microservices.genotoolsApi.containerPort }} #8080
         volumeMounts:
-        - name: gcs-volume
+        - name: {{ .Values.microservices.genotoolsApi.volume }}
           mountPath: {{ .Values.microservices.genotoolsApi.mountPath }}  #app/genotools_api/data
         env:
           - name: API_TOKEN
@@ -42,7 +43,7 @@ spec:
                 name: {{ .Values.gcpSecretManager.kubernetesSecretName }}
                 key: {{ .Values.microservices.genotoolsApi.patKey.key }} 
       volumes:
-      - name: gcs-volume
+      - name: {{ .Values.microservices.genotoolsApi.volume }}
         persistentVolumeClaim:
           claimName: {{ .Values.persistentVOLUMECLAIM }}  
       nodeSelector:
