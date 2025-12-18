@@ -133,7 +133,7 @@ steps:
   - |
     git clone https://syedislamuddin:$$GIT_ACCESS_TOKEN@github.com/datatecnica/genotools-server.git -b ${_CD_BRANCH}
     echo "Updating image tag version ..."
-    cd genotools-server/apps/gke-manager/deployment/workflow/helm
+    cd genotools-server/apps/gke-manager/deployments/workflow
     sed "s|GOOGLE_CLOUD_PROJECT|${PROJECT_ID}|g; \
     s|idat-ped-bed-merge:COMMIT_SHA|idat-ped-bed-merge:${SHORT_SHA}|g" \
     idat-ped-bed-merge-values.yaml.tpl> idat-ped-bed-merge-values.yaml

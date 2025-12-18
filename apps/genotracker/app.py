@@ -7,11 +7,16 @@ from utils import init_db
 
 st.set_page_config(page_title="GenoTracker Data Viewer", layout="wide")
 
+# @st.cache_resource(show_spinner=False)
+# def init_db_connection():
+#     return init_db()
+# # Initialize the database connection and read data
+# df = init_db_connection()
 @st.cache_resource(show_spinner=False)
-def init_db_connection():
-    return init_db()
-# Initialize the database connection and read data
-df = init_db_connection()
+def read_csv():
+    return pd.read_csv('/app/data/apps-data/genotracker/data/genotracker_clean.csv')
+df = read_csv()
+
 st.title("GenoTracker Data Viewer")
 
 if not df.empty:
