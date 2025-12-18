@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 class GenoToolsParams(BaseModel):
     email: Optional[str] = None
@@ -25,9 +25,28 @@ class GenoToolsParams(BaseModel):
     ancestry: Optional[bool] = None
     ref_panel: Optional[str] = None
     ref_labels: Optional[str] = None
+    gwas: Optional[str] = None
+    pca: Optional[int] = None
     model: Optional[str] = None
     storage_type: str = 'local'
-    
+
+    #new added arguments for genotools api
+    amr_het: Optional[str] = None
+    kinship_check: Optional[str] = None
+    geno: Optional[float] = None
+    case_control: Optional[float] = None
+    haplotype: Optional[float] = None
+    hwe: Optional[float] = None
+    filter_controls: Optional[str] = None
+    build: Optional[str] = None
+    covars: Optional[str] = None
+    covar_names: Optional[str] = None
+    maf_lambdas: Optional[str] = None 
+    min_samples: Optional[int] = None 
+    # ld: Optional[Tuple[float, float, float]] = None
+    subset_ancestry: Optional[str] = None 
+
+
     @field_validator('model', 'ref_panel', 'ref_labels')
     def none_string_to_none(cls, v):
         if v == 'None':

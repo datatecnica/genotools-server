@@ -1,0 +1,53 @@
+# Python virtual environments
+.venv/
+env/
+.vscode
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.pyetst_cache
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+*.whl
+
+# Log files and databases
+*.log
+*.sql
+*.sqlite
+
+# Local directories and files
+.DS_Store
+Thumbs.db
+
+# Git files
+.git/
+.gitignore
+
+# Google Cloud configuration
+.gcloudignore
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Data files
+data/
+output/

@@ -1,7 +1,6 @@
 #global resources for Genotools Server
 ZONE: europe-west4-a
-# CLUSTER_NAME: gtserver-eu-west4
-CLUSTER_NAME: gke-test-cluster
+CLUSTER_NAME: GKE_CLUSTER_NAME #gke-test-cluster
 PROJECT_ID: GOOGLE_CLOUD_PROJECT
 nodePools:
   appsNodePool: apps-node

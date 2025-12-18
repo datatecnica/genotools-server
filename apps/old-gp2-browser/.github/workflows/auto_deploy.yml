@@ -1,0 +1,42 @@
+name: Deploy on app engine, split traffic between test and main
+
+on:  
+  push:
+    branches:
+    - 'main'
+  pull_request:
+    types: [opened, synchronize, closed]
+env:
+  GOOGLE_PROJECT: "gp2-release-terra"
+  RUN_REGION: "us-central1"
+  APP_ENGINE_SERVICE: "gp2-cohort-browser"
+
+jobs:
+  deploy_api:
+    runs-on: ubuntu-latest  # This specifies the type of runner that the job will run on
+    env:
+      user_name: '${{ github.event.pusher.name }}'
+    steps:
+    - name: Checkout code  # This step checks out a copy of your repository
+      uses: actions/checkout@v2
+      with: #for LFS support
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs pull # git lfs checkout
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}'
+    - name: Set up Cloud SDK  # This step sets up the Google Cloud SDK 
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Deploy test link for a push to an open, non-draft PR
+      if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == false && github.event.pull_request.draft == false }}
+      run: |
+        gcloud app deploy app.yaml --version test --no-promote
+
+    - name: Deploy main link for a push to main
+      if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+      run: |
+        gcloud app deploy app.yaml --version main
+        gcloud app services set-traffic $APP_ENGINE_SERVICE --splits main=1 --quiet

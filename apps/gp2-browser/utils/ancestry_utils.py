@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 from utils.hold_data import (
     blob_as_csv,
@@ -35,7 +34,6 @@ def plot_3d(labeled_df, color, symbol=None, x='PC1', y='PC2', z='PC3', title=Non
         y=y,
         z=z,
         color=color,
-        opacity=0.6,
         symbol=symbol,
         title=title,
         color_discrete_map=config.ANCESTRY_COLOR_MAP,
@@ -46,73 +44,7 @@ def plot_3d(labeled_df, color, symbol=None, x='PC1', y='PC2', z='PC3', title=Non
         hover_name="IID",
         height=700
     )
-    fig.update_traces(marker={'size': 4})
-    return fig
-
-def plot_pca_with_legend_toggle(ref_df, keep_df, x='PC1', y='PC2', z='PC3', label_col='label'):
-    categories = sorted(ref_df[label_col].unique())
-
-    fig = go.Figure()
-
-    # 1) One trace per ancestry
-    for cat in categories:
-        subset = ref_df[ref_df[label_col] == cat]
-        fig.add_trace(go.Scatter3d(
-            x=subset[x],
-            y=subset[y],
-            z=subset[z],
-            mode='markers',
-            marker=dict(
-                size=4,
-                color=config.ANCESTRY_COLOR_MAP[cat],
-                opacity=0.6
-            ),
-            name=cat,
-            legendgroup=cat,
-            showlegend=True,
-
-            # Add IID and label to hover
-            text=subset['IID'],
-            customdata=subset[[label_col]],     # for label
-            hovertemplate=(
-                "IID: %{text}<br>"
-                "Label: %{customdata[0]}<br>"
-                f"{x}: %{{x}}<br>"
-                f"{y}: %{{y}}<br>"
-                f"{z}: %{{z}}<extra></extra>"
-            )
-        ))
-
-    # 2) samples_of_interest 
-    fig.add_trace(go.Scatter3d(
-        x=keep_df[x],
-        y=keep_df[y],
-        z=keep_df[z],
-        mode='markers',
-        marker=dict(size=8, color='red', symbol='diamond', opacity=1.0),
-        name='Samples of Interest',
-        legendgroup='Samples of Interest',
-        text=keep_df['IID'],
-        customdata=keep_df[['Predicted Ancestry']],
-        hovertemplate=(
-            "GP2ID: %{text}<br>"
-            "Predicted label: %{customdata[0]}<br>"
-            f"{x}: %{{x}}<br>"
-            f"{y}: %{{y}}<br>"
-            f"{z}: %{{z}}<extra></extra>"
-        )
-    ))
-
-    # Layout
-    fig.update_layout(
-        scene=dict(
-            xaxis_title=x,
-            yaxis_title=y,
-            zaxis_title=z
-        ),
-        height=700
-    )
-
+    fig.update_traces(marker={'size': 3})
     return fig
 
 
@@ -180,43 +112,6 @@ def render_tab_pca(pca_folder, gp2_data_bucket):
         else:
             fig = plot_3d(total_pca, 'label')
             st.plotly_chart(fig)
-
-
-def render_pca_select(pca_folder, gp2_data_bucket):
-    """
-    Render the PCA tab in the Streamlit interface.
-
-    Parameters:
-        pca_folder (str): Path to the folder containing PCA data.
-        gp2_data_bucket (google.cloud.storage.bucket.Bucket): GCloud bucket object.
-        master_key (pd.DataFrame): Master key dataframe.
-    """
-    ref_pca = blob_as_csv(
-        gp2_data_bucket, f'{pca_folder}/ref_pca_plot.csv', sep=',')
-    proj_pca = blob_as_csv(
-        gp2_data_bucket, f'{pca_folder}/proj_pca_plot.csv', sep=',')
-
-    pca_col1, pca_col2 = st.columns([1.75, 3], vertical_alignment='center')
-
-    with pca_col1:
-        st.markdown(
-            f'### Reference Panel PCA vs. Selected Samples')
-        with st.expander("Description"):
-            st.write(config.DESCRIPTIONS['pca1'])
-
-        sample_info = proj_pca[['IID', 'Predicted Ancestry']].copy()
-        sample_info['Select'] = False
-        select_samples = st.data_editor(
-            sample_info, hide_index=True, use_container_width=True, height=423)
-        selected_list = select_samples.loc[select_samples['Select']
-                                             == True]['IID']
-        
-    with pca_col2:
-        selected_pca = proj_pca[proj_pca.IID.isin(selected_list)]
-        fig = plot_pca_with_legend_toggle(ref_pca, selected_pca, 
-                            x='PC1', y='PC2', z='PC3', 
-                            label_col='label')
-        st.plotly_chart(fig)
 
 
 def plot_confusion_matrix(confusion_matrix):
@@ -321,16 +216,16 @@ def render_tab_admix(pca_folder, gp2_data_bucket):
     Pulls admixture data from a known GCS location and displays
     the reference panel admixture table and plots.
     """
-    frontend_bucket_name = 'genotools-server'
-    frontend_bucket = get_gcloud_bucket(frontend_bucket_name)
+    frontend_bucket_name = 'gt_app_utils'
+    frontend_bucket = config.FRONTEND_BUCKET_NAME+"/" #get_gcloud_bucket(frontend_bucket_name)
 
     st.markdown('## **Reference Panel Admixture Populations**')
     with st.expander("Description"):
         st.write(config.DESCRIPTIONS['admixture'])
 
-    ref_admix = blob_as_csv(frontend_bucket, 'cohort_browser/frontend/ref_panel_admixture.txt')
-    admix_plot_blob = frontend_bucket.get_blob('cohort_browser/frontend/refpanel_admix.png')
-    admix_plot = admix_plot_blob.download_as_bytes()
+    ref_admix = blob_as_csv(frontend_bucket, 'ref_panel_admixture.txt')
+    admix_plot_blob = frontend_bucket+'refpanel_admix.png' #.get_blob('refpanel_admix.png')
+    admix_plot = admix_plot_blob #admix_plot_blob.download_as_bytes()
     st.image(admix_plot)
 
     proj_labels = blob_as_csv(

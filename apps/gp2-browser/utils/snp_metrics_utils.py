@@ -7,9 +7,9 @@ from utils.hold_data import (
 )
 
 def load_metrics_data(bucket, ancestry_choice, chr_choice):
-    metrics_blob_name = f"cohort_browser/nba/snp_metrics/{ancestry_choice}/chr{chr_choice}_metrics.csv"
-    maf_blob_name = f"cohort_browser/nba/snp_metrics/{ancestry_choice}/{ancestry_choice}_maf.afreq"
-    full_maf_blob_name = "cohort_browser/nba/snp_metrics/full_maf.afreq"
+    metrics_blob_name = f"gp2_snp_metrics/{ancestry_choice}/chr{chr_choice}_metrics.csv"
+    maf_blob_name = f"gp2_snp_metrics/{ancestry_choice}/{ancestry_choice}_maf.afreq"
+    full_maf_blob_name = "gp2_snp_metrics/full_maf.afreq"
 
     if f"{ancestry_choice}_{chr_choice}" not in st.session_state:
         metrics = blob_as_csv(bucket, metrics_blob_name, sep=',')

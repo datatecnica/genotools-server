@@ -2,6 +2,12 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
+
+from utils.config import AppConfig
+
+config = AppConfig()
+
+
 from utils.hold_data import (
     blob_as_csv, 
     blob_as_html, 
@@ -9,12 +15,18 @@ from utils.hold_data import (
 )
 
 def load_qc_data():
-    gp2_data_bucket = get_gcloud_bucket('genotools-server')
+    gp2_data_bucket = config.FRONTEND_BUCKET_NAME+"/" #get_gcloud_bucket('gt_app_utils')
 
-    qc_metrics_path = f"cohort_browser/nba/release{st.session_state['release_choice']}"
+    qc_metrics_path = f"qc_metrics/release{st.session_state['release_choice']}"
     related_df = blob_as_csv(gp2_data_bucket, f'{qc_metrics_path}/related_plot.csv', sep=',')
-    funnel_plot =  blob_as_html(gp2_data_bucket, f'{qc_metrics_path}/funnel_plot.html')
-    variant_plot =  blob_as_html(gp2_data_bucket, f'{qc_metrics_path}/variant_plot.html')
+    # Read the HTML file
+    with open(gp2_data_bucket+f'{qc_metrics_path}/funnel_plot.html', "r") as file:
+        funnel_plot = file.read()
+    with open(gp2_data_bucket+f'{qc_metrics_path}/variant_plot.html', "r") as file:
+        variant_plot = file.read()
+
+    # funnel_plot =  gp2_data_bucket+f'{qc_metrics_path}/funnel_plot.html' #blob_as_html(gp2_data_bucket, f'{qc_metrics_path}/funnel_plot.html')
+    # variant_plot =  gp2_data_bucket+f'{qc_metrics_path}/variant_plot.html' #blob_as_html(gp2_data_bucket, f'{qc_metrics_path}/variant_plot.html')
  
     return funnel_plot, related_df, variant_plot
 
