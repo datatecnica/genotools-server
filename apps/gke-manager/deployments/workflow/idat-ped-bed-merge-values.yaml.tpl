@@ -21,7 +21,7 @@ job:
   clinical_key_dir: /app/input/new_test_data/pipe-line-results/clinical
   path_beds_merge_jobs: /app/input/new_test_data/pipe-line-results/batch_files/beds_merge/job_merge_bed*.yaml
 image:
-  repository: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/workflows/idat-ped-bed-merge:COMMIT_SHA
+  repository: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/_WORKFLOW_REPO/idat-ped-bed-merge:COMMIT_SHA
 
 gcpSecretManager:
   kubernetesSecretName: gtserver-secrets
