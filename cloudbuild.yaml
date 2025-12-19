@@ -112,8 +112,10 @@ steps:
     cd genotools-server/deployments/helm-charts/dev
     sed "s|GOOGLE_CLOUD_PROJECT|${PROJECT_ID}|g; \
     s|GKE_CLUSTER_NAME|${_GKE_CLUSTER_NAME}|g;
-    s|DNS_NAME|${_DNS_NAME}|g;
+    s|APPS_REPO|${_APPS_REPO}|g;
+    s|API_REPO|${_API_REPO}|g;
     s|STATIC_IP_NAME|${_STATIC_IP_NAME}|g;
+    s|REPO|${_STATIC_IP_NAME}|g;
     s|precision-med-app:COMMIT_SHA|precision-med-app:${SHORT_SHA}|g;
     s|genotracker-app:COMMIT_SHA|genotracker-app:${SHORT_SHA}|g;
     s|genotracker-api:COMMIT_SHA|genotracker-api:${SHORT_SHA}|g;
@@ -138,6 +140,7 @@ steps:
     echo "Updating image tag version ..."
     cd genotools-server/apps/gke-manager/deployments/workflow
     sed "s|GOOGLE_CLOUD_PROJECT|${PROJECT_ID}|g; \
+    s|WORKFLOW_REPO|${_WORKFLOW_REPO}|g;
     s|idat-ped-bed-merge:COMMIT_SHA|idat-ped-bed-merge:${SHORT_SHA}|g" \
     idat-ped-bed-merge-values.yaml.tpl> idat-ped-bed-merge-values.yaml
     echo "Pushing changes to k8s manifest repo ..."
