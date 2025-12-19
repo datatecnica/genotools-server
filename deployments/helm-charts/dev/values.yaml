@@ -18,7 +18,7 @@ ksaBucket: ksa-bucket-access
 namespace: kns-gtserver
 # namespace: kns-test
 
-dnsName: genotools-server.com #genotoolsservers.com #genotools-server.com
+dnsName: genotoolsserver.com #genotoolsservers.com #genotools-server.com
 # ingressName: gtserver-ingress
 # globalIPName: gke-ingress
 
@@ -29,7 +29,7 @@ argoRelated:
   argoWF:
     routeName: argo-route
     namespace: argo
-    hostname: workflows.genotools-server.com
+    hostname: workflows.genotoolsserver.com
     serviceAccountName: argo-ksa
     workflowRoleBindingName: argo-workflow-role-binding
 gatewayAPI:
@@ -69,13 +69,13 @@ sslRelated:
 
 appservices:
   precisionMedApp:
-    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/apps/precision-med-app:1fb0b02
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/apps/precision-med-app:4c28473
     containerName: precisionmed-app-cont
     svcName: precisionmed-app-svc
     iapPolicyBackend: precisionmed-app-iap-backend
     containerPort: 8080
     servicePort: 8000
-    hostname: precision-med.genotools-server.com
+    hostname: precision-med.genotoolsserver.com
     routeName: precisionmed-app-route
     podName: precisionmed-app-pod
     volume: precisionmed-app-vol
@@ -85,13 +85,13 @@ appservices:
       ClientSecret: precisionmed_app_secret
 
   genotrackerApp:
-    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/apps/genotracker-app:1fb0b02
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/apps/genotracker-app:4c28473
     containerName: genotracker-app-cont
     svcName: genotracker-app-svc
     iapPolicyBackend: genotracker-app-iap-backend
     containerPort: 8080
     servicePort: 8000
-    hostname: genotracker-app.genotools-server.com
+    hostname: genotracker-app.genotoolsserver.com
     routeName: genotracker-app-route
     podName: genotracker-app-pod
     volume: genotracker-app-vol
@@ -105,13 +105,13 @@ appservices:
     # iapSec: genotracker-app-iap-sec
 
   gp2browserApp:
-    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/apps/gp2-browser:1fb0b02
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/apps/gp2-browser:4c28473
     containerName: gp2browser-app-cont
     svcName: gp2browser-app-svc
     iapPolicyBackend: gp2browser-iap-backend
     containerPort: 8080
     servicePort: 8000
-    hostname: gp2browser-app.genotools-server.com
+    hostname: gp2browser-app.genotoolsserver.com
     routeName: gp2browser-app-route
     podName: gp2browser-app-pod
     volume: gp2browser-app-vol
@@ -123,12 +123,12 @@ appservices:
 
 microservices:
   genotrackerApi:
-    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/microservices/genotracker-api:1fb0b02
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/microservices/genotracker-api:4c28473
     containerName: genotracker-api-cont
     svcName: genotracker-api-svc
     containerPort: 8080
     servicePort: 8000
-    hostname: genotracker-api.genotools-server.com
+    hostname: genotracker-api.genotoolsserver.com
     routeName: genotracker-api-route
     podName: genotracker-api-pod
     volume: genotracker-api-vol
@@ -137,13 +137,13 @@ microservices:
       name: genotracker-secret
       key: GENOTRACKER_API_KEY
   genotoolsApi:
-    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/microservices/genotools-api:1fb0b02
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/microservices/genotools-api:4c28473
     containerName: genotools-api-cont
     svcName: genotools-api-svc
     containerPort: 8080
     servicePort: 8000
     # hostname: genotools-api.genotoolsserver.com
-    hostname: genotools-api.genotools-server.com
+    hostname: genotools-api.genotoolsserver.com
     routeName: genotools-api-route
     podName: genotools-api-pod
     volume: genotools-api-vol
