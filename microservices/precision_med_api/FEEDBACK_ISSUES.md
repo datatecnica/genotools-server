@@ -359,9 +359,53 @@ All tracking features have been implemented:
 
 ---
 
+## Issue 5: WGS Missing Carriers Due to Merge Bug
+**Status:** ✅ FIXED (2025-12-18)
+
+**Description:** WGS data was showing fewer carriers than expected for SNCA and RAB32 variants. Investigation revealed this was the same merge bug that was fixed for IMPUTED data in Issue 1.
+
+**Root Cause (2025-12-18):**
+WGS is now split by ancestry and chromosome (like IMPUTED), but the code was using `pd.concat()` + `drop_duplicates()` instead of the proper `_merge_ancestry_results()` function. This caused sample columns from later ancestries to be lost when the same variant appeared in multiple ancestry files.
+
+Evidence from release11 WGS data before fix:
+- SNCA Ala53Thr (chr4:89828149): Only **EAS** samples (4,470) kept, **EUR** samples lost
+- SNCA Gly51Asp (chr4:89828154): Only **EUR** samples (20,837) kept, **EAS** samples lost
+- RAB32 Ser71Arg (chr6:146544084): Only **CAS** samples (1,930) kept, **EUR** and **MDE** samples lost
+
+Sample coverage statistics showed the bug clearly:
+- Min samples per variant: 401 (variants only in small ancestries)
+- Max samples per variant: 20,844 (EUR-only variants)
+- 145 variants had <50% of median sample count
+
+**Fix Applied (2025-12-18):**
+In `coordinator.py` lines 491-499, changed from:
+```python
+# Old (BROKEN): Simple concat + drop duplicates
+wgs_combined = pd.concat(wgs_results, ignore_index=True)
+wgs_combined = wgs_combined.drop_duplicates(...)
+```
+
+To:
+```python
+# New (FIXED): Use proper merge across ancestries
+wgs_combined = self._merge_ancestry_results(wgs_results, 'WGS')
+```
+
+Also added WGS to the ancestry parsing in the ProcessPool worker (line 76):
+```python
+if data_type in ["NBA", "IMPUTED", "WGS"]:  # Added WGS
+    ancestry = _parse_ancestry_from_path(file_path, settings.ANCESTRIES)
+```
+
+**Verification Required:**
+Re-run the pipeline with `--release 11` to regenerate WGS results with the fix.
+
+---
+
 ## Next Steps
 
 1. ✅ **IMPUTED extraction fixed** (Issue 1 - 2025-12-15)
 2. ✅ **Issue 2 investigated** - RAB32/SNCA missing from IMPUTED is expected (not in source files)
 3. ✅ **Issue 3 fixed** - Dosage threshold fix (2025-12-17)
-4. 🔴 **Issue 4** - Clinical data issues still need investigation
+4. ✅ **Issue 4 fixed** - Disease duration now calculates correctly (2025-12-18)
+5. ✅ **Issue 5 fixed** - WGS merge bug same as IMPUTED (2025-12-18)

@@ -72,8 +72,8 @@ def extract_single_file_process_worker(
         df['data_type'] = data_type
         df['source_file'] = file_path
         
-        # Parse ancestry from file path
-        if data_type in ["NBA", "IMPUTED"]:
+        # Parse ancestry from file path (WGS, NBA, and IMPUTED are all split by ancestry)
+        if data_type in ["NBA", "IMPUTED", "WGS"]:
             ancestry = _parse_ancestry_from_path(file_path, settings.ANCESTRIES)
             if ancestry:
                 df['ancestry'] = ancestry
@@ -490,12 +490,9 @@ class ExtractionCoordinator:
 
         # Combine within each data type (only deduplicating within same data type)
         if wgs_results:
-            wgs_combined = pd.concat(wgs_results, ignore_index=True)
-            # Remove duplicates within WGS only
-            wgs_combined = wgs_combined.drop_duplicates(
-                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
-                keep='first'
-            )
+            # Merge WGS results across ancestries (WGS is split by ancestry+chromosome like IMPUTED)
+            # Using _merge_ancestry_results ensures sample columns from all ancestries are preserved
+            wgs_combined = self._merge_ancestry_results(wgs_results, 'WGS')
             # Reorder columns to ensure metadata comes before samples
             wgs_combined = self._reorder_dataframe_columns(wgs_combined)
             results_by_datatype['WGS'] = wgs_combined
@@ -518,7 +515,8 @@ class ExtractionCoordinator:
             logger.info(f"IMPUTED combined: {len(imputed_combined)} variants")
 
         if exomes_results:
-            # EXOMES is single file like WGS (not split by ancestry)
+            # EXOMES is split by chromosome only (not by ancestry) - all samples are in each chromosome file
+            # Simple concat is correct here since each variant appears only once (from its chromosome file)
             exomes_combined = pd.concat(exomes_results, ignore_index=True)
             exomes_combined = exomes_combined.drop_duplicates(
                 subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'],
