@@ -69,7 +69,7 @@ sslRelated:
 
 appservices:
   precisionMedApp:
-    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/apps/precision-med-app:COMMIT_SHA
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/APPS_REPO/precision-med-app:COMMIT_SHA
     containerName: precisionmed-app-cont
     svcName: precisionmed-app-svc
     iapPolicyBackend: precisionmed-app-iap-backend
@@ -85,7 +85,7 @@ appservices:
       ClientSecret: precisionmed_app_secret
 
   genotrackerApp:
-    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/apps/genotracker-app:COMMIT_SHA
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/APPS_REPO/genotracker-app:COMMIT_SHA
     containerName: genotracker-app-cont
     svcName: genotracker-app-svc
     iapPolicyBackend: genotracker-app-iap-backend
@@ -105,7 +105,7 @@ appservices:
     # iapSec: genotracker-app-iap-sec
 
   gp2browserApp:
-    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/apps/gp2-browser:COMMIT_SHA
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/APPS_REPO/gp2-browser:COMMIT_SHA
     containerName: gp2browser-app-cont
     svcName: gp2browser-app-svc
     iapPolicyBackend: gp2browser-iap-backend
@@ -123,7 +123,7 @@ appservices:
 
 microservices:
   genotrackerApi:
-    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/microservices/genotracker-api:COMMIT_SHA
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/API_REPO/genotracker-api:COMMIT_SHA
     containerName: genotracker-api-cont
     svcName: genotracker-api-svc
     containerPort: 8080
@@ -137,7 +137,7 @@ microservices:
       name: genotracker-secret
       key: GENOTRACKER_API_KEY
   genotoolsApi:
-    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/genotools-server/microservices/genotools-api:COMMIT_SHA
+    image: europe-west4-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/API_REPO/genotools-api:COMMIT_SHA
     containerName: genotools-api-cont
     svcName: genotools-api-svc
     containerPort: 8080
