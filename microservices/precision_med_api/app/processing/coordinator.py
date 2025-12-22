@@ -597,21 +597,24 @@ class ExtractionCoordinator:
     def _normalize_sample_id(self, sample_id: str) -> str:
         """
         Normalize sample IDs to consistent format.
-        
+
         Handles:
         - WGS duplicated IDs: BBDP_000005_BBDP_000005 -> BBDP_000005
         - NBA/IMPUTED prefixes: 0_BBDP_000005 -> BBDP_000005
-        
+
+        Note: FID_IID normalization (e.g., AUTH_FAM000001_AUTH_000091 -> AUTH_000091)
+        is now handled at extraction time in extractor.py using the psam file.
+
         Args:
             sample_id: Original sample ID
-            
+
         Returns:
             Normalized sample ID
         """
         # Remove '0_' prefix from NBA/IMPUTED data
         if sample_id.startswith('0_'):
             sample_id = sample_id[2:]
-        
+
         # Fix WGS duplicated IDs: BBDP_000005_BBDP_000005 -> BBDP_000005
         if '_' in sample_id:
             parts = sample_id.split('_')
@@ -622,7 +625,7 @@ class ExtractionCoordinator:
                 second_half = '_'.join(parts[mid:])
                 if first_half == second_half:
                     sample_id = first_half
-        
+
         return sample_id
 
     def _merge_ancestry_results(self, result_dfs: List[pd.DataFrame], data_type: str) -> pd.DataFrame:
