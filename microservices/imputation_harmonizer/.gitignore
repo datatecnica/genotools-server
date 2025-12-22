@@ -4,4 +4,4 @@ data/
 *.egg-info
 .mypy_cache/
 .pytest_cache/
-.claude/
+HRC-1000G-check-bim-v4.2.pl
