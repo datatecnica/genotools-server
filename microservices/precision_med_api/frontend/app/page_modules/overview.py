@@ -170,12 +170,12 @@ def render_output_files(output_files: Dict[str, str]):
             if data_type not in grouped_files:
                 grouped_files[data_type] = []
 
-            # Get filename from path
-            filename = path.split('/')[-1]
-            grouped_files[data_type].append(filename)
+            # Convert mounted path to GCS bucket path
+            gcs_path = path.replace("/home/vitaled2/gcs_mounts/", "gs://")
+            grouped_files[data_type].append(gcs_path)
 
         # Display grouped files
         for data_type, files in sorted(grouped_files.items()):
             st.markdown(f"**{data_type}:**")
-            for filename in files:
-                st.text(f"  • {filename}")
+            for filepath in files:
+                st.text(f"  • {filepath}")
