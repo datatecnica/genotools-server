@@ -35,8 +35,15 @@ class Settings(BaseModel):
     
     # Timeout parameters (seconds)
     plink_timeout_short: int = Field(default=10, description="Short PLINK operations timeout")
-    plink_timeout_medium: int = Field(default=300, description="Medium PLINK operations timeout") 
+    plink_timeout_medium: int = Field(default=300, description="Medium PLINK operations timeout")
     plink_timeout_long: int = Field(default=600, description="Long PLINK operations timeout")
+
+    # Dosage thresholds for genotype calling (for imputed data with continuous 0.0-2.0 values)
+    # Defaults (0.5, 1.5, 1.5) = "soft call" / rounding to nearest integer
+    # For stricter "hard calls", use values like (0.9, 1.1, 1.9)
+    dosage_het_min: float = Field(default=0.5, description="Minimum dosage to call heterozygous")
+    dosage_het_max: float = Field(default=1.5, description="Maximum dosage to call heterozygous")
+    dosage_hom_min: float = Field(default=1.5, description="Minimum dosage to call homozygous")
     
     @field_validator('release')
     @classmethod

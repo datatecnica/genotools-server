@@ -188,7 +188,9 @@ def check_data_availability(release: str, job_name: str, results_base_path: str)
         'genotypes_imputed': os.path.exists(os.path.join(release_path, f"{job_name}_IMPUTED.parquet")),
         'genotypes_exomes': os.path.exists(os.path.join(release_path, f"{job_name}_EXOMES.parquet")),
         # Other
-        'probe_validation': os.path.exists(os.path.join(release_path, f"{job_name}_probe_selection.json"))
+        'probe_validation': os.path.exists(os.path.join(release_path, f"{job_name}_probe_selection.json")),
+        # Coverage reports
+        'coverage_reports': os.path.exists(os.path.join(release_path, f"{job_name}_coverage_by_locus.csv"))
     }
 
 
@@ -305,7 +307,15 @@ def load_variant_to_mutation_map(release: str, job_name: str, results_base_path:
 
 
 @st.cache_data
-def load_variant_carrier_counts(release: str, job_name: str, results_base_path: str, data_type: str = 'WGS') -> Dict[str, int]:
+def load_variant_carrier_counts(
+    release: str,
+    job_name: str,
+    results_base_path: str,
+    data_type: str = 'WGS',
+    dosage_het_min: float = 0.5,
+    dosage_het_max: float = 1.5,
+    dosage_hom_min: float = 1.5
+) -> Dict[str, int]:
     """
     Load carrier counts per variant from parquet files.
 
@@ -314,9 +324,12 @@ def load_variant_carrier_counts(release: str, job_name: str, results_base_path: 
         job_name: Job name
         results_base_path: Base path to results directory
         data_type: Data type to load ('WGS', 'NBA', or 'IMPUTED')
+        dosage_het_min: Minimum dosage to call heterozygous (default 0.5)
+        dosage_het_max: Maximum dosage to call heterozygous (default 1.5)
+        dosage_hom_min: Minimum dosage to call homozygous (default 1.5)
 
     Returns:
-        Dict mapping variant_id -> carrier count (number of samples with genotype > 0)
+        Dict mapping variant_id -> carrier count (het + hom based on thresholds)
         Returns empty dict if parquet doesn't exist
     """
     release_path = os.path.join(os.path.dirname(results_base_path), release)
@@ -343,12 +356,86 @@ def load_variant_carrier_counts(release: str, job_name: str, results_base_path: 
             # Get genotypes and convert to numeric
             genotypes = pd.to_numeric(row[sample_cols], errors='coerce')
 
-            # Count carriers (genotype > 0)
-            carrier_count = (genotypes > 0).sum()
-            carrier_counts[variant_id] = int(carrier_count)
+            # Count carriers using thresholds (het + hom)
+            het_count = ((genotypes >= dosage_het_min) & (genotypes < dosage_het_max)).sum()
+            hom_count = (genotypes >= dosage_hom_min).sum()
+            carrier_counts[variant_id] = int(het_count + hom_count)
 
         return carrier_counts
 
     except Exception as e:
         st.warning(f"Could not load carrier counts: {e}")
         return {}
+
+
+@st.cache_data
+def load_coverage_by_locus(release: str, job_name: str, results_base_path: str) -> Optional[pd.DataFrame]:
+    """
+    Load coverage by locus CSV file.
+
+    Args:
+        release: Release identifier
+        job_name: Job name
+        results_base_path: Base path to results directory
+
+    Returns:
+        DataFrame with locus coverage data or None if not found
+    """
+    release_path = os.path.join(os.path.dirname(results_base_path), release)
+    file_path = os.path.join(release_path, f"{job_name}_coverage_by_locus.csv")
+
+    if os.path.exists(file_path):
+        try:
+            return pd.read_csv(file_path)
+        except Exception as e:
+            st.error(f"Error loading coverage by locus: {e}")
+    return None
+
+
+@st.cache_data
+def load_coverage_by_variant(release: str, job_name: str, results_base_path: str) -> Optional[pd.DataFrame]:
+    """
+    Load coverage by variant CSV file.
+
+    Args:
+        release: Release identifier
+        job_name: Job name
+        results_base_path: Base path to results directory
+
+    Returns:
+        DataFrame with variant coverage data or None if not found
+    """
+    release_path = os.path.join(os.path.dirname(results_base_path), release)
+    file_path = os.path.join(release_path, f"{job_name}_coverage_by_variant.csv")
+
+    if os.path.exists(file_path):
+        try:
+            return pd.read_csv(file_path)
+        except Exception as e:
+            st.error(f"Error loading coverage by variant: {e}")
+    return None
+
+
+@st.cache_data
+def load_coverage_summary(release: str, job_name: str, results_base_path: str) -> Optional[Dict]:
+    """
+    Load coverage summary JSON file.
+
+    Args:
+        release: Release identifier
+        job_name: Job name
+        results_base_path: Base path to results directory
+
+    Returns:
+        Coverage summary dict or None if not found
+    """
+    release_path = os.path.join(os.path.dirname(results_base_path), release)
+    file_path = os.path.join(release_path, f"{job_name}_coverage_summary.json")
+
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            st.error(f"Error loading coverage summary: {e}")
+    return None

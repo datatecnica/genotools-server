@@ -72,8 +72,8 @@ def extract_single_file_process_worker(
         df['data_type'] = data_type
         df['source_file'] = file_path
         
-        # Parse ancestry from file path
-        if data_type in ["NBA", "IMPUTED"]:
+        # Parse ancestry from file path (WGS, NBA, and IMPUTED are all split by ancestry)
+        if data_type in ["NBA", "IMPUTED", "WGS"]:
             ancestry = _parse_ancestry_from_path(file_path, settings.ANCESTRIES)
             if ancestry:
                 df['ancestry'] = ancestry
@@ -293,85 +293,118 @@ class ExtractionCoordinator:
         return plan
     
     def execute_harmonized_extraction(
-        self, 
-        plan: ExtractionPlan, 
+        self,
+        plan: ExtractionPlan,
         snp_list_df: pd.DataFrame,
         parallel: bool = True,
         max_workers: Optional[int] = None
-    ) -> Dict[str, pd.DataFrame]:
+    ) -> Tuple[Dict[str, pd.DataFrame], Dict[str, Dict[str, Any]]]:
         """
         Execute harmonized extraction according to plan using ProcessPool.
-        
+
         Args:
             plan: ExtractionPlan with file paths and variants
             snp_list_df: SNP list DataFrame for harmonization
             parallel: Whether to run extractions in parallel
             max_workers: Maximum parallel workers
-            
+
         Returns:
-            Dictionary mapping data_type to combined DataFrame with harmonized genotypes
+            Tuple of (results_by_datatype, extraction_stats)
+            - results_by_datatype: Dict mapping data_type to combined DataFrame
+            - extraction_stats: Dict with per-data-type extraction outcomes
         """
         start_time = time.time()
         logger.info(f"Starting harmonized extraction for {len(plan.snp_list_ids)} variants")
-        
+
         # Use settings default if not provided
         if max_workers is None:
             max_workers = self.settings.max_workers
-        
+
         if parallel:
             return self._execute_with_process_pool(plan, snp_list_df, max_workers)
         else:
-            # Execute sequentially
+            # Execute sequentially (simplified tracking - no per-file granularity)
             results_by_datatype = {}
+            extraction_stats = {}
             for data_type in plan.data_types:
+                files = plan.get_files_for_data_type(data_type)
+                extraction_stats[data_type] = {
+                    'planned_files': len(files),
+                    'successful': 0,
+                    'empty': 0,
+                    'failed': 0,
+                    'successful_files': [],
+                    'empty_files': [],
+                    'failed_files': []
+                }
                 try:
-                    files = plan.get_files_for_data_type(data_type)
                     result_df = self._extract_data_type(data_type, plan.snp_list_ids, files, snp_list_df)
                     if not result_df.empty:
                         # Remove duplicates within this data type
                         result_df = result_df.drop_duplicates(
-                            subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
+                            subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'],
                             keep='first'
                         )
                         results_by_datatype[data_type] = result_df
+                        extraction_stats[data_type]['successful'] = len(files)
                         logger.info(f"Completed extraction for {data_type}: {len(result_df)} variants")
+                    else:
+                        extraction_stats[data_type]['empty'] = len(files)
                 except Exception as e:
                     logger.error(f"Failed extraction for {data_type}: {e}")
-            
+                    extraction_stats[data_type]['failed'] = len(files)
+
             execution_time = time.time() - start_time
             total_variants = sum(len(df) for df in results_by_datatype.values())
             logger.info(f"Completed harmonized extraction in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
-            
-            return results_by_datatype
+
+            return results_by_datatype, extraction_stats
     
     def _execute_with_process_pool(
-        self, 
-        plan: ExtractionPlan, 
-        snp_list_df: pd.DataFrame, 
+        self,
+        plan: ExtractionPlan,
+        snp_list_df: pd.DataFrame,
         max_workers: int
-    ) -> Dict[str, pd.DataFrame]:
-        """ProcessPool-based parallel extraction."""
+    ) -> Tuple[Dict[str, pd.DataFrame], Dict[str, Dict[str, Any]]]:
+        """
+        ProcessPool-based parallel extraction with outcome tracking.
+
+        Returns:
+            Tuple of (results_by_datatype, extraction_stats)
+            - results_by_datatype: Dict mapping data_type to combined DataFrame
+            - extraction_stats: Dict with per-data-type extraction outcomes
+        """
         start_time = time.time()
-        
+
         # Flatten all files across all data types into single task list
         all_tasks = []
+        planned_files_by_type = {}  # Track planned files per data type
         for data_type in plan.data_types:
             files = plan.get_files_for_data_type(data_type)
+            planned_files_by_type[data_type] = len(files)
             for file_path in files:
                 all_tasks.append((file_path, data_type))
-        
+
         # Handle case where no files are found
         if not all_tasks:
             logger.warning("No files found for extraction")
-            return {}
-        
+            return {}, {}
+
         # Calculate optimal process count
         optimal_workers = self._calculate_optimal_workers(len(all_tasks), max_workers)
         logger.info(f"Starting ProcessPool extraction: {len(all_tasks)} files, {optimal_workers} processes")
-        
+
         all_results = []
-        failed_extractions = []
-        
+
+        # Track outcomes per data type: successful (non-empty), empty, failed (exception)
+        extraction_outcomes = {}
+        for data_type in plan.data_types:
+            extraction_outcomes[data_type] = {
+                'successful': [],  # Files that returned non-empty DataFrame
+                'empty': [],       # Files that returned empty DataFrame (no matching variants)
+                'failed': []       # Files that threw exceptions
+            }
+
         with ProcessPoolExecutor(max_workers=optimal_workers) as executor:
             # Submit all tasks
             future_to_task = {
@@ -385,7 +418,7 @@ class ExtractionCoordinator:
                 ): (file_path, data_type)
                 for file_path, data_type in all_tasks
             }
-            
+
             # Collect results with progress tracking
             pbar = tqdm(total=len(all_tasks), desc="Extracting variants")
             with pbar:
@@ -395,17 +428,56 @@ class ExtractionCoordinator:
                         result_df = future.result()
                         if not result_df.empty:
                             all_results.append(result_df)
+                            extraction_outcomes[data_type]['successful'].append(file_path)
+                        else:
+                            # Empty result - file processed but no matching variants
+                            extraction_outcomes[data_type]['empty'].append(file_path)
                         pbar.update(1)
                     except Exception as e:
                         logger.error(f"Process extraction failed for {file_path}: {e}")
-                        failed_extractions.append((file_path, data_type, str(e)))
+                        extraction_outcomes[data_type]['failed'].append({
+                            'file': file_path,
+                            'error': str(e)
+                        })
                         pbar.update(1)
-        
-        # Log failures
-        if failed_extractions:
-            logger.warning(f"Failed to extract {len(failed_extractions)} files:")
-            for file_path, data_type, error in failed_extractions:
-                logger.warning(f"  {data_type}: {file_path} - {error}")
+
+        # Build extraction stats summary
+        extraction_stats = {}
+        for data_type in plan.data_types:
+            outcomes = extraction_outcomes[data_type]
+            extraction_stats[data_type] = {
+                'planned_files': planned_files_by_type[data_type],
+                'successful': len(outcomes['successful']),
+                'empty': len(outcomes['empty']),
+                'failed': len(outcomes['failed']),
+                'successful_files': outcomes['successful'],
+                'empty_files': outcomes['empty'],
+                'failed_files': outcomes['failed']
+            }
+
+        # Log extraction summary
+        logger.info("\n" + "=" * 60)
+        logger.info("EXTRACTION SUMMARY")
+        logger.info("=" * 60)
+        has_failures = False
+        for data_type, stats in extraction_stats.items():
+            status = "✅" if stats['failed'] == 0 else "❌"
+            if stats['failed'] > 0:
+                has_failures = True
+            logger.info(f"  {data_type}: {stats['successful']}/{stats['planned_files']} successful, "
+                       f"{stats['empty']} empty, {stats['failed']} failed {status}")
+        logger.info("=" * 60 + "\n")
+
+        # Log detailed failures if any
+        if has_failures:
+            logger.warning("FAILED EXTRACTIONS (see failed_files.json for retry):")
+            for data_type, stats in extraction_stats.items():
+                if stats['failed'] > 0:
+                    logger.warning(f"  {data_type}:")
+                    for failure in stats['failed_files'][:5]:  # Show first 5
+                        logger.warning(f"    - {failure['file']}: {failure['error']}")
+                    if len(stats['failed_files']) > 5:
+                        logger.warning(f"    ... and {len(stats['failed_files']) - 5} more")
         
         # Group results by data type
         results_by_datatype = {}
@@ -418,12 +490,9 @@ class ExtractionCoordinator:
 
         # Combine within each data type (only deduplicating within same data type)
         if wgs_results:
-            wgs_combined = pd.concat(wgs_results, ignore_index=True)
-            # Remove duplicates within WGS only
-            wgs_combined = wgs_combined.drop_duplicates(
-                subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'], 
-                keep='first'
-            )
+            # Merge WGS results across ancestries (WGS is split by ancestry+chromosome like IMPUTED)
+            # Using _merge_ancestry_results ensures sample columns from all ancestries are preserved
+            wgs_combined = self._merge_ancestry_results(wgs_results, 'WGS')
             # Reorder columns to ensure metadata comes before samples
             wgs_combined = self._reorder_dataframe_columns(wgs_combined)
             results_by_datatype['WGS'] = wgs_combined
@@ -446,7 +515,8 @@ class ExtractionCoordinator:
             logger.info(f"IMPUTED combined: {len(imputed_combined)} variants")
 
         if exomes_results:
-            # EXOMES is single file like WGS (not split by ancestry)
+            # EXOMES is split by chromosome only (not by ancestry) - all samples are in each chromosome file
+            # Simple concat is correct here since each variant appears only once (from its chromosome file)
             exomes_combined = pd.concat(exomes_results, ignore_index=True)
             exomes_combined = exomes_combined.drop_duplicates(
                 subset=['snp_list_id', 'variant_id', 'chromosome', 'position', 'counted_allele', 'alt_allele'],
@@ -459,8 +529,8 @@ class ExtractionCoordinator:
         execution_time = time.time() - start_time
         total_variants = sum(len(df) for df in results_by_datatype.values())
         logger.info(f"ProcessPool extraction completed in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
-        
-        return results_by_datatype
+
+        return results_by_datatype, extraction_stats
     
     def _reorder_dataframe_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -527,21 +597,24 @@ class ExtractionCoordinator:
     def _normalize_sample_id(self, sample_id: str) -> str:
         """
         Normalize sample IDs to consistent format.
-        
+
         Handles:
         - WGS duplicated IDs: BBDP_000005_BBDP_000005 -> BBDP_000005
         - NBA/IMPUTED prefixes: 0_BBDP_000005 -> BBDP_000005
-        
+
+        Note: FID_IID normalization (e.g., AUTH_FAM000001_AUTH_000091 -> AUTH_000091)
+        is now handled at extraction time in extractor.py using the psam file.
+
         Args:
             sample_id: Original sample ID
-            
+
         Returns:
             Normalized sample ID
         """
         # Remove '0_' prefix from NBA/IMPUTED data
         if sample_id.startswith('0_'):
             sample_id = sample_id[2:]
-        
+
         # Fix WGS duplicated IDs: BBDP_000005_BBDP_000005 -> BBDP_000005
         if '_' in sample_id:
             parts = sample_id.split('_')
@@ -552,19 +625,23 @@ class ExtractionCoordinator:
                 second_half = '_'.join(parts[mid:])
                 if first_half == second_half:
                     sample_id = first_half
-        
+
         return sample_id
 
     def _merge_ancestry_results(self, result_dfs: List[pd.DataFrame], data_type: str) -> pd.DataFrame:
         """
         Merge results from different ancestries for the same data type.
 
-        When extracting from multiple ancestry files (e.g., NBA AAC, AFR, AMR, etc.),
-        each file contains only its ancestry's samples. This method properly merges
-        them so all samples have genotypes for all variants.
+        Uses a two-phase approach for efficiency:
+        1. Concat within ancestry (same samples, different variants from different chromosomes)
+        2. Merge across ancestries (different samples, potentially overlapping variants)
+
+        This is more efficient than sequential merging of all DataFrames because:
+        - Concat is O(n) row stacking vs O(n²) for repeated merges
+        - Only ~11 ancestry merges needed vs 75-150 file merges
 
         Args:
-            result_dfs: List of DataFrames from different ancestry files
+            result_dfs: List of DataFrames from different ancestry/chromosome files
             data_type: The data type being merged (NBA/IMPUTED)
 
         Returns:
@@ -574,8 +651,11 @@ class ExtractionCoordinator:
             return pd.DataFrame()
 
         if len(result_dfs) == 1:
-            # Single ancestry - no merge needed
-            return result_dfs[0]
+            # Single file - no merge needed
+            df = result_dfs[0].copy()
+            if 'ancestry' in df.columns:
+                df = df.drop(columns=['ancestry'])
+            return df
 
         # Define key columns for merging (variant identifier columns)
         merge_keys = ['snp_list_id', 'variant_id', 'chromosome', 'position',
@@ -588,20 +668,54 @@ class ExtractionCoordinator:
         # - A single 'ancestry' value would be misleading for multi-ancestry data
         metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
                          'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
-                         'pgen_a1', 'pgen_a2', 'data_type', 'maf_corrected', 'original_alt_af']
+                         'pgen_a1', 'pgen_a2', 'data_type', 'source_file',
+                         'maf_corrected', 'original_alt_af']
 
-        # Start with the first DataFrame
-        merged_df = result_dfs[0].copy()
+        # ===== Phase 1: Group DataFrames by ancestry =====
+        ancestry_groups = {}
+        for df in result_dfs:
+            # Try to extract ancestry from source_file first, then ancestry column
+            if 'source_file' in df.columns and df['source_file'].notna().any():
+                source = df['source_file'].iloc[0]
+                ancestry = self._extract_ancestry_from_path(source)
+            elif 'ancestry' in df.columns and df['ancestry'].notna().any():
+                ancestry = df['ancestry'].iloc[0]
+            else:
+                ancestry = 'unknown'
 
-        # Drop ancestry column from merged result since it contains multiple ancestries
-        if 'ancestry' in merged_df.columns:
-            merged_df = merged_df.drop(columns=['ancestry'])
+            if ancestry not in ancestry_groups:
+                ancestry_groups[ancestry] = []
+            ancestry_groups[ancestry].append(df)
 
-        # For subsequent DataFrames, merge on variant keys
-        for df in result_dfs[1:]:
-            # Get sample columns from this DataFrame (columns not in metadata)
-            # Also exclude 'ancestry' since it's not meaningful for multi-ancestry merged data
-            df_sample_cols = [col for col in df.columns if col not in metadata_cols and col not in merge_keys and col != 'ancestry']
+        logger.debug(f"Grouped {len(result_dfs)} {data_type} files into {len(ancestry_groups)} ancestry groups: {list(ancestry_groups.keys())}")
+
+        # ===== Phase 2: Concat within each ancestry (same samples, different variants) =====
+        ancestry_dfs = {}
+        for ancestry, dfs in ancestry_groups.items():
+            if len(dfs) == 1:
+                combined = dfs[0].copy()
+            else:
+                # Simple concat - these have the same samples, just stacking variant rows
+                combined = pd.concat(dfs, ignore_index=True)
+                # Deduplicate variants within ancestry
+                combined = combined.drop_duplicates(subset=merge_keys, keep='first')
+
+            # Drop ancestry column (will be implicit in sample IDs)
+            if 'ancestry' in combined.columns:
+                combined = combined.drop(columns=['ancestry'])
+
+            ancestry_dfs[ancestry] = combined
+            logger.debug(f"  {ancestry}: {len(combined)} variants from {len(dfs)} chromosome files")
+
+        # ===== Phase 3: Merge across ancestries (different samples, overlapping variants) =====
+        ancestry_list = list(ancestry_dfs.keys())
+        merged_df = ancestry_dfs[ancestry_list[0]].copy()
+
+        for ancestry in ancestry_list[1:]:
+            df = ancestry_dfs[ancestry]
+            # Get sample columns from this DataFrame (columns not in metadata or merge keys)
+            df_sample_cols = [col for col in df.columns
+                              if col not in metadata_cols and col not in merge_keys]
 
             # Select only merge keys and new sample columns for merging
             cols_to_merge = merge_keys + df_sample_cols
@@ -616,20 +730,49 @@ class ExtractionCoordinator:
                 suffixes=('', '_dup')  # Avoid column name conflicts
             )
 
-            # Drop any duplicate columns that might have been created
+            # Combine duplicate columns: take non-NaN value from either column
+            # This handles variants that exist in multiple ancestries where metadata
+            # columns (like source_file) might differ
             dup_cols = [col for col in merged_df.columns if col.endswith('_dup')]
+            for dup_col in dup_cols:
+                base_col = dup_col[:-4]  # Remove '_dup' suffix
+                if base_col in merged_df.columns:
+                    # Combine: use base_col where not NaN, otherwise use dup_col
+                    merged_df[base_col] = merged_df[base_col].combine_first(merged_df[dup_col])
+            # Now drop the _dup columns
             if dup_cols:
                 merged_df = merged_df.drop(columns=dup_cols)
 
-        # Remove duplicate variants if any (keeping first occurrence)
+        # Final deduplication (shouldn't be needed after proper merge, but safety net)
         merged_df = merged_df.drop_duplicates(
             subset=merge_keys,
             keep='first'
         )
 
-        logger.info(f"Merged {len(result_dfs)} {data_type} ancestry files into {len(merged_df)} variants")
+        logger.info(f"Merged {len(result_dfs)} {data_type} files ({len(ancestry_groups)} ancestries) into {len(merged_df)} variants")
 
         return merged_df
+
+    def _extract_ancestry_from_path(self, path: str) -> str:
+        """
+        Extract ancestry code from file path.
+
+        Handles paths like:
+        - /path/AAC/chr1_AAC_release11.pgen
+        - /path/to/file_AFR_something.pgen
+
+        Args:
+            path: File path string
+
+        Returns:
+            Ancestry code (e.g., 'AAC', 'AFR') or 'unknown' if not found
+        """
+        if not path:
+            return 'unknown'
+        for ancestry in self.settings.ANCESTRIES:
+            if f'/{ancestry}/' in path or f'_{ancestry}_' in path:
+                return ancestry
+        return 'unknown'
 
     def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
         """Calculate optimal process count based on system resources and settings."""
@@ -701,7 +844,7 @@ class ExtractionCoordinator:
         return summary
     
     def export_pipeline_results(
-        self, 
+        self,
         plan: ExtractionPlan,
         output_dir: str,
         base_name: Optional[str] = None,
@@ -709,10 +852,10 @@ class ExtractionCoordinator:
         snp_list: Optional[pd.DataFrame] = None,
         harmonization_summary: Optional[Dict[str, Any]] = None,
         max_workers: Optional[int] = None
-    ) -> Dict[str, str]:
+    ) -> Tuple[Dict[str, str], Dict[str, Any], Dict[str, Dict[str, Any]]]:
         """
         Export pipeline results for all data types.
-        
+
         Args:
             plan: ExtractionPlan with file information
             output_dir: Output directory
@@ -720,78 +863,73 @@ class ExtractionCoordinator:
             formats: List of output formats
             snp_list: Original SNP list for metadata
             harmonization_summary: Harmonization summary statistics
-            
+
         Returns:
-            Dictionary mapping format to output file path
+            Tuple of (output_files, actual_counts, extraction_stats)
+            - output_files: Dict mapping format to output file path
+            - actual_counts: Dict with total samples/variants counts
+            - extraction_stats: Dict with per-data-type extraction outcomes
         """
         if base_name is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             base_name = f"harmonized_variants_{timestamp}"
-        
+
         # Ensure output directory exists
         Path(output_dir).mkdir(parents=True, exist_ok=True)
-        
+
         output_files = {}
         actual_counts = {'total_samples': 0, 'total_variants': 0, 'by_data_type': {}}
-        
-        # Always use traditional DataFrame-based export
-        if True:  # Always use traditional approach
-            logger.info("Using traditional DataFrame-based export with separate data type outputs")
-            # Extract using traditional method - now returns dict by data type
-            extracted_by_datatype = self.execute_harmonized_extraction(plan, snp_list, parallel=True, max_workers=max_workers)
-            
-            # Export separate files for each data type
-            for data_type, df in extracted_by_datatype.items():
-                if df.empty:
-                    logger.warning(f"No variants extracted for {data_type}, skipping export")
-                    continue
-                
-                # Update harmonization summary with actual counts from this data type
-                current_summary = harmonization_summary.copy() if harmonization_summary else {}
-                sample_cols = self.formatter._get_sample_columns(df)
-                actual_sample_count = len(sample_cols)
-                actual_variant_count = len(df)
-                
-                # Aggregate actual counts (use max sample count across data types since samples are consistent)
-                actual_counts['total_samples'] = max(actual_counts['total_samples'], actual_sample_count)
-                actual_counts['total_variants'] += actual_variant_count
-                actual_counts['by_data_type'][data_type] = {
-                    'variants': actual_variant_count,
-                    'samples': actual_sample_count
-                }
-                
-                current_summary['total_samples'] = actual_sample_count
-                current_summary['total_variants'] = actual_variant_count
-                current_summary['data_type'] = data_type
-                
-                # Create data-type specific base name
-                datatype_base_name = f"{base_name}_{data_type}"
-                
-                # Export for this data type
-                datatype_output_files = self.export_results(
-                    df=df,
-                    output_dir=output_dir,
-                    base_name=datatype_base_name,
-                    formats=formats,
-                    snp_list=snp_list,
-                    harmonization_summary=current_summary
-                )
-                
-                # Add data type prefix to output file keys
-                for file_type, file_path in datatype_output_files.items():
-                    output_files[f"{data_type}_{file_type}"] = file_path
-                
-                logger.info(f"Exported {data_type}: {len(datatype_output_files)} files, {actual_variant_count} variants")
-            
-            return output_files, actual_counts
-        
-        # This section is no longer needed since we always use traditional extraction above
-        
-        # Additional metadata files removed (QC report and harmonization report)
-        # All necessary information is available in variant summary and pipeline results
-        
-        logger.info(f"Exported {len(output_files)} files using native PLINK approach")
-        return output_files
+
+        logger.info("Using traditional DataFrame-based export with separate data type outputs")
+        # Extract using traditional method - now returns (dict by data type, extraction_stats)
+        extracted_by_datatype, extraction_stats = self.execute_harmonized_extraction(
+            plan, snp_list, parallel=True, max_workers=max_workers
+        )
+
+        # Export separate files for each data type
+        for data_type, df in extracted_by_datatype.items():
+            if df.empty:
+                logger.warning(f"No variants extracted for {data_type}, skipping export")
+                continue
+
+            # Update harmonization summary with actual counts from this data type
+            current_summary = harmonization_summary.copy() if harmonization_summary else {}
+            sample_cols = self.formatter._get_sample_columns(df)
+            actual_sample_count = len(sample_cols)
+            actual_variant_count = len(df)
+
+            # Aggregate actual counts (use max sample count across data types since samples are consistent)
+            actual_counts['total_samples'] = max(actual_counts['total_samples'], actual_sample_count)
+            actual_counts['total_variants'] += actual_variant_count
+            actual_counts['by_data_type'][data_type] = {
+                'variants': actual_variant_count,
+                'samples': actual_sample_count
+            }
+
+            current_summary['total_samples'] = actual_sample_count
+            current_summary['total_variants'] = actual_variant_count
+            current_summary['data_type'] = data_type
+
+            # Create data-type specific base name
+            datatype_base_name = f"{base_name}_{data_type}"
+
+            # Export for this data type
+            datatype_output_files = self.export_results(
+                df=df,
+                output_dir=output_dir,
+                base_name=datatype_base_name,
+                formats=formats,
+                snp_list=snp_list,
+                harmonization_summary=current_summary
+            )
+
+            # Add data type prefix to output file keys
+            for file_type, file_path in datatype_output_files.items():
+                output_files[f"{data_type}_{file_type}"] = file_path
+
+            logger.info(f"Exported {data_type}: {len(datatype_output_files)} files, {actual_variant_count} variants")
+
+        return output_files, actual_counts, extraction_stats
     
     
     
@@ -852,6 +990,7 @@ class ExtractionCoordinator:
         output_name: Optional[str] = None,
         enable_probe_selection: bool = True,
         enable_locus_reports: bool = True,
+        enable_coverage_profiling: bool = True,
     ) -> Dict[str, Any]:
         """
         Run complete extraction pipeline from SNP list to final output.
@@ -865,6 +1004,8 @@ class ExtractionCoordinator:
             max_workers: Maximum parallel workers
             output_name: Custom name for output files (default: auto-generated)
             enable_probe_selection: Enable probe quality analysis and selection (default: True)
+            enable_locus_reports: Enable locus report generation (default: True)
+            enable_coverage_profiling: Enable SNP coverage profiling (default: True)
 
         Returns:
             Dictionary with pipeline results and metadata
@@ -904,7 +1045,7 @@ class ExtractionCoordinator:
             
             # Step 4: Export results using real-time extraction
             logger.info("Step 4: Exporting results")
-            output_files, actual_counts = self.export_pipeline_results(
+            output_files, actual_counts, extraction_stats = self.export_pipeline_results(
                 plan=plan,
                 output_dir=output_dir,
                 base_name=job_id,
@@ -913,7 +1054,7 @@ class ExtractionCoordinator:
                 harmonization_summary=harmonization_summary,
                 max_workers=max_workers
             )
-            
+
             # Update harmonization summary with actual counts
             updated_summary = harmonization_summary.copy() if harmonization_summary else {}
             updated_summary.update({
@@ -921,7 +1062,41 @@ class ExtractionCoordinator:
                 'total_variants': actual_counts['total_variants'],
                 'by_data_type': actual_counts['by_data_type']
             })
-            
+
+            # Add extraction stats to results (simplified version for JSON)
+            extraction_stats_summary = {}
+            for data_type, stats in extraction_stats.items():
+                extraction_stats_summary[data_type] = {
+                    'planned_files': stats['planned_files'],
+                    'successful': stats['successful'],
+                    'empty': stats['empty'],
+                    'failed': stats['failed'],
+                    # Include failed file paths (without full details) for reference
+                    'failed_files': [f['file'] if isinstance(f, dict) else f for f in stats['failed_files']]
+                }
+            results['extraction_stats'] = extraction_stats_summary
+
+            # Save failed files JSON if there are any failures
+            has_failures = any(stats['failed'] > 0 for stats in extraction_stats.values())
+            if has_failures:
+                failed_files_data = {
+                    'job_name': job_id,
+                    'timestamp': datetime.now().isoformat(),
+                    'failed_files': {}
+                }
+                for data_type, stats in extraction_stats.items():
+                    if stats['failed'] > 0:
+                        failed_files_data['failed_files'][data_type] = [
+                            f['file'] if isinstance(f, dict) else f for f in stats['failed_files']
+                        ]
+
+                failed_files_path = os.path.join(output_dir, f"{job_id}_failed_files.json")
+                import json
+                with open(failed_files_path, 'w') as f:
+                    json.dump(failed_files_data, f, indent=2)
+                results['failed_files_path'] = failed_files_path
+                logger.warning(f"⚠️ Some extractions failed. Failed files saved to: {failed_files_path}")
+
             # Pipeline completed successfully
             results['success'] = True
             results['output_files'] = output_files
@@ -933,11 +1108,11 @@ class ExtractionCoordinator:
                 'created_at': plan.created_at
             }
             results['extraction_plan'] = plan_info
-            
+
             pipeline_time = time.time() - pipeline_start
             results['execution_time_seconds'] = pipeline_time
             results['end_time'] = datetime.now().isoformat()
-            
+
             logger.info(f"Pipeline completed successfully in {pipeline_time:.1f}s: {job_id}")
 
             # Run probe selection postprocessing if enabled
@@ -967,6 +1142,21 @@ class ExtractionCoordinator:
                 else:
                     logger.warning("⚠️ Locus report generation did not generate results")
 
+            # Run coverage profiling if enabled
+            if enable_coverage_profiling:
+                logger.info("📈 Running coverage profiling...")
+                coverage_results = self.run_coverage_profiling_postprocessing(
+                    output_dir=output_dir,
+                    output_name=job_id,
+                    data_types=data_types,
+                    max_workers=max_workers
+                )
+                if coverage_results:
+                    results['output_files'].update(coverage_results)
+                    logger.info("✅ Coverage profiling completed")
+                else:
+                    logger.warning("⚠️ Coverage profiling did not generate results")
+
         except Exception as e:
             logger.error(f"Pipeline failed: {e}")
             results['errors'].append(str(e))
@@ -986,6 +1176,261 @@ class ExtractionCoordinator:
             
         except Exception as e:
             logger.error(f"Failed to save pipeline results: {e}")
+
+        return results
+
+    def retry_failed_extraction(
+        self,
+        failed_files_json_path: str,
+        snp_list_path: str,
+        output_dir: str,
+        max_workers: Optional[int] = None,
+        enable_probe_selection: bool = True,
+        enable_locus_reports: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Retry extraction for previously failed files.
+
+        Loads existing parquet results, runs extraction only on failed files,
+        and merges new results with existing data.
+
+        Args:
+            failed_files_json_path: Path to the failed_files.json from a previous run
+            snp_list_path: Path to SNP list file
+            output_dir: Output directory (should be same as original run)
+            max_workers: Maximum parallel workers
+            enable_probe_selection: Enable probe quality analysis after retry
+            enable_locus_reports: Enable locus report generation after retry
+
+        Returns:
+            Dictionary with retry results and metadata
+        """
+        import json
+
+        pipeline_start = time.time()
+        logger.info(f"Starting retry extraction from: {failed_files_json_path}")
+
+        # Load failed files JSON
+        with open(failed_files_json_path, 'r') as f:
+            failed_files_data = json.load(f)
+
+        job_name = failed_files_data.get('job_name', 'retry')
+        failed_files_by_type = failed_files_data.get('failed_files', {})
+
+        if not failed_files_by_type:
+            logger.info("No failed files to retry")
+            return {
+                'success': True,
+                'job_id': job_name,
+                'message': 'No failed files to retry',
+                'retried_files': 0
+            }
+
+        results = {
+            'job_id': job_name,
+            'start_time': datetime.now().isoformat(),
+            'success': False,
+            'output_files': {},
+            'retry_stats': {},
+            'errors': []
+        }
+
+        try:
+            # Load SNP list
+            logger.info("Loading SNP list...")
+            snp_list = self.load_snp_list(snp_list_path)
+            snp_list_ids = snp_list['snp_name'].tolist() if 'snp_name' in snp_list.columns else snp_list.index.tolist()
+
+            total_retried = 0
+            total_succeeded = 0
+
+            # Process each data type with failed files
+            for data_type_str, failed_file_paths in failed_files_by_type.items():
+                logger.info(f"\n{'='*60}")
+                logger.info(f"Retrying {len(failed_file_paths)} failed {data_type_str} files...")
+                logger.info(f"{'='*60}")
+
+                # Load existing parquet for this data type
+                existing_parquet_path = os.path.join(output_dir, f"{job_name}_{data_type_str}.parquet")
+                existing_df = None
+                if os.path.exists(existing_parquet_path):
+                    existing_df = pd.read_parquet(existing_parquet_path)
+                    logger.info(f"Loaded existing {data_type_str} data: {len(existing_df)} variants")
+                else:
+                    logger.warning(f"No existing parquet found at {existing_parquet_path}")
+
+                # Run extraction on failed files only
+                retry_results = []
+                retry_outcomes = {'successful': [], 'empty': [], 'failed': []}
+
+                optimal_workers = self._calculate_optimal_workers(len(failed_file_paths), max_workers or self.settings.max_workers)
+
+                with ProcessPoolExecutor(max_workers=optimal_workers) as executor:
+                    future_to_file = {
+                        executor.submit(
+                            extract_single_file_process_worker,
+                            file_path,
+                            data_type_str,
+                            snp_list_ids,
+                            snp_list,
+                            self.settings
+                        ): file_path
+                        for file_path in failed_file_paths
+                    }
+
+                    pbar = tqdm(total=len(failed_file_paths), desc=f"Retrying {data_type_str}")
+                    with pbar:
+                        for future in as_completed(future_to_file):
+                            file_path = future_to_file[future]
+                            try:
+                                result_df = future.result()
+                                if not result_df.empty:
+                                    retry_results.append(result_df)
+                                    retry_outcomes['successful'].append(file_path)
+                                else:
+                                    retry_outcomes['empty'].append(file_path)
+                                pbar.update(1)
+                            except Exception as e:
+                                logger.error(f"Retry failed for {file_path}: {e}")
+                                retry_outcomes['failed'].append({'file': file_path, 'error': str(e)})
+                                pbar.update(1)
+
+                # Log retry results for this data type
+                logger.info(f"\n{data_type_str} Retry Results:")
+                logger.info(f"  Successful: {len(retry_outcomes['successful'])}")
+                logger.info(f"  Empty: {len(retry_outcomes['empty'])}")
+                logger.info(f"  Still failing: {len(retry_outcomes['failed'])}")
+
+                results['retry_stats'][data_type_str] = {
+                    'attempted': len(failed_file_paths),
+                    'successful': len(retry_outcomes['successful']),
+                    'empty': len(retry_outcomes['empty']),
+                    'failed': len(retry_outcomes['failed']),
+                    'still_failing': [f['file'] if isinstance(f, dict) else f for f in retry_outcomes['failed']]
+                }
+
+                total_retried += len(failed_file_paths)
+                total_succeeded += len(retry_outcomes['successful'])
+
+                # Merge new results with existing data
+                if retry_results:
+                    new_df = pd.concat(retry_results, ignore_index=True)
+
+                    if data_type_str in ['NBA', 'IMPUTED']:
+                        # Merge across ancestries
+                        new_df = self._merge_ancestry_results(retry_results, data_type_str)
+
+                    new_df = self._reorder_dataframe_columns(new_df)
+
+                    if existing_df is not None:
+                        # Merge new results with existing (outer join on variant keys)
+                        merge_keys = ['snp_list_id', 'variant_id', 'chromosome', 'position',
+                                      'counted_allele', 'alt_allele']
+
+                        # Get sample columns from new data
+                        metadata_cols = set(merge_keys + ['(C)M', 'COUNTED', 'ALT', 'harmonization_action',
+                                                          'pgen_a1', 'pgen_a2', 'data_type', 'source_file',
+                                                          'maf_corrected', 'original_alt_af'])
+                        new_sample_cols = [col for col in new_df.columns if col not in metadata_cols]
+
+                        # Select columns to merge
+                        cols_to_merge = merge_keys + new_sample_cols
+                        new_df_to_merge = new_df[cols_to_merge]
+
+                        # Merge with existing
+                        merged_df = pd.merge(
+                            existing_df,
+                            new_df_to_merge,
+                            on=merge_keys,
+                            how='outer',
+                            suffixes=('', '_new')
+                        )
+
+                        # For overlapping sample columns, prefer new data (non-NaN)
+                        for col in new_sample_cols:
+                            new_col = f"{col}_new"
+                            if new_col in merged_df.columns:
+                                merged_df[col] = merged_df[new_col].combine_first(merged_df[col])
+                                merged_df = merged_df.drop(columns=[new_col])
+
+                        final_df = merged_df
+                    else:
+                        final_df = new_df
+
+                    # Reorder and save
+                    final_df = self._reorder_dataframe_columns(final_df)
+                    output_path = os.path.join(output_dir, f"{job_name}_{data_type_str}.parquet")
+                    final_df.to_parquet(output_path, index=False)
+                    logger.info(f"Saved merged {data_type_str} results: {len(final_df)} variants to {output_path}")
+                    results['output_files'][f"{data_type_str}_parquet"] = output_path
+
+            # Save updated failed files JSON if there are still failures
+            still_failing = {dt: stats['still_failing'] for dt, stats in results['retry_stats'].items()
+                           if stats['still_failing']}
+            if still_failing:
+                updated_failed_path = os.path.join(output_dir, f"{job_name}_failed_files.json")
+                updated_failed_data = {
+                    'job_name': job_name,
+                    'timestamp': datetime.now().isoformat(),
+                    'failed_files': still_failing,
+                    'retry_history': [failed_files_json_path]
+                }
+                with open(updated_failed_path, 'w') as f:
+                    json.dump(updated_failed_data, f, indent=2)
+                logger.warning(f"⚠️ {sum(len(v) for v in still_failing.values())} files still failing. Updated: {updated_failed_path}")
+                results['failed_files_path'] = updated_failed_path
+
+            results['success'] = True
+            results['retried_files'] = total_retried
+            results['succeeded_files'] = total_succeeded
+
+            pipeline_time = time.time() - pipeline_start
+            results['execution_time_seconds'] = pipeline_time
+            results['end_time'] = datetime.now().isoformat()
+
+            logger.info(f"\n{'='*60}")
+            logger.info(f"RETRY COMPLETE: {total_succeeded}/{total_retried} files succeeded")
+            logger.info(f"{'='*60}")
+
+            # Run postprocessing if enabled
+            data_types = [DataType[dt] for dt in failed_files_by_type.keys()]
+
+            if enable_probe_selection:
+                logger.info("🔬 Running probe selection analysis...")
+                probe_results = self.run_probe_selection_postprocessing(
+                    output_dir=output_dir,
+                    output_name=job_name,
+                    data_types=data_types
+                )
+                if probe_results:
+                    results['output_files'].update(probe_results)
+
+            if enable_locus_reports:
+                logger.info("📊 Running locus report generation...")
+                locus_results = self.run_locus_report_postprocessing(
+                    output_dir=output_dir,
+                    output_name=job_name,
+                    data_types=data_types
+                )
+                if locus_results:
+                    results['output_files'].update(locus_results)
+
+        except Exception as e:
+            logger.error(f"Retry failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            results['errors'].append(str(e))
+            results['end_time'] = datetime.now().isoformat()
+            results['execution_time_seconds'] = time.time() - pipeline_start
+
+        # Save retry results
+        try:
+            retry_results_path = os.path.join(output_dir, f"{job_name}_retry_results.json")
+            with open(retry_results_path, 'w') as f:
+                json.dump(results, f, indent=2, default=str)
+            results['retry_results_file'] = retry_results_path
+        except Exception as e:
+            logger.error(f"Failed to save retry results: {e}")
 
         return results
 
@@ -1156,6 +1601,67 @@ class ExtractionCoordinator:
 
         except Exception as e:
             logger.error(f"Locus report generation failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def run_coverage_profiling_postprocessing(
+        self,
+        output_dir: str,
+        output_name: str,
+        data_types: List[DataType],
+        max_workers: int = None
+    ) -> Optional[Dict[str, str]]:
+        """
+        Run SNP coverage profiling against source pvar files.
+
+        This analyzes which SNP list variants exist in each data type's source files,
+        providing coverage statistics by locus and variant.
+
+        Args:
+            output_dir: Directory for output files
+            output_name: Base name for files (e.g., 'release10')
+            data_types: Data types to analyze
+            max_workers: Number of parallel workers (default: auto-detect)
+
+        Returns:
+            Dictionary mapping output file types to file paths, or None if failed
+        """
+        try:
+            from .coverage_profiler import run_coverage_profiling
+
+            # Get base path and release from settings
+            base_path = Path(self.settings.mnt_path) / "gp2tier2_vwb" / f"release{self.settings.release}"
+            release = self.settings.release
+
+            # Convert data types to string list
+            data_type_names = [dt.name for dt in data_types]
+
+            logger.info(f"Running coverage profiling for data types: {data_type_names}")
+            logger.info(f"Base path: {base_path}")
+            logger.info(f"Release: {release}")
+
+            # Run coverage profiling
+            output_files = run_coverage_profiling(
+                snp_list_path=str(self.settings.snp_list_path),
+                output_dir=output_dir,
+                base_path=str(base_path),
+                release=release,
+                ancestry="EUR",  # Use EUR as reference (variants same across ancestries)
+                max_workers=max_workers or self.settings.max_workers,
+                output_name=output_name,
+                data_types=data_type_names
+            )
+
+            if output_files:
+                logger.info(f"Coverage profiling complete. Generated {len(output_files)} files")
+            else:
+                logger.warning("Coverage profiling returned no output files")
+
+            return output_files
+
+        except Exception as e:
+            logger.error(f"Coverage profiling failed: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None
