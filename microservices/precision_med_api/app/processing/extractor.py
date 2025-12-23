@@ -153,7 +153,7 @@ class VariantExtractor:
             if psam_path and os.path.exists(psam_path):
                 df = self._normalize_sample_ids_from_psam(df, psam_path)
 
-            logger.info(f"Read {len(df)} variants from TRAW file {traw_path}")
+            logger.debug(f"Read {len(df)} variants from TRAW file {traw_path}")
             return df
 
         except Exception as e:
@@ -195,7 +195,7 @@ class VariantExtractor:
                     rename_map[fid_iid] = iid
 
             if rename_map:
-                logger.info(f"Normalizing {len(rename_map)} sample IDs from FID_IID to IID format")
+                logger.debug(f"Normalizing {len(rename_map)} sample IDs from FID_IID to IID format")
                 df = df.rename(columns=rename_map)
 
             return df
@@ -329,7 +329,7 @@ class VariantExtractor:
         # Allow multiple SNP list variants to map to the same PGEN variant (many-to-one mapping)
         # This enables proper handling of cases like multiple probes at the same genomic position
         if harmonization_records['pgen_variant_id'].duplicated().any():
-            logger.info(f"Found {harmonization_records['pgen_variant_id'].duplicated().sum()} SNP list variants mapping to the same PGEN variant - preserving all mappings")
+            logger.debug(f"Found {harmonization_records['pgen_variant_id'].duplicated().sum()} SNP list variants mapping to the same PGEN variant - preserving all mappings")
         
         # Create a list-based lookup to handle multiple SNP list variants per PGEN variant
         harm_lookup = {}
@@ -488,7 +488,7 @@ class VariantExtractor:
                 row_copy['ALT'] = old_counted
                 row_copy['maf_corrected'] = True
 
-                logger.info(f"MAF correction applied to {row_copy.get('variant_id', 'unknown')}: "
+                logger.debug(f"MAF correction applied to {row_copy.get('variant_id', 'unknown')}: "
                            f"ALT AF={alt_af:.3f}, now counting {old_alt}")
             else:
                 row_copy['maf_corrected'] = False
@@ -515,7 +515,7 @@ class VariantExtractor:
         Returns:
             DataFrame with harmonized genotypes
         """
-        logger.info(f"Extracting {len(snp_list_ids)} variants from {pgen_path}")
+        logger.debug(f"Extracting {len(snp_list_ids)} variants from {pgen_path}")
         
         # Read PVAR file for this PLINK file
         try:
@@ -544,7 +544,7 @@ class VariantExtractor:
             return pd.DataFrame()
         
         # Use traditional raw extraction + harmonization
-        logger.info("Using real-time extraction with harmonization")
+        logger.debug("Using real-time extraction with harmonization")
         pgen_variant_ids = plan_df['pgen_variant_id'].tolist()
         raw_df = self._extract_raw_genotypes(pgen_path, pgen_variant_ids)
         
@@ -558,7 +558,7 @@ class VariantExtractor:
         # Apply MAF correction to ensure minor allele counting
         harmonized_df = self._apply_maf_correction(harmonized_df)
 
-        logger.info(f"Extracted and harmonized {len(harmonized_df)} variants from {pgen_path}")
+        logger.debug(f"Extracted and harmonized {len(harmonized_df)} variants from {pgen_path}")
         return harmonized_df
     
     def _reconstruct_snp_list_from_ids(self, snp_list_ids: List[str]) -> pd.DataFrame:
@@ -610,6 +610,6 @@ class VariantExtractor:
                 })
         
         plan_df = pd.DataFrame(plan_data)
-        logger.info(f"Created extraction plan for {len(plan_df)} variants")
+        logger.debug(f"Created extraction plan for {len(plan_df)} variants")
         return plan_df
     

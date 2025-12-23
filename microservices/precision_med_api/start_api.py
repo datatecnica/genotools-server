@@ -8,15 +8,12 @@ server with proper configuration and environment setup.
 
 import os
 import sys
-import logging
 from pathlib import Path
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Add app to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from app.core.logging_config import setup_logging, get_progress_logger
 
 
 def check_venv():
@@ -28,10 +25,14 @@ def check_venv():
 
 def main():
     """Start the API server."""
+    # Setup logging
+    setup_logging(job_name="api_server")
+    progress = get_progress_logger()
+
     # Check virtual environment
     if not check_venv():
-        logger.warning("⚠️  Not running in a virtual environment!")
-        logger.warning("   Run: source .venv/bin/activate")
+        progress.warning("Not running in a virtual environment!")
+        progress.warning("Run: source .venv/bin/activate")
         response = input("Continue anyway? (y/N): ")
         if response.lower() != 'y':
             sys.exit(1)
@@ -40,17 +41,18 @@ def main():
     os.environ.setdefault('AUTO_OPTIMIZE', 'true')
 
     # Print startup info
-    logger.info("🚀 Starting Precision Medicine Carriers Pipeline API...")
-    logger.info("📡 API will be available at http://0.0.0.0:8000")
-    logger.info("📚 API documentation at http://0.0.0.0:8000/docs")
-    logger.info("")
+    print("\nPrecision Medicine API Server")
+    print("=" * 35)
+    print("API:  http://0.0.0.0:8000")
+    print("Docs: http://0.0.0.0:8000/docs")
+    print()
 
     # Import uvicorn here to ensure proper environment setup
     try:
         import uvicorn
     except ImportError:
-        logger.error("❌ uvicorn not found. Install dependencies:")
-        logger.error("   pip install -r requirements.txt")
+        progress.error("uvicorn not found. Install dependencies:")
+        progress.error("pip install -r requirements.txt")
         sys.exit(1)
 
     # Start the server
@@ -59,13 +61,13 @@ def main():
             "app.main:app",
             host="0.0.0.0",
             port=8000,
-            log_level="info",
-            reload=False  # Set to True for development
+            log_level="warning",  # Quieter uvicorn logs
+            reload=False
         )
     except KeyboardInterrupt:
-        logger.info("\n🛑 API server stopped by user")
+        print("\nAPI server stopped")
     except Exception as e:
-        logger.error(f"❌ Failed to start API server: {e}")
+        progress.error(f"Failed to start API server: {e}")
         sys.exit(1)
 
 

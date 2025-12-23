@@ -99,7 +99,7 @@ def read_pvar(path: Path) -> pd.DataFrame:
 
 def load_and_normalize_snp_list(snp_list_path: str) -> pd.DataFrame:
     """Load and normalize the SNP list for coverage profiling"""
-    logger.info(f"Loading SNP list from {snp_list_path}")
+    logger.debug(f"Loading SNP list from {snp_list_path}")
     snp_list = pd.read_csv(snp_list_path)
 
     # Filter to variants with hg38 coordinates
@@ -117,7 +117,7 @@ def load_and_normalize_snp_list(snp_list_path: str) -> pd.DataFrame:
     # Create position key for position-only matching
     snp_list['pos_key'] = snp_list['chr'] + ':' + snp_list['pos']
 
-    logger.info(f"  Loaded {len(snp_list)} variants across {snp_list['locus'].nunique()} loci")
+    logger.debug(f"  Loaded {len(snp_list)} variants across {snp_list['locus'].nunique()} loci")
     return snp_list
 
 
@@ -236,7 +236,7 @@ def profile_all_parallel(
     if data_types is None:
         data_types = ['WGS', 'IMPUTED', 'NBA', 'EXOMES']
 
-    logger.info(f"Profiling {len(data_types)} data types in parallel with {max_workers} workers...")
+    logger.debug(f"Profiling {len(data_types)} data types in parallel with {max_workers} workers...")
     start_time = time.time()
 
     # Prepare SNP list data per chromosome for workers
@@ -268,7 +268,7 @@ def profile_all_parallel(
                 snp_pos_to_variants, ancestry
             ))
 
-    logger.info(f"  Created {len(tasks)} tasks across {len(data_types)} data types")
+    logger.debug(f"  Created {len(tasks)} tasks across {len(data_types)} data types")
 
     # Results storage
     results = {dt: {'exact': set(), 'position': set()} for dt in data_types}
@@ -290,17 +290,17 @@ def profile_all_parallel(
             completed += 1
             if completed % 10 == 0 or completed == len(tasks):
                 elapsed = time.time() - start_time
-                logger.info(f"  Progress: {completed}/{len(tasks)} tasks ({elapsed:.1f}s)")
+                logger.debug(f"  Progress: {completed}/{len(tasks)} tasks ({elapsed:.1f}s)")
 
     elapsed = time.time() - start_time
-    logger.info(f"Completed all profiling in {elapsed:.1f} seconds")
+    logger.debug(f"Completed all profiling in {elapsed:.1f} seconds")
 
     # Convert to CoverageResult objects
     coverage_results = {}
     for data_type in data_types:
         exact_count = len(results[data_type]['exact'])
         position_count = len(results[data_type]['position'])
-        logger.info(f"  {data_type}: {exact_count} exact, {position_count} position matches")
+        logger.debug(f"  {data_type}: {exact_count} exact, {position_count} position matches")
 
         coverage_results[data_type] = CoverageResult(
             data_type=data_type,
@@ -413,18 +413,18 @@ def save_outputs(
     locus_df = pd.DataFrame([s.to_dict() for s in locus_stats])
     locus_path = output_dir / f"{prefix}coverage_by_locus.csv"
     locus_df.to_csv(locus_path, index=False)
-    logger.info(f"Saved locus coverage to: {locus_path}")
+    logger.debug(f"Saved locus coverage to: {locus_path}")
 
     # Variant coverage CSV
     variant_path = output_dir / f"{prefix}coverage_by_variant.csv"
     variant_df.to_csv(variant_path, index=False)
-    logger.info(f"Saved variant coverage to: {variant_path}")
+    logger.debug(f"Saved variant coverage to: {variant_path}")
 
     # Summary JSON
     summary_path = output_dir / f"{prefix}coverage_summary.json"
     with open(summary_path, 'w') as f:
         json.dump(summary, f, indent=2)
-    logger.info(f"Saved coverage summary to: {summary_path}")
+    logger.debug(f"Saved coverage summary to: {summary_path}")
 
     return {
         'coverage_by_locus': str(locus_path),
@@ -470,7 +470,7 @@ def run_coverage_profiling(
         if max_workers is None:
             max_workers = mp.cpu_count()
 
-        logger.info(f"Starting coverage profiling with {max_workers} workers")
+        logger.debug(f"Starting coverage profiling with {max_workers} workers")
 
         # Load SNP list
         snp_list = load_and_normalize_snp_list(snp_list_path)
@@ -503,7 +503,7 @@ def run_coverage_profiling(
             output_name=output_name
         )
 
-        logger.info("Coverage profiling completed successfully")
+        logger.debug("Coverage profiling completed successfully")
         return output_files
 
     except Exception as e:
@@ -610,11 +610,9 @@ def main():
     )
     args = parser.parse_args()
 
-    # Setup logging for CLI
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    # Setup logging for CLI (uses centralized config if already initialized)
+    from ..core.logging_config import setup_logging
+    setup_logging(job_name="coverage_profiler")
 
     # Determine number of workers
     max_workers = args.workers or mp.cpu_count()

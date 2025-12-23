@@ -170,7 +170,7 @@ class TrawFormatter:
             # Write to file
             traw_output.to_csv(output_path, sep='\t', index=False, na_rep='NA')
             
-            logger.info(f"Wrote TRAW file with {len(traw_output)} variants and {len(sample_cols)} samples to {output_path}")
+            logger.debug(f"Wrote TRAW file with {len(traw_output)} variants and {len(sample_cols)} samples to {output_path}")
             
         except Exception as e:
             logger.error(f"Failed to write TRAW file {output_path}: {e}")
@@ -226,7 +226,7 @@ class TrawFormatter:
             else:
                 summary_df.to_csv(output_path, index=False)
             
-            logger.info(f"Wrote variant summary with {len(summary_df)} variants to {output_path}")
+            logger.debug(f"Wrote variant summary with {len(summary_df)} variants to {output_path}")
             
         except Exception as e:
             logger.error(f"Failed to write variant summary {output_path}: {e}")
@@ -307,7 +307,7 @@ class TrawFormatter:
         except Exception as e:
             logger.error(f"Failed to write additional files: {e}")
         
-        logger.info(f"Exported {len(output_files)} files to {output_dir}")
+        logger.debug(f"Exported {len(output_files)} files to {output_dir}")
         return output_files
     
     # create_qc_report method removed - same information available in variant summary

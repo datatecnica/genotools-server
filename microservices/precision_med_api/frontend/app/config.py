@@ -37,7 +37,7 @@ class FrontendConfig:
             # Fall back to default path
             if not results_base_path:
                 results_base_path = os.path.expanduser(
-                    "~/gcs_mounts/genotools_server/precision_med/results/release10"
+                    "~/gcs_mounts/genotools_server/precision_med/results/release11"
                 )
 
         return cls(

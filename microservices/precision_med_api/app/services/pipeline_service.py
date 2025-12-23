@@ -28,10 +28,10 @@ def print_system_info():
     cpu_count = os.cpu_count()
     memory_gb = psutil.virtual_memory().total / (1024**3)
 
-    logger.info("=== System Information ===")
-    logger.info(f"CPU cores: {cpu_count}")
-    logger.info(f"Total RAM: {memory_gb:.1f} GB")
-    logger.info(f"Available RAM: {psutil.virtual_memory().available / (1024**3):.1f} GB")
+    logger.debug("=== System Information ===")
+    logger.debug(f"CPU cores: {cpu_count}")
+    logger.debug(f"Total RAM: {memory_gb:.1f} GB")
+    logger.debug(f"Available RAM: {psutil.virtual_memory().available / (1024**3):.1f} GB")
 
 
 def check_extraction_results_exist(output_dir: str, job_name: str, data_types: List[str]) -> bool:
@@ -123,13 +123,13 @@ class PipelineService:
 
             # Initialize settings with optimization
             if request.optimize:
-                self.logger.info("🚀 Using auto-optimized performance settings")
+                self.logger.debug("🚀 Using auto-optimized performance settings")
                 settings = Settings.create_optimized()
             else:
-                self.logger.info("📊 Using default settings")
+                self.logger.debug("📊 Using default settings")
                 settings = Settings()
 
-            self.logger.info(
+            self.logger.debug(
                 f"⚙️  Performance settings: {settings.max_workers} workers, "
                 f"{settings.chunk_size} chunk_size, {settings.process_cap} process_cap"
             )
@@ -158,7 +158,7 @@ class PipelineService:
             os.makedirs(output_dir, exist_ok=True)
 
             # Use default SNP list
-            self.logger.info("📋 Using default precision medicine SNP list")
+            self.logger.debug("📋 Using default precision medicine SNP list")
             snp_list_path = settings.snp_list_path
 
             # Convert data type strings to enum
@@ -170,25 +170,25 @@ class PipelineService:
             # Handle locus reports logic - enabled by default unless skipped
             enable_locus_reports = not request.skip_locus_reports
 
-            self.logger.info("=== Pipeline Configuration ===")
-            self.logger.info(f"📊 Data types: {request.data_types}")
-            self.logger.info(f"🌍 Ancestries ({len(ancestries)}): {ancestries}")
-            self.logger.info(f"📋 SNP list: {snp_list_path}")
-            self.logger.info(f"📁 Output directory: {output_dir}")
-            self.logger.info(f"📝 Job name: {custom_name}")
-            self.logger.info(f"🎯 Full output path: {full_output_path}")
-            self.logger.info(f"⚡ Parallel: {request.parallel}")
-            self.logger.info(f"👥 Max workers: {request.max_workers or 'auto-detect'}")
-            self.logger.info(f"🔧 Using {'config-based' if request.output_dir is None else 'custom'} output location")
-            self.logger.info(f"📋 Skip extraction: {request.skip_extraction}")
-            self.logger.info(f"🔬 Probe selection: {enable_probe_selection}")
-            self.logger.info(f"📊 Locus reports: {enable_locus_reports}")
+            self.logger.debug("=== Pipeline Configuration ===")
+            self.logger.debug(f"📊 Data types: {request.data_types}")
+            self.logger.debug(f"🌍 Ancestries ({len(ancestries)}): {ancestries}")
+            self.logger.debug(f"📋 SNP list: {snp_list_path}")
+            self.logger.debug(f"📁 Output directory: {output_dir}")
+            self.logger.debug(f"📝 Job name: {custom_name}")
+            self.logger.debug(f"🎯 Full output path: {full_output_path}")
+            self.logger.debug(f"⚡ Parallel: {request.parallel}")
+            self.logger.debug(f"👥 Max workers: {request.max_workers or 'auto-detect'}")
+            self.logger.debug(f"🔧 Using {'config-based' if request.output_dir is None else 'custom'} output location")
+            self.logger.debug(f"📋 Skip extraction: {request.skip_extraction}")
+            self.logger.debug(f"🔬 Probe selection: {enable_probe_selection}")
+            self.logger.debug(f"📊 Locus reports: {enable_locus_reports}")
 
             # Check if we should skip extraction
             if request.skip_extraction:
                 if check_extraction_results_exist(output_dir, custom_name, request.data_types):
-                    self.logger.info("✅ Extraction results found. Skipping extraction phase...")
-                    self.logger.info("📁 Existing files will be used for any postprocessing")
+                    self.logger.debug("✅ Extraction results found. Skipping extraction phase...")
+                    self.logger.debug("📁 Existing files will be used for any postprocessing")
 
                     # Create a minimal results structure for existing files
                     output_files = {}
@@ -198,7 +198,7 @@ class PipelineService:
 
                     # Run probe selection on existing results if enabled
                     if enable_probe_selection:
-                        self.logger.info("🔬 Running probe selection analysis on existing results...")
+                        self.logger.debug("🔬 Running probe selection analysis on existing results...")
                         probe_selection_results = coordinator.run_probe_selection_postprocessing(
                             output_dir=output_dir,
                             output_name=custom_name,
@@ -209,7 +209,7 @@ class PipelineService:
 
                     # Run locus reports on existing results if enabled
                     if enable_locus_reports:
-                        self.logger.info("📊 Running locus report generation on existing results...")
+                        self.logger.debug("📊 Running locus report generation on existing results...")
                         locus_report_results = coordinator.run_locus_report_postprocessing(
                             output_dir=output_dir,
                             output_name=custom_name,
@@ -228,7 +228,7 @@ class PipelineService:
                     }
                 else:
                     self.logger.warning("⚠️ Skip extraction requested but no valid results found.")
-                    self.logger.info("🚀 Running full extraction pipeline...")
+                    self.logger.debug("🚀 Running full extraction pipeline...")
                     start_time = time.time()
                     results = coordinator.run_full_extraction_pipeline(
                         snp_list_path=snp_list_path,
@@ -244,7 +244,7 @@ class PipelineService:
                     results['execution_time_seconds'] = time.time() - start_time
             else:
                 # Normal pipeline execution (will overwrite existing results)
-                self.logger.info("\n🚀 Starting carriers pipeline extraction...")
+                self.logger.debug("\n🚀 Starting carriers pipeline extraction...")
                 start_time = time.time()
                 results = coordinator.run_full_extraction_pipeline(
                     snp_list_path=snp_list_path,
@@ -261,24 +261,24 @@ class PipelineService:
 
             # Calculate timing only if extraction was run
             if not results.get('skipped_extraction', False):
-                self.logger.info(f"⏱️  Total pipeline time: {results['execution_time_seconds']:.1f}s")
+                self.logger.debug(f"⏱️  Total pipeline time: {results['execution_time_seconds']:.1f}s")
             else:
-                self.logger.info("⏱️  Extraction skipped - no timing measured")
+                self.logger.debug("⏱️  Extraction skipped - no timing measured")
 
             # Analyze and report results
             success = analyze_results(results, self.logger)
 
             if success:
                 if results.get('skipped_extraction', False):
-                    self.logger.info("\n🎯 Carriers Pipeline Complete (Extraction Skipped)!")
-                    self.logger.info("   📁 Used existing NBA/WGS/IMPUTED datasets")
-                    self.logger.info("   🧬 Genotype data ready for carrier analysis")
-                    self.logger.info("   💡 Use without --skip-extraction to regenerate extraction data")
+                    self.logger.debug("\n🎯 Carriers Pipeline Complete (Extraction Skipped)!")
+                    self.logger.debug("   📁 Used existing NBA/WGS/IMPUTED datasets")
+                    self.logger.debug("   🧬 Genotype data ready for carrier analysis")
+                    self.logger.debug("   💡 Use without --skip-extraction to regenerate extraction data")
                 else:
-                    self.logger.info("\n🎯 Carriers Pipeline Complete!")
-                    self.logger.info("   📁 Generated separate NBA/WGS/IMPUTED datasets")
-                    self.logger.info("   🧬 Genotype data ready for carrier analysis")
-                    self.logger.info("   📊 Quality reports and harmonization summaries available")
+                    self.logger.debug("\n🎯 Carriers Pipeline Complete!")
+                    self.logger.debug("   📁 Generated separate NBA/WGS/IMPUTED datasets")
+                    self.logger.debug("   🧬 Genotype data ready for carrier analysis")
+                    self.logger.debug("   📊 Quality reports and harmonization summaries available")
 
             return results
 
