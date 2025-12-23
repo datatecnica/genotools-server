@@ -38,7 +38,7 @@ def run_pipeline_background(job_id: str, request: PipelineRequest):
         job_manager.start_job(job_id)
 
         # Execute pipeline
-        logger.info(f"Starting pipeline execution for job {job_id}")
+        logger.debug(f"Starting pipeline execution for job {job_id}")
         results = pipeline_service.execute_pipeline(request)
 
         # Create response
@@ -97,7 +97,7 @@ async def start_pipeline(
     # Schedule background execution
     background_tasks.add_task(run_pipeline_background, job_id, request)
 
-    logger.info(f"Pipeline job {job_id} created and scheduled")
+    logger.debug(f"Pipeline job {job_id} created and scheduled")
 
     # Return immediate response
     return PipelineResponse(

@@ -127,7 +127,7 @@ class ExtractionCoordinator:
             
             # Load file
             snp_list = pd.read_csv(file_path)
-            logger.info(f"Loaded {len(snp_list)} variants from SNP list: {file_path}")
+            logger.debug(f"Loaded {len(snp_list)} variants from SNP list: {file_path}")
             
             # Validate and normalize
             validated_snp_list = self._validate_snp_list(snp_list)
@@ -192,7 +192,7 @@ class ExtractionCoordinator:
         if final_count == 0:
             raise ValueError("No valid variants remain after validation")
         
-        logger.info(f"Validated SNP list with {final_count} variants")
+        logger.debug(f"Validated SNP list with {final_count} variants")
         return snp_list.reset_index(drop=True)
     
     
@@ -236,7 +236,7 @@ class ExtractionCoordinator:
                             if ancestry not in source_ancestries:
                                 source_ancestries.append(ancestry)
                 if files:
-                    logger.info(f"Found {len(files)} WGS files across {len(source_ancestries)} ancestries")
+                    logger.debug(f"Found {len(files)} WGS files across {len(source_ancestries)} ancestries")
 
             elif data_type == DataType.NBA:
                 # NBA files by ancestry
@@ -268,10 +268,10 @@ class ExtractionCoordinator:
                         if os.path.exists(exomes_path):
                             files.append(exomes_path)
                     if files:
-                        logger.info(f"Found {len(files)} EXOMES files")
+                        logger.debug(f"Found {len(files)} EXOMES files")
                 except ValueError as e:
                     # Handle releases where EXOMES is not available
-                    logger.info(f"EXOMES not available: {e}")
+                    logger.debug(f"EXOMES not available: {e}")
 
             if files:
                 plan.add_data_source(data_type.value, files, source_ancestries)
@@ -288,7 +288,7 @@ class ExtractionCoordinator:
         estimated_time = base_time + (total_files * per_file_time) + (len(snp_list_ids) * per_variant_time)
         plan.estimated_duration_minutes = estimated_time
         
-        logger.info(f"Created extraction plan: {total_files} files, {len(snp_list_ids)} variants, ~{estimated_time:.1f} min")
+        logger.debug(f"Created extraction plan: {total_files} files, {len(snp_list_ids)} variants, ~{estimated_time:.1f} min")
         
         return plan
     
@@ -314,7 +314,7 @@ class ExtractionCoordinator:
             - extraction_stats: Dict with per-data-type extraction outcomes
         """
         start_time = time.time()
-        logger.info(f"Starting harmonized extraction for {len(plan.snp_list_ids)} variants")
+        logger.debug(f"Starting harmonized extraction for {len(plan.snp_list_ids)} variants")
 
         # Use settings default if not provided
         if max_workers is None:
@@ -347,7 +347,7 @@ class ExtractionCoordinator:
                         )
                         results_by_datatype[data_type] = result_df
                         extraction_stats[data_type]['successful'] = len(files)
-                        logger.info(f"Completed extraction for {data_type}: {len(result_df)} variants")
+                        logger.debug(f"Completed extraction for {data_type}: {len(result_df)} variants")
                     else:
                         extraction_stats[data_type]['empty'] = len(files)
                 except Exception as e:
@@ -356,7 +356,7 @@ class ExtractionCoordinator:
 
             execution_time = time.time() - start_time
             total_variants = sum(len(df) for df in results_by_datatype.values())
-            logger.info(f"Completed harmonized extraction in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
+            logger.debug(f"Completed harmonized extraction in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
 
             return results_by_datatype, extraction_stats
     
@@ -392,7 +392,7 @@ class ExtractionCoordinator:
 
         # Calculate optimal process count
         optimal_workers = self._calculate_optimal_workers(len(all_tasks), max_workers)
-        logger.info(f"Starting ProcessPool extraction: {len(all_tasks)} files, {optimal_workers} processes")
+        logger.debug(f"Starting ProcessPool extraction: {len(all_tasks)} files, {optimal_workers} processes")
 
         all_results = []
 
@@ -420,7 +420,13 @@ class ExtractionCoordinator:
             }
 
             # Collect results with progress tracking
-            pbar = tqdm(total=len(all_tasks), desc="Extracting variants")
+            pbar = tqdm(
+                total=len(all_tasks),
+                desc="  Extracting",
+                unit="file",
+                ncols=80,
+                bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
+            )
             with pbar:
                 for future in as_completed(future_to_task):
                     file_path, data_type = future_to_task[future]
@@ -441,6 +447,14 @@ class ExtractionCoordinator:
                         })
                         pbar.update(1)
 
+            # Print per-data-type summary after progress bar
+            summary_parts = []
+            for data_type in plan.data_types:
+                total = planned_files_by_type[data_type]
+                success = len(extraction_outcomes[data_type]['successful'])
+                summary_parts.append(f"{data_type}: {success}/{total}")
+            print(f"  {' | '.join(summary_parts)}")
+
         # Build extraction stats summary
         extraction_stats = {}
         for data_type in plan.data_types:
@@ -456,17 +470,17 @@ class ExtractionCoordinator:
             }
 
         # Log extraction summary
-        logger.info("\n" + "=" * 60)
+        logger.debug("\n" + "=" * 60)
         logger.info("EXTRACTION SUMMARY")
-        logger.info("=" * 60)
+        logger.debug("=" * 60)
         has_failures = False
         for data_type, stats in extraction_stats.items():
             status = "✅" if stats['failed'] == 0 else "❌"
             if stats['failed'] > 0:
                 has_failures = True
-            logger.info(f"  {data_type}: {stats['successful']}/{stats['planned_files']} successful, "
+            logger.debug(f"  {data_type}: {stats['successful']}/{stats['planned_files']} successful, "
                        f"{stats['empty']} empty, {stats['failed']} failed {status}")
-        logger.info("=" * 60 + "\n")
+        logger.debug("=" * 60 + "\n")
 
         # Log detailed failures if any
         if has_failures:
@@ -496,7 +510,7 @@ class ExtractionCoordinator:
             # Reorder columns to ensure metadata comes before samples
             wgs_combined = self._reorder_dataframe_columns(wgs_combined)
             results_by_datatype['WGS'] = wgs_combined
-            logger.info(f"WGS combined: {len(wgs_combined)} variants")
+            logger.debug(f"WGS combined: {len(wgs_combined)} variants")
         
         if nba_results:
             # Merge NBA results across ancestries instead of simple concat
@@ -504,7 +518,7 @@ class ExtractionCoordinator:
             # Reorder columns to ensure metadata comes before samples
             nba_combined = self._reorder_dataframe_columns(nba_combined)
             results_by_datatype['NBA'] = nba_combined
-            logger.info(f"NBA combined: {len(nba_combined)} variants")
+            logger.debug(f"NBA combined: {len(nba_combined)} variants")
         
         if imputed_results:
             # Merge IMPUTED results across ancestries instead of simple concat
@@ -512,7 +526,7 @@ class ExtractionCoordinator:
             # Reorder columns to ensure metadata comes before samples
             imputed_combined = self._reorder_dataframe_columns(imputed_combined)
             results_by_datatype['IMPUTED'] = imputed_combined
-            logger.info(f"IMPUTED combined: {len(imputed_combined)} variants")
+            logger.debug(f"IMPUTED combined: {len(imputed_combined)} variants")
 
         if exomes_results:
             # EXOMES is split by chromosome only (not by ancestry) - all samples are in each chromosome file
@@ -524,11 +538,11 @@ class ExtractionCoordinator:
             )
             exomes_combined = self._reorder_dataframe_columns(exomes_combined)
             results_by_datatype['EXOMES'] = exomes_combined
-            logger.info(f"EXOMES combined: {len(exomes_combined)} variants")
+            logger.debug(f"EXOMES combined: {len(exomes_combined)} variants")
 
         execution_time = time.time() - start_time
         total_variants = sum(len(df) for df in results_by_datatype.values())
-        logger.info(f"ProcessPool extraction completed in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
+        logger.debug(f"ProcessPool extraction completed in {execution_time:.1f}s: {total_variants} total variants across {len(results_by_datatype)} data types")
 
         return results_by_datatype, extraction_stats
     
@@ -749,7 +763,7 @@ class ExtractionCoordinator:
             keep='first'
         )
 
-        logger.info(f"Merged {len(result_dfs)} {data_type} files ({len(ancestry_groups)} ancestries) into {len(merged_df)} variants")
+        logger.debug(f"Merged {len(result_dfs)} {data_type} files ({len(ancestry_groups)} ancestries) into {len(merged_df)} variants")
 
         return merged_df
 
@@ -880,7 +894,7 @@ class ExtractionCoordinator:
         output_files = {}
         actual_counts = {'total_samples': 0, 'total_variants': 0, 'by_data_type': {}}
 
-        logger.info("Using traditional DataFrame-based export with separate data type outputs")
+        logger.debug("Using traditional DataFrame-based export with separate data type outputs")
         # Extract using traditional method - now returns (dict by data type, extraction_stats)
         extracted_by_datatype, extraction_stats = self.execute_harmonized_extraction(
             plan, snp_list, parallel=True, max_workers=max_workers
@@ -927,7 +941,7 @@ class ExtractionCoordinator:
             for file_type, file_path in datatype_output_files.items():
                 output_files[f"{data_type}_{file_type}"] = file_path
 
-            logger.info(f"Exported {data_type}: {len(datatype_output_files)} files, {actual_variant_count} variants")
+            logger.debug(f"Exported {data_type}: {len(datatype_output_files)} files, {actual_variant_count} variants")
 
         return output_files, actual_counts, extraction_stats
     
@@ -976,7 +990,7 @@ class ExtractionCoordinator:
         
         # QC report removed - same information available in variant summary
         
-        logger.info(f"Exported results to {len(output_files)} files in {output_dir}")
+        logger.debug(f"Exported results to {len(output_files)} files in {output_dir}")
         return output_files
     
     def run_full_extraction_pipeline(
@@ -1015,10 +1029,10 @@ class ExtractionCoordinator:
         # Use custom output name if provided, otherwise generate automatic name
         if output_name:
             job_id = output_name
-            logger.info(f"Starting full extraction pipeline with custom name: {job_id}")
+            logger.debug(f"Starting full extraction pipeline with custom name: {job_id}")
         else:
             job_id = f"extraction_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-            logger.info(f"Starting full extraction pipeline: {job_id}")
+            logger.debug(f"Starting full extraction pipeline: {job_id}")
         
         results = {
             'job_id': job_id,
@@ -1117,7 +1131,7 @@ class ExtractionCoordinator:
 
             # Run probe selection postprocessing if enabled
             if enable_probe_selection:
-                logger.info("🔬 Running probe selection analysis...")
+                logger.debug("🔬 Running probe selection analysis...")
                 probe_selection_results = self.run_probe_selection_postprocessing(
                     output_dir=output_dir,
                     output_name=job_id,
@@ -1125,12 +1139,12 @@ class ExtractionCoordinator:
                 )
                 if probe_selection_results:
                     results['output_files'].update(probe_selection_results)
-                    logger.info("✅ Probe selection analysis completed")
+                    logger.debug("✅ Probe selection analysis completed")
                 else:
                     logger.warning("⚠️ Probe selection analysis did not generate results")
 
             if enable_locus_reports:
-                logger.info("📊 Running locus report generation...")
+                logger.debug("📊 Running locus report generation...")
                 locus_report_results = self.run_locus_report_postprocessing(
                     output_dir=output_dir,
                     output_name=job_id,
@@ -1138,13 +1152,13 @@ class ExtractionCoordinator:
                 )
                 if locus_report_results:
                     results['output_files'].update(locus_report_results)
-                    logger.info("✅ Locus report generation completed")
+                    logger.debug("✅ Locus report generation completed")
                 else:
                     logger.warning("⚠️ Locus report generation did not generate results")
 
             # Run coverage profiling if enabled
             if enable_coverage_profiling:
-                logger.info("📈 Running coverage profiling...")
+                logger.debug("📈 Running coverage profiling...")
                 coverage_results = self.run_coverage_profiling_postprocessing(
                     output_dir=output_dir,
                     output_name=job_id,
@@ -1153,7 +1167,7 @@ class ExtractionCoordinator:
                 )
                 if coverage_results:
                     results['output_files'].update(coverage_results)
-                    logger.info("✅ Coverage profiling completed")
+                    logger.debug("✅ Coverage profiling completed")
                 else:
                     logger.warning("⚠️ Coverage profiling did not generate results")
 
@@ -1208,7 +1222,7 @@ class ExtractionCoordinator:
         import json
 
         pipeline_start = time.time()
-        logger.info(f"Starting retry extraction from: {failed_files_json_path}")
+        logger.debug(f"Starting retry extraction from: {failed_files_json_path}")
 
         # Load failed files JSON
         with open(failed_files_json_path, 'r') as f:
@@ -1218,7 +1232,7 @@ class ExtractionCoordinator:
         failed_files_by_type = failed_files_data.get('failed_files', {})
 
         if not failed_files_by_type:
-            logger.info("No failed files to retry")
+            logger.debug("No failed files to retry")
             return {
                 'success': True,
                 'job_id': job_name,
@@ -1237,7 +1251,7 @@ class ExtractionCoordinator:
 
         try:
             # Load SNP list
-            logger.info("Loading SNP list...")
+            logger.debug("Loading SNP list...")
             snp_list = self.load_snp_list(snp_list_path)
             snp_list_ids = snp_list['snp_name'].tolist() if 'snp_name' in snp_list.columns else snp_list.index.tolist()
 
@@ -1246,16 +1260,16 @@ class ExtractionCoordinator:
 
             # Process each data type with failed files
             for data_type_str, failed_file_paths in failed_files_by_type.items():
-                logger.info(f"\n{'='*60}")
-                logger.info(f"Retrying {len(failed_file_paths)} failed {data_type_str} files...")
-                logger.info(f"{'='*60}")
+                logger.debug(f"\n{'='*60}")
+                logger.debug(f"Retrying {len(failed_file_paths)} failed {data_type_str} files...")
+                logger.debug(f"{'='*60}")
 
                 # Load existing parquet for this data type
                 existing_parquet_path = os.path.join(output_dir, f"{job_name}_{data_type_str}.parquet")
                 existing_df = None
                 if os.path.exists(existing_parquet_path):
                     existing_df = pd.read_parquet(existing_parquet_path)
-                    logger.info(f"Loaded existing {data_type_str} data: {len(existing_df)} variants")
+                    logger.debug(f"Loaded existing {data_type_str} data: {len(existing_df)} variants")
                 else:
                     logger.warning(f"No existing parquet found at {existing_parquet_path}")
 
@@ -1296,10 +1310,10 @@ class ExtractionCoordinator:
                                 pbar.update(1)
 
                 # Log retry results for this data type
-                logger.info(f"\n{data_type_str} Retry Results:")
-                logger.info(f"  Successful: {len(retry_outcomes['successful'])}")
-                logger.info(f"  Empty: {len(retry_outcomes['empty'])}")
-                logger.info(f"  Still failing: {len(retry_outcomes['failed'])}")
+                logger.debug(f"\n{data_type_str} Retry Results:")
+                logger.debug(f"  Successful: {len(retry_outcomes['successful'])}")
+                logger.debug(f"  Empty: {len(retry_outcomes['empty'])}")
+                logger.debug(f"  Still failing: {len(retry_outcomes['failed'])}")
 
                 results['retry_stats'][data_type_str] = {
                     'attempted': len(failed_file_paths),
@@ -1361,7 +1375,7 @@ class ExtractionCoordinator:
                     final_df = self._reorder_dataframe_columns(final_df)
                     output_path = os.path.join(output_dir, f"{job_name}_{data_type_str}.parquet")
                     final_df.to_parquet(output_path, index=False)
-                    logger.info(f"Saved merged {data_type_str} results: {len(final_df)} variants to {output_path}")
+                    logger.debug(f"Saved merged {data_type_str} results: {len(final_df)} variants to {output_path}")
                     results['output_files'][f"{data_type_str}_parquet"] = output_path
 
             # Save updated failed files JSON if there are still failures
@@ -1388,15 +1402,15 @@ class ExtractionCoordinator:
             results['execution_time_seconds'] = pipeline_time
             results['end_time'] = datetime.now().isoformat()
 
-            logger.info(f"\n{'='*60}")
+            logger.debug(f"\n{'='*60}")
             logger.info(f"RETRY COMPLETE: {total_succeeded}/{total_retried} files succeeded")
-            logger.info(f"{'='*60}")
+            logger.debug(f"{'='*60}")
 
             # Run postprocessing if enabled
             data_types = [DataType[dt] for dt in failed_files_by_type.keys()]
 
             if enable_probe_selection:
-                logger.info("🔬 Running probe selection analysis...")
+                logger.debug("🔬 Running probe selection analysis...")
                 probe_results = self.run_probe_selection_postprocessing(
                     output_dir=output_dir,
                     output_name=job_name,
@@ -1406,7 +1420,7 @@ class ExtractionCoordinator:
                     results['output_files'].update(probe_results)
 
             if enable_locus_reports:
-                logger.info("📊 Running locus report generation...")
+                logger.debug("📊 Running locus report generation...")
                 locus_results = self.run_locus_report_postprocessing(
                     output_dir=output_dir,
                     output_name=job_name,
@@ -1468,7 +1482,7 @@ class ExtractionCoordinator:
                 logger.warning(f"WGS parquet file not found: {wgs_parquet_path}")
                 return None
 
-            logger.info(f"Running probe selection analysis: NBA={nba_parquet_path}, WGS={wgs_parquet_path}")
+            logger.debug(f"Running probe selection analysis: NBA={nba_parquet_path}, WGS={wgs_parquet_path}")
 
             # Initialize probe selector and recommender
             probe_selector = ProbeSelector(self.settings)
@@ -1517,9 +1531,9 @@ class ExtractionCoordinator:
                 import json
                 json.dump(report.model_dump(), f, indent=2, default=str)
 
-            logger.info(f"Probe selection report saved: {report_path}")
-            logger.info(f"Analyzed {summary.mutations_with_multiple_probes} mutations with multiple probes")
-            logger.info(f"Method agreement rate: {methodology_comparison.agreement_rate:.3f}")
+            logger.debug(f"Probe selection report saved: {report_path}")
+            logger.debug(f"Analyzed {summary.mutations_with_multiple_probes} mutations with multiple probes")
+            logger.debug(f"Method agreement rate: {methodology_comparison.agreement_rate:.3f}")
 
             return {
                 "probe_selection_report": report_path
@@ -1564,15 +1578,15 @@ class ExtractionCoordinator:
                 logger.warning("No parquet files found for locus report generation")
                 return None
 
-            logger.info(f"Running locus report generation with data types: {list(parquet_files.keys())}")
+            logger.debug(f"Running locus report generation with data types: {list(parquet_files.keys())}")
 
             # Check for probe selection file
             probe_selection_path = os.path.join(output_dir, f"{output_name}_probe_selection.json")
             if os.path.exists(probe_selection_path):
-                logger.info(f"Probe selection file found: {probe_selection_path}")
-                logger.info("NBA locus reports will be filtered to use only selected probes")
+                logger.debug(f"Probe selection file found: {probe_selection_path}")
+                logger.debug("NBA locus reports will be filtered to use only selected probes")
             else:
-                logger.info("No probe selection file found, all variants will be included")
+                logger.debug("No probe selection file found, all variants will be included")
                 probe_selection_path = None
 
             # Initialize generator with probe selection
@@ -1585,7 +1599,7 @@ class ExtractionCoordinator:
                 logger.warning("No data types available for locus report generation")
                 return None
 
-            logger.info(f"Generating locus reports for data types: {data_types_to_generate}")
+            logger.debug(f"Generating locus reports for data types: {data_types_to_generate}")
 
             # Generate reports
             output_files = generator.generate_reports(
@@ -1595,7 +1609,7 @@ class ExtractionCoordinator:
                 data_types=data_types_to_generate
             )
 
-            logger.info(f"Locus report generation complete. Generated {len(output_files)} files")
+            logger.debug(f"Locus report generation complete. Generated {len(output_files)} files")
 
             return output_files
 
@@ -1637,9 +1651,9 @@ class ExtractionCoordinator:
             # Convert data types to string list
             data_type_names = [dt.name for dt in data_types]
 
-            logger.info(f"Running coverage profiling for data types: {data_type_names}")
-            logger.info(f"Base path: {base_path}")
-            logger.info(f"Release: {release}")
+            logger.debug(f"Running coverage profiling for data types: {data_type_names}")
+            logger.debug(f"Base path: {base_path}")
+            logger.debug(f"Release: {release}")
 
             # Run coverage profiling
             output_files = run_coverage_profiling(
@@ -1654,7 +1668,7 @@ class ExtractionCoordinator:
             )
 
             if output_files:
-                logger.info(f"Coverage profiling complete. Generated {len(output_files)} files")
+                logger.debug(f"Coverage profiling complete. Generated {len(output_files)} files")
             else:
                 logger.warning("Coverage profiling returned no output files")
 

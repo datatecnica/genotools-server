@@ -81,7 +81,7 @@ class HarmonizationEngine:
             # Remove invalid rows
             df = df.dropna(subset=['CHROM', 'POS', 'REF', 'ALT'])
             
-            logger.info(f"Read {len(df)} variants from {pvar_path}")
+            logger.debug(f"Read {len(df)} variants from {pvar_path}")
 
             return df
             
@@ -110,7 +110,7 @@ class HarmonizationEngine:
         # Remove invalid rows
         df = df.dropna(subset=['chromosome', 'position', 'ref', 'alt'])
         
-        logger.info(f"Prepared {len(df)} SNP list variants for merging")
+        logger.debug(f"Prepared {len(df)} SNP list variants for merging")
         
         return df
     
@@ -142,7 +142,7 @@ class HarmonizationEngine:
             suffixes=('_pvar', '_snp')
         )
         
-        logger.info(f"Merged data: {len(merged_df)} matching variants found")
+        logger.debug(f"Merged data: {len(merged_df)} matching variants found")
         return merged_df
     
     def _harmonize_on_merged(self, merged_df: pd.DataFrame) -> pd.DataFrame:
@@ -205,7 +205,7 @@ class HarmonizationEngine:
         Returns:
             List of harmonization records for all valid matches
         """
-        logger.info(f"Starting merge-based harmonization: {len(pvar_df)} PVAR variants vs {len(snp_list)} SNP list variants")
+        logger.debug(f"Starting merge-based harmonization: {len(pvar_df)} PVAR variants vs {len(snp_list)} SNP list variants")
         
         # Step 1: Prepare SNP list data
         prepared_snp_list = self._prepare_snp_list(snp_list)
@@ -266,9 +266,9 @@ class HarmonizationEngine:
             records.append(record)
         
         # Log summary
-        logger.info(f"Merge-based harmonization complete: {len(records)} matches found")
-        logger.info("Harmonization breakdown:")
+        logger.debug(f"Merge-based harmonization complete: {len(records)} matches found")
+        logger.debug("Harmonization breakdown:")
         for action, count in action_counts.items():
-            logger.info(f"  {action}: {count} variants")
+            logger.debug(f"  {action}: {count} variants")
         
         return records

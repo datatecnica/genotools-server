@@ -12,12 +12,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.routes import router
 from .core.config import Settings
+from .core.logging_config import setup_logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Setup logging - will be called once on module import
+# Console shows warnings+, file logs everything
+setup_logging(job_name="api")
 
 logger = logging.getLogger(__name__)
 
@@ -29,24 +28,24 @@ async def lifespan(app: FastAPI):
 
     Handles startup and shutdown events.
     """
-    # Startup
-    logger.info("🚀 Starting Precision Medicine Carriers Pipeline API")
+    # Startup - log to file only
+    logger.debug("Starting Precision Medicine Carriers Pipeline API")
 
     # Validate settings
     try:
         settings = Settings.create_optimized()
-        logger.info(f"✅ Settings validated: Release {settings.release}")
-        logger.info(f"📁 Results path: {settings.results_path}")
-        logger.info(f"⚙️  Performance: {settings.max_workers} workers, "
-                   f"{settings.chunk_size} chunk_size")
+        logger.debug(f"Settings validated: Release {settings.release}")
+        logger.debug(f"Results path: {settings.results_path}")
+        logger.debug(f"Performance: {settings.max_workers} workers, "
+                     f"{settings.chunk_size} chunk_size")
     except Exception as e:
-        logger.error(f"❌ Settings validation failed: {e}")
+        logger.error(f"Settings validation failed: {e}")
         raise
 
     yield
 
     # Shutdown
-    logger.info("🛑 Shutting down Precision Medicine Carriers Pipeline API")
+    logger.debug("Shutting down Precision Medicine Carriers Pipeline API")
 
 
 # Create FastAPI app
@@ -94,6 +93,6 @@ if __name__ == "__main__":
         "app.main:app",
         host="0.0.0.0",
         port=8000,
-        reload=False,  # Set to True for development
-        log_level="info"
+        reload=False,
+        log_level="warning"  # Quieter uvicorn logs
     )

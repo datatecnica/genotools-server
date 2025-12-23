@@ -5,7 +5,7 @@ from functools import cached_property
 
 
 class Settings(BaseModel):
-    release: str = Field(default="10", description="GP2 release version")
+    release: str = Field(default="11", description="GP2 release version")
     mnt_path: str = Field(
         default=os.path.expanduser("~/gcs_mounts"),
         description="Mount path for GCS buckets"
