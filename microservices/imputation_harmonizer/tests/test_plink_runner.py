@@ -190,7 +190,15 @@ class TestSplitByChromosome:
         work_dir = tmp_path / "work"
         work_dir.mkdir()
 
-        # Create fake chromosome files
+        # Create input BIM file with chromosomes 1, 2, 22
+        input_bim = tmp_path / "input.bim"
+        input_bim.write_text(
+            "1\trs1\t0\t100\tA\tG\n"
+            "2\trs2\t0\t200\tC\tT\n"
+            "22\trs22\t0\t300\tG\tA\n"
+        )
+
+        # Create fake chromosome files (simulating PLINK output)
         for chr_num in [1, 2, 22]:
             (work_dir / f"split.chr{chr_num}.pgen").write_bytes(b"")
             (work_dir / f"split.chr{chr_num}.pvar").write_text("")
@@ -218,25 +226,60 @@ class TestSplitByChromosome:
         assert "22" in chromosomes
         assert len(chromosomes) == 3
 
-    def test_split_failure_raises(self, tmp_path: Path) -> None:
-        """Raise error when split fails."""
+    def test_split_empty_file_returns_empty(self, tmp_path: Path) -> None:
+        """Return empty list when no valid chromosomes in BIM."""
+        # Create an empty BIM file
+        input_bim = tmp_path / "input.bim"
+        input_bim.write_text("")
+
+        with patch("imputation_harmonizer.plink_runner.find_plink2", return_value=Path("/usr/bin/plink2")):
+            with patch("imputation_harmonizer.plink_runner.verify_plink2_version", return_value=(True, "v2")):
+                pipeline = PlinkPipeline()
+                chromosomes = pipeline.split_by_chromosome(
+                    input_prefix=tmp_path / "input",
+                    work_dir=tmp_path / "work",
+                )
+
+        assert chromosomes == []
+
+    def test_split_skips_non_autosome_chromosomes(self, tmp_path: Path) -> None:
+        """Only return autosomes 1-22, skip X, Y, MT."""
+        # Create BIM with non-autosome chromosomes
+        input_bim = tmp_path / "input.bim"
+        input_bim.write_text(
+            "1\trs1\t0\t100\tA\tG\n"
+            "X\trsX\t0\t200\tC\tT\n"
+            "23\trs23\t0\t300\tG\tA\n"  # X chromosome as 23
+            "MT\trsMT\t0\t400\tA\tC\n"
+        )
+
+        work_dir = tmp_path / "work"
+        work_dir.mkdir()
+
+        # Create only chr1 output (the only autosome)
+        (work_dir / "split.chr1.pgen").write_bytes(b"")
+        (work_dir / "split.chr1.pvar").write_text("")
+        (work_dir / "split.chr1.psam").write_text("")
+
         with patch("imputation_harmonizer.plink_runner.find_plink2", return_value=Path("/usr/bin/plink2")):
             with patch("imputation_harmonizer.plink_runner.verify_plink2_version", return_value=(True, "v2")):
                 with patch.object(PlinkPipeline, "_run_plink") as mock_run:
                     mock_run.return_value = PlinkResult(
-                        success=False,
+                        success=True,
                         command="plink2 ...",
                         stdout="",
-                        stderr="Error: split failed",
-                        output_prefix=None,
+                        stderr="",
+                        output_prefix=work_dir / "split",
                     )
 
                     pipeline = PlinkPipeline()
-                    with pytest.raises(RuntimeError, match="Failed to split"):
-                        pipeline.split_by_chromosome(
-                            input_prefix=tmp_path / "input",
-                            work_dir=tmp_path / "work",
-                        )
+                    chromosomes = pipeline.split_by_chromosome(
+                        input_prefix=tmp_path / "input",
+                        work_dir=work_dir,
+                    )
+
+        # Should only contain chr1
+        assert chromosomes == ["1"]
 
 
 class TestPipelineOutputFormats:

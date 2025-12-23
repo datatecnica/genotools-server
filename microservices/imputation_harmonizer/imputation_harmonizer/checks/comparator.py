@@ -39,10 +39,10 @@ def check_variants(
     reference: ReferencePanel,
     config: Config,
     stats: Statistics | None = None,
-) -> Iterator[CheckResult]:
+) -> Iterator[tuple[BimVariant, CheckResult]]:
     """Compare BIM variants against reference panel.
 
-    Main comparison loop that yields CheckResult for each variant.
+    Main comparison loop that yields (BimVariant, CheckResult) for each variant.
 
     Args:
         bim_variants: Iterator of BimVariant from BIM file
@@ -51,7 +51,7 @@ def check_variants(
         stats: Optional Statistics object to update (mutated in place)
 
     Yields:
-        CheckResult for each variant processed
+        Tuple of (BimVariant, CheckResult) for each variant processed
 
     Note:
         The stats object is mutated in place as variants are processed.
@@ -80,7 +80,7 @@ def check_variants(
         # Perl: if ($temp[0] <= 22 or ($kgflag and $temp[0] == 23))
         if variant.chr not in valid_chromosomes:
             stats.alt_chr_skipped += 1
-            yield CheckResult(
+            yield variant, CheckResult(
                 snp_id=variant.id,
                 matched_by="none",
                 exclude=True,
@@ -92,7 +92,7 @@ def check_variants(
         # Perl: if ($temp[4] eq '-' or $temp[5] eq '-' or ...)
         if is_indel(variant.allele1, variant.allele2):
             stats.indels += 1
-            yield CheckResult(
+            yield variant, CheckResult(
                 snp_id=variant.id,
                 matched_by="none",
                 exclude=True,
@@ -128,7 +128,7 @@ def check_variants(
                 stats.duplicates += 1
                 result.exclude = True
                 result.exclude_reason = ExcludeReason.DUPLICATE
-                yield result
+                yield variant, result
                 continue
 
             # Mark as seen
@@ -166,7 +166,7 @@ def check_variants(
                         stats.duplicates += 1
                         result.exclude = True
                         result.exclude_reason = ExcludeReason.DUPLICATE
-                        yield result
+                        yield variant, result
                         continue
 
                     # Mark new position as seen
@@ -205,7 +205,7 @@ def check_variants(
                     stats.duplicates += 1
                     result.exclude = True
                     result.exclude_reason = ExcludeReason.DUPLICATE
-                    yield result
+                    yield variant, result
                     continue
 
                 # Mark as seen at reference position
@@ -227,7 +227,7 @@ def check_variants(
             stats.no_match += 1
             result.exclude = True
             result.exclude_reason = ExcludeReason.NOT_IN_REFERENCE
-            yield result
+            yield variant, result
             continue
 
         # Perform strand and allele check
@@ -235,7 +235,7 @@ def check_variants(
             # Should not happen, but handle gracefully
             result.exclude = True
             result.exclude_reason = ExcludeReason.NOT_IN_REFERENCE
-            yield result
+            yield variant, result
             continue
 
         strand_result = check_strand_and_alleles(
@@ -280,4 +280,4 @@ def check_variants(
             else:
                 stats.ref_alt_swap += 1
 
-        yield result
+        yield variant, result

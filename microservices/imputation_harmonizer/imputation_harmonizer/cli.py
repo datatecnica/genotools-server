@@ -255,11 +255,18 @@ def check(
             help="Keep temporary intermediate files",
         ),
     ] = False,
-    run_pipeline: Annotated[
+    report_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--report-file",
+            help="Path for JSON report file (default: {stem}-report.json)",
+        ),
+    ] = None,
+    no_report: Annotated[
         bool,
         typer.Option(
-            "--run-pipeline",
-            help="Execute PLINK2 pipeline directly instead of generating shell script",
+            "--no-report",
+            help="Skip generating JSON report (saves memory for large datasets)",
         ),
     ] = False,
 ) -> None:
@@ -347,6 +354,8 @@ def check(
         max_workers=workers,
         keep_temp_files=keep_temp,
         plink_path=Path(plink_path) if plink_path else None,
+        generate_report=not no_report,
+        report_file=report_file,
     )
 
     # Print options
@@ -379,18 +388,16 @@ def check(
             raise typer.Exit(code=1)
 
     # Print pipeline mode
-    if run_pipeline:
-        console.print(f"Pipeline mode:               Execute directly")
-        console.print(f"Output format:               {config.output_format}")
-        if config.max_workers:
-            console.print(f"Workers:                     {config.max_workers}")
-    else:
-        console.print(f"Pipeline mode:               Generate shell script")
+    console.print(f"Output format:               {config.output_format}")
+    if config.max_workers:
+        console.print(f"Workers:                     {config.max_workers}")
+    if config.generate_report:
+        console.print(f"Report file:                 {config.report_file}")
     console.print("")
 
     # Run the check
     try:
-        run_check(config, skip_freq=skip_freq, run_pipeline=run_pipeline)
+        run_check(config, skip_freq=skip_freq)
     except Exception as e:
         console.print(f"[red]ERROR:[/red] {e}")
         if verbose:

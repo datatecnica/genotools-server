@@ -57,6 +57,10 @@ class Config:
     keep_temp_files: bool = False
     plink_path: Path | None = None
 
+    # Report options
+    generate_report: bool = True
+    report_file: Path | None = None  # Default: {output_dir}/{stem}-report.json
+
     # Chromosomes to process (default: autosomes 1-22)
     chromosomes: set[str] = field(
         default_factory=lambda: {str(i) for i in range(1, 23)}
@@ -81,6 +85,12 @@ class Config:
         # Add X chromosome for 1000G if include_x is set
         if self.include_x and self.panel == "1000g":
             self.chromosomes = self.chromosomes | {"23", "X"}
+
+        # Set default report file path
+        if self.report_file is None and self.generate_report:
+            self.report_file = self.output_dir / f"{self.file_stem}-report.json"
+        elif isinstance(self.report_file, str):
+            self.report_file = Path(self.report_file)
 
     @property
     def file_stem(self) -> str:

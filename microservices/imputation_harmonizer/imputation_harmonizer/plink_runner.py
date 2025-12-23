@@ -68,6 +68,34 @@ def find_plink2() -> Path | None:
     return None
 
 
+def find_plink1() -> Path | None:
+    """Find PLINK 1.9 executable in PATH.
+
+    Used for operations not supported in PLINK2 (like --flip).
+
+    Returns:
+        Path to PLINK 1.9 executable, or None if not found
+    """
+    for name in ["plink", "plink1.9"]:
+        path = shutil.which(name)
+        if path:
+            # Verify it's actually PLINK 1.x
+            try:
+                result = subprocess.run(
+                    [path, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                version = result.stdout.strip() or result.stderr.strip()
+                # PLINK 1.x typically shows "PLINK v1.90" or similar
+                if "v1." in version or "1.9" in version:
+                    return Path(path)
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
+    return None
+
+
 def verify_plink2_version(plink_path: Path) -> tuple[bool, str]:
     """Verify PLINK executable is version 2.x.
 
@@ -126,6 +154,9 @@ class PlinkPipeline:
             raise RuntimeError(
                 "PLINK2 not found in PATH. Please install PLINK2 or specify --plink"
             )
+
+        # Find PLINK 1.9 for operations not supported in PLINK2 (like --flip)
+        self.plink1_path = find_plink1()
 
         self.console = console or Console()
         self.verbose = verbose
@@ -193,16 +224,80 @@ class PlinkPipeline:
                 output_prefix=None,
             )
 
+    def _run_plink1(
+        self,
+        args: list[str],
+        description: str = "",
+    ) -> PlinkResult:
+        """Execute a PLINK 1.9 command.
+
+        Used for operations not supported in PLINK2 (like --flip).
+
+        Args:
+            args: Command arguments (without plink path)
+            description: Description for logging
+
+        Returns:
+            PlinkResult with execution details
+
+        Raises:
+            RuntimeError: If PLINK 1.9 not available
+        """
+        if self.plink1_path is None:
+            raise RuntimeError(
+                "PLINK 1.9 not found in PATH. Required for strand flip operation."
+            )
+
+        cmd = [str(self.plink1_path)] + args
+        cmd_str = " ".join(cmd)
+
+        if self.verbose:
+            self.console.print(f"[dim]Running (plink1): {cmd_str}[/dim]")
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=3600,
+            )
+
+            output_prefix = None
+            for i, arg in enumerate(args):
+                if arg == "--out" and i + 1 < len(args):
+                    output_prefix = Path(args[i + 1])
+                    break
+
+            success = result.returncode == 0
+            if not success and self.verbose:
+                self.console.print(f"[red]PLINK1 error:[/red] {result.stderr}")
+
+            return PlinkResult(
+                success=success,
+                command=cmd_str,
+                stdout=result.stdout,
+                stderr=result.stderr,
+                output_prefix=output_prefix,
+            )
+        except subprocess.TimeoutExpired:
+            return PlinkResult(
+                success=False,
+                command=cmd_str,
+                stdout="",
+                stderr="Command timed out after 1 hour",
+                output_prefix=None,
+            )
+
     def split_by_chromosome(
         self,
         input_prefix: Path,
         work_dir: Path,
         input_format: Literal["plink1", "plink2"] = "plink1",
     ) -> list[str]:
-        """Split input into per-chromosome files using PLINK2 --split-chr.
+        """Split input into per-chromosome files.
 
-        This is a single-pass operation that creates separate files
-        for each chromosome found in the input.
+        Creates separate PLINK2 files for each chromosome found in the input
+        by extracting each chromosome individually.
 
         Args:
             input_prefix: Input file prefix (without extension)
@@ -217,34 +312,59 @@ class PlinkPipeline:
             RuntimeError: If split fails
         """
         work_dir.mkdir(parents=True, exist_ok=True)
-        output_prefix = work_dir / "split"
 
-        # Build command based on input format
+        # Build input args based on format
         if input_format == "plink1":
             input_args = ["--bfile", str(input_prefix)]
         else:
             input_args = ["--pfile", str(input_prefix)]
 
-        args = input_args + [
-            "--make-pgen",
-            "--split-par", "b38",  # Split PAR regions for hg38
-            "--out", str(output_prefix),
-        ]
+        # First, detect which chromosomes exist in the input
+        # Read the variant file to find unique chromosomes
+        if input_format == "plink1":
+            var_file = input_prefix.with_suffix(".bim")
+        else:
+            var_file = input_prefix.with_suffix(".pvar")
 
-        result = self._run_plink(args, "Splitting by chromosome")
-        if not result.success:
-            raise RuntimeError(f"Failed to split by chromosome: {result.stderr}")
+        chromosomes_found: set[str] = set()
+        with open(var_file) as f:
+            for line in f:
+                if line.startswith("#"):
+                    continue
+                chr_val = line.split()[0]
+                # Only keep autosomes (1-22)
+                if chr_val.isdigit() and 1 <= int(chr_val) <= 22:
+                    chromosomes_found.add(chr_val)
 
-        # Find which chromosomes were created
-        chromosomes = []
-        for chr_num in range(1, 23):
-            chr_str = str(chr_num)
-            # Check if chr files exist (e.g., split.chr1.pgen)
-            chr_pgen = work_dir / f"split.chr{chr_str}.pgen"
+        chromosomes = sorted(chromosomes_found, key=int)
+
+        if not chromosomes:
+            return []
+
+        # Extract each chromosome to its own file
+        for chr_num in chromosomes:
+            output_prefix = work_dir / f"split.chr{chr_num}"
+
+            args = input_args + [
+                "--chr", chr_num,
+                "--make-pgen",
+                "--out", str(output_prefix),
+            ]
+
+            result = self._run_plink(args, f"Extracting chromosome {chr_num}")
+            if not result.success:
+                self.console.print(
+                    f"[yellow]Warning:[/yellow] Failed to extract chr{chr_num}: {result.stderr}"
+                )
+
+        # Verify which chromosomes were actually created
+        verified_chromosomes = []
+        for chr_num in chromosomes:
+            chr_pgen = work_dir / f"split.chr{chr_num}.pgen"
             if chr_pgen.exists():
-                chromosomes.append(chr_str)
+                verified_chromosomes.append(chr_num)
 
-        return chromosomes
+        return verified_chromosomes
 
     def process_chromosome(
         self,
@@ -325,7 +445,9 @@ class PlinkPipeline:
         )
 
         # Step 3: Parse variants and frequencies
-        pvar_file = chr_prefix.with_suffix(".pvar")
+        # Note: chr_prefix is like "split.chr22", so we can't use with_suffix()
+        # because it would replace ".chr22" with ".pvar". Use parent/name instead.
+        pvar_file = chr_prefix.parent / f"{chr_prefix.name}.pvar"
         frequencies = parse_afreq(freq_file) if freq_file.exists() else {}
 
         # Create a temporary config for the checker
@@ -350,7 +472,7 @@ class PlinkPipeline:
             panel_name=panel_name,
         ) as writer:
             variants = parse_pvar(pvar_file, frequencies)
-            for result in check_variants(variants, reference, config, stats):
+            for _, result in check_variants(variants, reference, config, stats):
                 writer.write_result(result)
 
         # Clear reference to free memory
@@ -375,14 +497,31 @@ class PlinkPipeline:
             )
             current_prefix = next_prefix
 
-        # Flip strand
+        # Flip strand - requires PLINK 1.9 (PLINK2 doesn't support --flip)
         if flip_file.exists() and flip_file.stat().st_size > 0:
             step += 1
+            # Convert current pgen to bed for PLINK1
+            bed_prefix = chr_work / f"step{step}_bed"
+            self._run_plink(
+                ["--pfile", str(current_prefix), "--make-bed",
+                 "--out", str(bed_prefix)],
+                f"Converting to BED for flip chr{chr_num}",
+            )
+
+            # Flip using PLINK 1.9
+            flipped_prefix = chr_work / f"step{step}_flipped"
+            self._run_plink1(
+                ["--bfile", str(bed_prefix), "--flip", str(flip_file),
+                 "--make-bed", "--out", str(flipped_prefix)],
+                f"Flipping strand for chr{chr_num}",
+            )
+
+            # Convert back to pgen
             next_prefix = chr_work / f"step{step}"
             self._run_plink(
-                ["--pfile", str(current_prefix), "--flip", str(flip_file),
-                 "--make-pgen", "--out", str(next_prefix)],
-                f"Flipping strand for chr{chr_num}",
+                ["--bfile", str(flipped_prefix), "--make-pgen",
+                 "--out", str(next_prefix)],
+                f"Converting back to PGEN for chr{chr_num}",
             )
             current_prefix = next_prefix
 
@@ -437,20 +576,25 @@ class PlinkPipeline:
         input_format: Literal["plink1", "plink2"] = "plink1",
         max_workers: int | None = None,
     ) -> list[Path]:
-        """Run full parallel pipeline across chromosomes.
+        """Apply corrections and export per-chromosome files.
+
+        Uses the correction files already created by check_variants() in main.py.
+        Pipeline:
+        1. Apply all corrections to full dataset (exclude, flip, force-allele)
+        2. Split by chromosome and export to final format
 
         Args:
             input_prefix: Input file prefix
-            output_dir: Final output directory
-            reference_file: Path to reference panel
-            panel_type: Panel type
-            population: Population for 1000G
-            freq_diff_threshold: Max frequency difference
-            palindrome_maf_threshold: MAF threshold for palindromic
+            output_dir: Final output directory (contains correction files)
+            reference_file: Path to reference panel (unused, for API compat)
+            panel_type: Panel type (for filename)
+            population: Population (unused, for API compat)
+            freq_diff_threshold: (unused, for API compat)
+            palindrome_maf_threshold: (unused, for API compat)
             output_format: Output format
             file_stem: Base filename
             input_format: Input format
-            max_workers: Max parallel workers (default: min(cpu_count(), 22))
+            max_workers: (unused, for API compat)
 
         Returns:
             List of output file paths (one per chromosome)
@@ -462,21 +606,95 @@ class PlinkPipeline:
         work_dir = output_dir / ".work"
         work_dir.mkdir(parents=True, exist_ok=True)
 
-        # Determine number of workers
-        if max_workers is None:
-            max_workers = min(multiprocessing.cpu_count(), 22)
+        # Get panel name for correction file naming
+        panel_name = {"hrc": "HRC", "1000g": "1000G", "topmed": "TOPMed"}.get(
+            panel_type, panel_type.upper()
+        )
 
-        self.console.print(f"\n[bold]Starting parallel pipeline[/bold]")
-        self.console.print(f"  Workers: {max_workers}")
+        self.console.print(f"\n[bold]Applying corrections and exporting...[/bold]")
         self.console.print(f"  Output format: {output_format}")
 
-        # Step 1: Split by chromosome
-        self.console.print("\n[bold]Step 1:[/bold] Splitting by chromosome...")
-        chromosomes = self.split_by_chromosome(input_prefix, work_dir, input_format)
-        self.console.print(f"  Found {len(chromosomes)} chromosomes: {', '.join(chromosomes)}")
+        # Build input args
+        if input_format == "plink1":
+            input_args = ["--bfile", str(input_prefix)]
+        else:
+            input_args = ["--pfile", str(input_prefix)]
 
-        # Step 2: Process chromosomes in parallel
-        self.console.print(f"\n[bold]Step 2:[/bold] Processing chromosomes in parallel...")
+        # Correction files from main.py check_variants pass
+        exclude_file = output_dir / f"Exclude-{file_stem}-{panel_name}.txt"
+        flip_file = output_dir / f"Strand-Flip-{file_stem}-{panel_name}.txt"
+        force_file = output_dir / f"Force-Allele1-{file_stem}-{panel_name}.txt"
+
+        # Step 1: Apply exclusions
+        current_prefix = input_prefix
+        step = 0
+
+        if exclude_file.exists() and exclude_file.stat().st_size > 0:
+            step += 1
+            next_prefix = work_dir / f"step{step}"
+            self._run_plink(
+                input_args + ["--exclude", str(exclude_file),
+                              "--make-pgen", "--out", str(next_prefix)],
+                "Excluding variants",
+            )
+            current_prefix = next_prefix
+            input_args = ["--pfile", str(current_prefix)]
+
+        # Step 2: Apply strand flips (requires PLINK 1.9)
+        if flip_file.exists() and flip_file.stat().st_size > 0:
+            step += 1
+            # Convert to BED for PLINK 1.9
+            bed_prefix = work_dir / f"step{step}_bed"
+            self._run_plink(
+                input_args + ["--make-bed", "--out", str(bed_prefix)],
+                "Converting to BED for flip",
+            )
+
+            # Flip using PLINK 1.9
+            flipped_prefix = work_dir / f"step{step}_flipped"
+            self._run_plink1(
+                ["--bfile", str(bed_prefix), "--flip", str(flip_file),
+                 "--make-bed", "--out", str(flipped_prefix)],
+                "Flipping strand",
+            )
+
+            # Convert back to PGEN
+            next_prefix = work_dir / f"step{step}"
+            self._run_plink(
+                ["--bfile", str(flipped_prefix), "--make-pgen",
+                 "--out", str(next_prefix)],
+                "Converting back to PGEN",
+            )
+            current_prefix = next_prefix
+            input_args = ["--pfile", str(current_prefix)]
+
+        # Step 3: Force reference allele
+        if force_file.exists() and force_file.stat().st_size > 0:
+            step += 1
+            next_prefix = work_dir / f"step{step}"
+            self._run_plink(
+                input_args + ["--ref-allele", "force", str(force_file),
+                              "--make-pgen", "--out", str(next_prefix)],
+                "Forcing reference allele",
+            )
+            current_prefix = next_prefix
+            input_args = ["--pfile", str(current_prefix)]
+
+        # Step 4: Split by chromosome and export
+        self.console.print("\n[bold]Exporting per-chromosome files...[/bold]")
+
+        # Detect chromosomes from current PVAR
+        pvar_file = current_prefix.parent / f"{current_prefix.name}.pvar"
+        chromosomes: set[str] = set()
+        with open(pvar_file) as f:
+            for line in f:
+                if line.startswith("#"):
+                    continue
+                chr_val = line.split()[0]
+                if chr_val.isdigit() and 1 <= int(chr_val) <= 22:
+                    chromosomes.add(chr_val)
+
+        sorted_chromosomes = sorted(chromosomes, key=int)
         output_files: list[Path] = []
 
         with Progress(
@@ -487,28 +705,37 @@ class PlinkPipeline:
             TimeElapsedColumn(),
             console=self.console,
         ) as progress:
-            task = progress.add_task("Processing chromosomes...", total=len(chromosomes))
+            task = progress.add_task("Exporting...", total=len(sorted_chromosomes))
 
-            # Note: For true parallelism, we'd use ProcessPoolExecutor
-            # But since each worker needs to load the reference panel,
-            # and we want to keep memory low, we process sequentially
-            # while still using the parallel infrastructure
-            for chr_num in chromosomes:
-                progress.update(task, description=f"Processing chr{chr_num}...")
-                result = self.process_chromosome(
-                    chr_num=chr_num,
-                    work_dir=work_dir,
-                    reference_file=reference_file,
-                    panel_type=panel_type,
-                    population=population,
-                    freq_diff_threshold=freq_diff_threshold,
-                    palindrome_maf_threshold=palindrome_maf_threshold,
-                    output_format=output_format,
-                    output_dir=output_dir,
-                    file_stem=file_stem,
-                )
-                if result:
-                    output_files.append(result)
+            for chr_num in sorted_chromosomes:
+                progress.update(task, description=f"Exporting chr{chr_num}...")
+
+                output_stem = f"{file_stem}-chr{chr_num}"
+
+                if output_format == "vcf":
+                    output_file = output_dir / f"{output_stem}.vcf.gz"
+                    self._run_plink(
+                        input_args + ["--chr", chr_num, "--export", "vcf", "bgz",
+                                      "--out", str(output_dir / output_stem)],
+                        f"Exporting VCF for chr{chr_num}",
+                    )
+                elif output_format == "plink2":
+                    output_file = output_dir / f"{output_stem}.pgen"
+                    self._run_plink(
+                        input_args + ["--chr", chr_num, "--make-pgen",
+                                      "--out", str(output_dir / output_stem)],
+                        f"Exporting PLINK2 for chr{chr_num}",
+                    )
+                else:  # plink1
+                    output_file = output_dir / f"{output_stem}.bed"
+                    self._run_plink(
+                        input_args + ["--chr", chr_num, "--make-bed",
+                                      "--out", str(output_dir / output_stem)],
+                        f"Exporting PLINK1 for chr{chr_num}",
+                    )
+
+                if output_file.exists():
+                    output_files.append(output_file)
                 progress.advance(task)
 
         self.console.print(f"\n[green]Pipeline complete![/green]")
