@@ -660,6 +660,25 @@ class ExtractionCoordinator:
 
         Returns:
             Merged DataFrame with all samples having genotypes for all variants
+
+        Implementation Notes (Historical Context):
+            This function uses a two-phase concat+merge approach that was developed after
+            debugging a critical bug where genotype data was being lost during merging.
+
+            The Bug (fixed 2025-12-15):
+                When merging DataFrames from different chromosome files (which share sample
+                columns), pandas outer join creates duplicate columns with '_dup' suffix.
+                The original code simply dropped these _dup columns, losing all genotype
+                data for variants that only existed in the "right" DataFrame of each merge.
+
+            The Solution:
+                1. Phase 1-2: Group by ancestry, then pd.concat() within each ancestry
+                   (same samples, different variants from different chromosomes)
+                2. Phase 3: pd.merge() across ancestries (different samples, overlapping variants)
+                3. Use combine_first() to merge _dup columns before dropping them
+
+            This approach is both correct and efficient: O(n) concat + O(ancestries) merges
+            instead of O(n²) merges.
         """
         if not result_dfs:
             return pd.DataFrame()

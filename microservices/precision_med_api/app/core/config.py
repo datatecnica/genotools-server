@@ -39,8 +39,19 @@ class Settings(BaseModel):
     plink_timeout_long: int = Field(default=600, description="Long PLINK operations timeout")
 
     # Dosage thresholds for genotype calling (for imputed data with continuous 0.0-2.0 values)
+    #
+    # Background (fixed 2025-12-17):
+    #   IMPUTED data contains dosage values (0.0-2.0) not discrete genotypes (0, 1, 2).
+    #   The original counting logic used (genotypes > 0) for carriers and (genotypes == 1)
+    #   for heterozygotes, causing "Total Carriers != Het + Hom" mismatches because samples
+    #   with dosage 0.3 were counted as carriers but not as het or hom.
+    #
+    # Solution:
+    #   Use threshold-based calling: het = [het_min, het_max), hom = [hom_min, 2.0]
+    #   carrier_count = het_count + hom_count (always matches by construction)
+    #
     # Defaults (0.5, 1.5, 1.5) = "soft call" / rounding to nearest integer
-    # For stricter "hard calls", use values like (0.9, 1.1, 1.9)
+    # For stricter "hard calls", use values like (0.9, 1.1, 1.9) via CLI args
     dosage_het_min: float = Field(default=0.5, description="Minimum dosage to call heterozygous")
     dosage_het_max: float = Field(default=1.5, description="Maximum dosage to call heterozygous")
     dosage_hom_min: float = Field(default=1.5, description="Minimum dosage to call homozygous")
