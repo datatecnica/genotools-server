@@ -106,6 +106,80 @@ class ProbeSelector:
         logger.debug(f"Probe analysis complete: {summary.total_mutations_analyzed} mutations analyzed")
         return probe_analysis_results, summary
 
+    def analyze_probes_from_dataframes(
+        self,
+        nba_df: pd.DataFrame,
+        wgs_df: pd.DataFrame
+    ) -> Tuple[Dict[str, List[ProbeAnalysisResult]], ProbeSelectionSummary]:
+        """
+        Analyze NBA probe quality against WGS ground truth from pre-loaded DataFrames.
+
+        This method is useful for probe auditing where data is already loaded
+        and doesn't need to be read from parquet files.
+
+        Args:
+            nba_df: NBA genotype DataFrame with snp_list_id column
+            wgs_df: WGS genotype DataFrame with snp_list_id column
+
+        Returns:
+            Tuple of (probe_analysis_by_mutation, summary_statistics)
+        """
+        logger.debug(f"Analyzing probes from DataFrames: NBA={nba_df.shape[0]} variants, WGS={wgs_df.shape[0]} variants")
+
+        # Find mutations with multiple NBA probes
+        mutations_with_multiple_probes = self._identify_multiple_probe_mutations(nba_df)
+        logger.debug(f"Found {len(mutations_with_multiple_probes)} mutations with multiple NBA probes")
+
+        # Get shared samples between NBA and WGS
+        shared_samples = self._get_shared_samples(nba_df, wgs_df)
+        logger.debug(f"Found {len(shared_samples)} shared samples between NBA and WGS")
+
+        if len(shared_samples) == 0:
+            # Return empty results instead of raising
+            logger.warning("No shared samples found between NBA and WGS data")
+            summary = ProbeSelectionSummary(
+                total_mutations_analyzed=0,
+                mutations_with_multiple_probes=len(mutations_with_multiple_probes),
+                total_probe_comparisons=0,
+                samples_compared=0
+            )
+            return {}, summary
+
+        # Analyze probes for each mutation
+        probe_analysis_results = {}
+        total_probe_comparisons = 0
+
+        for mutation, nba_variants in mutations_with_multiple_probes.items():
+            logger.debug(f"Analyzing {len(nba_variants)} probes for mutation: {mutation}")
+
+            # Find corresponding WGS variant
+            wgs_variant = self._find_matching_wgs_variant(mutation, wgs_df)
+            if wgs_variant is None:
+                logger.debug(f"No matching WGS variant found for mutation: {mutation}")
+                continue
+
+            # Analyze each NBA probe for this mutation
+            probe_results = []
+            for nba_variant_id in nba_variants:
+                result = self._analyze_single_probe(
+                    nba_variant_id, wgs_variant, nba_df, wgs_df, shared_samples
+                )
+                probe_results.append(result)
+                total_probe_comparisons += 1
+
+            probe_analysis_results[mutation] = probe_results
+
+        # Generate summary statistics
+        summary = ProbeSelectionSummary(
+            total_mutations_analyzed=len(probe_analysis_results),
+            mutations_with_multiple_probes=len(mutations_with_multiple_probes),
+            total_probe_comparisons=total_probe_comparisons,
+            samples_compared=len(shared_samples)
+        )
+
+        logger.debug(f"Probe analysis complete: {summary.total_mutations_analyzed} mutations analyzed")
+        return probe_analysis_results, summary
+
     def _identify_multiple_probe_mutations(self, nba_df: pd.DataFrame) -> Dict[str, List[str]]:
         """
         Identify mutations with multiple NBA probes.

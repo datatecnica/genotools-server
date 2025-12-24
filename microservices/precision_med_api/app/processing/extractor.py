@@ -45,22 +45,24 @@ class VariantExtractor:
             return False
     
     def _extract_with_plink2(
-        self, 
-        pgen_path: str, 
+        self,
+        pgen_path: str,
         variant_ids: List[str],
-        output_prefix: str
+        output_prefix: str,
+        sample_ids: Optional[List[str]] = None
     ) -> Optional[str]:
         """
         Extract variants using PLINK 2.0 with two-step memory optimization.
-        
+
         Step 1: Extract variants to intermediate PGEN (memory efficient)
         Step 2: Convert small PGEN to TRAW (low memory usage)
-        
+
         Args:
             pgen_path: Path to PGEN file (without extension)
             variant_ids: List of variant IDs to extract
             output_prefix: Output file prefix
-            
+            sample_ids: Optional list of sample IDs to keep (for memory efficiency)
+
         Returns:
             Path to output TRAW file or None if failed
         """
@@ -70,16 +72,33 @@ class VariantExtractor:
             with open(variant_file, 'w') as f:
                 for var_id in variant_ids:
                     f.write(f"{var_id}\n")
-            
+
+            # Create sample keep file if sample_ids provided
+            keep_file = None
+            if sample_ids:
+                keep_file = f"{output_prefix}_keep_samples.txt"
+                with open(keep_file, 'w') as f:
+                    for sid in sample_ids:
+                        # PLINK expects FID IID format
+                        f.write(f"{sid}\t{sid}\n")
+                logger.debug(f"Filtering to {len(sample_ids)} samples")
+
             # Step 1: Extract variants to intermediate PGEN file (memory efficient)
             intermediate_prefix = f"{output_prefix}_filtered"
             cmd_step1 = [
                 'plink2',
                 '--pfile', pgen_path,
                 '--extract', variant_file,
+            ]
+
+            # Add sample filtering if provided
+            if keep_file:
+                cmd_step1.extend(['--keep', keep_file])
+
+            cmd_step1.extend([
                 '--make-pgen',
                 '--out', intermediate_prefix
-            ]
+            ])
             
             logger.debug(f"Step 1: Extracting {len(variant_ids)} variants to intermediate PGEN")
             result_step1 = subprocess.run(cmd_step1, capture_output=True, text=True, timeout=self.settings.plink_timeout_medium)
@@ -114,17 +133,20 @@ class VariantExtractor:
         temp_files = [
             variant_file,
             f"{intermediate_prefix}.pgen",
-            f"{intermediate_prefix}.pvar", 
+            f"{intermediate_prefix}.pvar",
             f"{intermediate_prefix}.psam",
             f"{intermediate_prefix}.log"
         ]
+        if keep_file:
+            temp_files.append(keep_file)
+
         for temp_file in temp_files:
             if os.path.exists(temp_file):
                 try:
                     os.remove(temp_file)
                 except:
                     pass
-        
+
         return None
     
     def _read_traw_file(self, traw_path: str, psam_path: str = None) -> pd.DataFrame:
@@ -256,17 +278,19 @@ class VariantExtractor:
     
     
     def _extract_raw_genotypes(
-        self, 
-        pgen_path: str, 
-        pgen_variant_ids: List[str]
+        self,
+        pgen_path: str,
+        pgen_variant_ids: List[str],
+        sample_ids: Optional[List[str]] = None
     ) -> pd.DataFrame:
         """
         Extract raw genotypes from PLINK file.
-        
+
         Args:
             pgen_path: Path to PGEN file
             pgen_variant_ids: List of variant IDs to extract from PLINK file
-            
+            sample_ids: Optional list of sample IDs to extract (for memory efficiency)
+
         Returns:
             DataFrame with raw genotypes
         """
@@ -275,14 +299,16 @@ class VariantExtractor:
             pgen_base = pgen_path[:-5]
         else:
             pgen_base = pgen_path
-        
+
         # Check if PLINK is available
         if self._check_plink_availability():
             # Create temporary output prefix
             with tempfile.TemporaryDirectory() as temp_dir:
                 output_prefix = os.path.join(temp_dir, "extracted")
 
-                traw_file = self._extract_with_plink2(pgen_base, pgen_variant_ids, output_prefix)
+                traw_file = self._extract_with_plink2(
+                    pgen_base, pgen_variant_ids, output_prefix, sample_ids=sample_ids
+                )
 
                 if traw_file and os.path.exists(traw_file):
                     # Pass psam path for FID_IID -> IID normalization
@@ -499,19 +525,21 @@ class VariantExtractor:
         return pd.DataFrame(corrected_rows)
 
     def extract_single_file_harmonized(
-        self, 
-        pgen_path: str, 
+        self,
+        pgen_path: str,
         snp_list_ids: List[str],
-        snp_list_df: Optional[pd.DataFrame] = None
+        snp_list_df: Optional[pd.DataFrame] = None,
+        sample_ids: Optional[List[str]] = None
     ) -> pd.DataFrame:
         """
         Extract variants from a single PLINK file with real-time harmonization.
-        
+
         Args:
             pgen_path: Path to PGEN file
             snp_list_ids: List of variant IDs from SNP list
             snp_list_df: Optional SNP list DataFrame (if not provided, will be reconstructed)
-            
+            sample_ids: Optional list of sample IDs to extract (for memory efficiency)
+
         Returns:
             DataFrame with harmonized genotypes
         """
@@ -546,7 +574,7 @@ class VariantExtractor:
         # Use traditional raw extraction + harmonization
         logger.debug("Using real-time extraction with harmonization")
         pgen_variant_ids = plan_df['pgen_variant_id'].tolist()
-        raw_df = self._extract_raw_genotypes(pgen_path, pgen_variant_ids)
+        raw_df = self._extract_raw_genotypes(pgen_path, pgen_variant_ids, sample_ids=sample_ids)
         
         if raw_df.empty:
             logger.warning(f"No genotypes extracted from {pgen_path}")
