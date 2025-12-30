@@ -560,7 +560,7 @@ class ExtractionCoordinator:
         # Define metadata columns in desired order
         # Note: 'ancestry' removed - not meaningful for multi-ancestry merged data
         METADATA_COLUMNS = [
-            'chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+            'chromosome', 'variant_id', '(C)M', 'position',
             'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
             'pgen_a1', 'pgen_a2', 'data_type', 'source_file',
             'maf_corrected', 'original_alt_af'  # MAF correction columns
@@ -680,7 +680,7 @@ class ExtractionCoordinator:
         # - Merged data contains samples from multiple ancestries
         # - Each sample's ancestry is implicit in its ID (cohort prefix)
         # - A single 'ancestry' value would be misleading for multi-ancestry data
-        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
                          'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
                          'pgen_a1', 'pgen_a2', 'data_type', 'source_file',
                          'maf_corrected', 'original_alt_af']
@@ -1342,7 +1342,7 @@ class ExtractionCoordinator:
                                       'counted_allele', 'alt_allele']
 
                         # Get sample columns from new data
-                        metadata_cols = set(merge_keys + ['(C)M', 'COUNTED', 'ALT', 'harmonization_action',
+                        metadata_cols = set(merge_keys + ['(C)M', 'harmonization_action',
                                                           'pgen_a1', 'pgen_a2', 'data_type', 'source_file',
                                                           'maf_corrected', 'original_alt_af'])
                         new_sample_cols = [col for col in new_df.columns if col not in metadata_cols]

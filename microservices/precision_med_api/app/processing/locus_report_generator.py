@@ -418,7 +418,7 @@ class LocusReportGenerator:
         self.logger.debug("Calculating per-variant carrier counts")
 
         # Identify metadata vs sample columns
-        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
                         'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry']
         sample_cols = [col for col in df.columns if col not in metadata_cols]
@@ -490,7 +490,7 @@ class LocusReportGenerator:
         self.logger.debug(f"Joining genotype data with clinical data (data_type={data_type})")
 
         # Identify metadata vs sample columns
-        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
                         'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry']
 
@@ -803,7 +803,7 @@ class LocusReportGenerator:
         carriers_by_ancestry = clinical_df.groupby('ancestry')['GP2ID'].nunique().to_dict()
 
         # Calculate total samples and variants from full dataframe
-        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
                         'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry']
         sample_cols = [col for col in full_df.columns if col not in metadata_cols]

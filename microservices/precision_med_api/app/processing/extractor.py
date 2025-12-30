@@ -149,6 +149,12 @@ class VariantExtractor:
             if 'POS' in df.columns:
                 df = df.rename(columns={'POS': 'position'})
 
+            # Drop COUNTED/ALT columns - these are replaced by counted_allele/alt_allele
+            # after harmonization with proper allele orientation
+            cols_to_drop = [c for c in ['COUNTED', 'ALT'] if c in df.columns]
+            if cols_to_drop:
+                df = df.drop(columns=cols_to_drop)
+
             # Normalize sample IDs from FID_IID to IID using psam file
             if psam_path and os.path.exists(psam_path):
                 df = self._normalize_sample_ids_from_psam(df, psam_path)
@@ -386,24 +392,20 @@ class VariantExtractor:
                                 except Exception as e:
                                     logger.warning(f"Failed to flip genotype {transformed_row[col]} for column {col}: {e}")
                         
-                        # Update TRAW columns to reflect ALT counting
-                        transformed_row['COUNTED'] = harm_info['snp_list_a2']  # ALT allele (pathogenic)
-                        transformed_row['ALT'] = harm_info['snp_list_a1']      # REF allele
-                        
+                        # Set canonical alleles to reflect ALT counting
+                        transformed_row['counted_allele'] = harm_info['snp_list_a2']  # ALT allele (pathogenic)
+                        transformed_row['alt_allele'] = harm_info['snp_list_a1']      # REF allele
+
                     elif action in [HarmonizationAction.SWAP, HarmonizationAction.FLIP_SWAP]:
                         # For SWAP/FLIP_SWAP: After harmonization transform, PLINK A1 corresponds to SNP ALT
                         # Genotypes already count the correct allele, just update labels
-                        transformed_row['COUNTED'] = harm_info['snp_list_a2']  # ALT allele (pathogenic) 
-                        transformed_row['ALT'] = harm_info['snp_list_a1']      # REF allele
-                        
+                        transformed_row['counted_allele'] = harm_info['snp_list_a2']  # ALT allele (pathogenic)
+                        transformed_row['alt_allele'] = harm_info['snp_list_a1']      # REF allele
+
                     else:
                         # INVALID or AMBIGUOUS - keep original PLINK alleles
-                        transformed_row['COUNTED'] = harm_info['pgen_a1']
-                        transformed_row['ALT'] = harm_info['pgen_a2']
-
-                    # Add metadata columns for transparency
-                    transformed_row['counted_allele'] = transformed_row['COUNTED']
-                    transformed_row['alt_allele'] = transformed_row['ALT']
+                        transformed_row['counted_allele'] = harm_info['pgen_a1']
+                        transformed_row['alt_allele'] = harm_info['pgen_a2']
                     
                     # Add harmonization metadata
                     transformed_row['harmonization_action'] = action
@@ -446,7 +448,7 @@ class VariantExtractor:
             return harmonized_df
 
         # Define metadata columns to exclude from sample columns
-        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
                          'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
                          'pgen_a1', 'pgen_a2', 'data_type', 'source_file']
         sample_cols = [c for c in harmonized_df.columns if c not in metadata_cols]
@@ -484,8 +486,6 @@ class VariantExtractor:
                 old_alt = row_copy.get('alt_allele', '')
                 row_copy['counted_allele'] = old_alt
                 row_copy['alt_allele'] = old_counted
-                row_copy['COUNTED'] = old_alt
-                row_copy['ALT'] = old_counted
                 row_copy['maf_corrected'] = True
 
                 logger.debug(f"MAF correction applied to {row_copy.get('variant_id', 'unknown')}: "

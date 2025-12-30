@@ -343,9 +343,10 @@ def load_variant_carrier_counts(
         df = pd.read_parquet(parquet_path)
 
         # Identify metadata vs sample columns
-        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
-                        'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry']
+                        'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry',
+                        'maf_corrected', 'original_alt_af']
         sample_cols = [col for col in df.columns if col not in metadata_cols]
 
         # Calculate carrier counts for each variant

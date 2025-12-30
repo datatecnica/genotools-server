@@ -85,8 +85,8 @@ class TrawFormatter:
             'chromosome_file', 'gene', 'rsid', 'inheritance_pattern',
             'genotype_transform', 'pgen_variant_id', 'snp_list_a1', 'snp_list_a2',
             'pgen_a1', 'pgen_a2', 'file_path', 'source_file',
-            # TRAW format columns that are not sample genotypes
-            '(C)M', 'COUNTED', 'ALT',
+            # TRAW format column
+            '(C)M',
             # MAF correction columns
             'maf_corrected', 'original_alt_af'
         }
