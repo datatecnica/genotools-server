@@ -13,11 +13,10 @@ Pipeline:
    - Export to VCF.GZ
 """
 
-import multiprocessing
 import os
 import shutil
 import subprocess
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -497,42 +496,44 @@ class PlinkPipeline:
             )
             current_prefix = next_prefix
 
-        # Flip strand - requires PLINK 1.9 (PLINK2 doesn't support --flip)
-        if flip_file.exists() and flip_file.stat().st_size > 0:
+        # Apply strand flips and force reference allele (PLINK 1.9)
+        # Both operations require PLINK 1.9:
+        # - --flip is not supported in PLINK2
+        # - --reference-allele sets allele to A1, matching Perl script behavior
+        has_flips = flip_file.exists() and flip_file.stat().st_size > 0
+        has_force = force_file.exists() and force_file.stat().st_size > 0
+
+        if has_flips or has_force:
             step += 1
-            # Convert current pgen to bed for PLINK1
+            # Convert current pgen to bed for PLINK 1.9
             bed_prefix = chr_work / f"step{step}_bed"
             self._run_plink(
                 ["--pfile", str(current_prefix), "--make-bed",
                  "--out", str(bed_prefix)],
-                f"Converting to BED for flip chr{chr_num}",
+                f"Converting to BED for PLINK 1.9 chr{chr_num}",
             )
 
-            # Flip using PLINK 1.9
-            flipped_prefix = chr_work / f"step{step}_flipped"
+            # Build PLINK 1.9 command with flip and/or reference-allele
+            plink1_args = ["--bfile", str(bed_prefix)]
+            if has_flips:
+                plink1_args.extend(["--flip", str(flip_file)])
+            if has_force:
+                plink1_args.extend(["--reference-allele", str(force_file)])
+
+            corrected_prefix = chr_work / f"step{step}_corrected"
+            plink1_args.extend(["--make-bed", "--out", str(corrected_prefix)])
+
             self._run_plink1(
-                ["--bfile", str(bed_prefix), "--flip", str(flip_file),
-                 "--make-bed", "--out", str(flipped_prefix)],
-                f"Flipping strand for chr{chr_num}",
+                plink1_args,
+                f"Applying flip/reference-allele for chr{chr_num}",
             )
 
             # Convert back to pgen
             next_prefix = chr_work / f"step{step}"
             self._run_plink(
-                ["--bfile", str(flipped_prefix), "--make-pgen",
+                ["--bfile", str(corrected_prefix), "--make-pgen",
                  "--out", str(next_prefix)],
                 f"Converting back to PGEN for chr{chr_num}",
-            )
-            current_prefix = next_prefix
-
-        # Force reference allele
-        if force_file.exists() and force_file.stat().st_size > 0:
-            step += 1
-            next_prefix = chr_work / f"step{step}"
-            self._run_plink(
-                ["--pfile", str(current_prefix), "--ref-allele", "force", str(force_file),
-                 "--make-pgen", "--out", str(next_prefix)],
-                f"Forcing ref allele for chr{chr_num}",
             )
             current_prefix = next_prefix
 
@@ -557,6 +558,55 @@ class PlinkPipeline:
             self._run_plink(
                 ["--pfile", str(current_prefix), "--make-bed",
                  "--out", str(output_dir / f"{file_stem}-chr{chr_num}")],
+                f"Exporting PLINK1 for chr{chr_num}",
+            )
+
+        return output_file if output_file.exists() else None
+
+    def _export_chromosome(
+        self,
+        chr_num: str,
+        input_pfile: Path,
+        output_dir: Path,
+        file_stem: str,
+        output_format: Literal["vcf", "plink1", "plink2"],
+    ) -> Path | None:
+        """Export a single chromosome to the specified format.
+
+        Used by run_parallel_pipeline for parallel chromosome export.
+
+        Args:
+            chr_num: Chromosome number (e.g., "1", "22")
+            input_pfile: Path prefix to input PGEN files
+            output_dir: Output directory
+            file_stem: Base filename for output
+            output_format: Output format (vcf, plink1, plink2)
+
+        Returns:
+            Path to output file, or None if export failed
+        """
+        output_stem = f"{file_stem}-chr{chr_num}"
+        input_args = ["--pfile", str(input_pfile)]
+
+        if output_format == "vcf":
+            output_file = output_dir / f"{output_stem}.vcf.gz"
+            self._run_plink(
+                input_args + ["--chr", chr_num, "--export", "vcf", "bgz",
+                              "--out", str(output_dir / output_stem)],
+                f"Exporting VCF for chr{chr_num}",
+            )
+        elif output_format == "plink2":
+            output_file = output_dir / f"{output_stem}.pgen"
+            self._run_plink(
+                input_args + ["--chr", chr_num, "--make-pgen",
+                              "--out", str(output_dir / output_stem)],
+                f"Exporting PLINK2 for chr{chr_num}",
+            )
+        else:  # plink1
+            output_file = output_dir / f"{output_stem}.bed"
+            self._run_plink(
+                input_args + ["--chr", chr_num, "--make-bed",
+                              "--out", str(output_dir / output_stem)],
                 f"Exporting PLINK1 for chr{chr_num}",
             )
 
@@ -594,7 +644,7 @@ class PlinkPipeline:
             output_format: Output format
             file_stem: Base filename
             input_format: Input format
-            max_workers: (unused, for API compat)
+            max_workers: Max parallel chromosome exports (default: CPU count)
 
         Returns:
             List of output file paths (one per chromosome)
@@ -640,47 +690,51 @@ class PlinkPipeline:
             current_prefix = next_prefix
             input_args = ["--pfile", str(current_prefix)]
 
-        # Step 2: Apply strand flips (requires PLINK 1.9)
-        if flip_file.exists() and flip_file.stat().st_size > 0:
+        # Step 2 & 3: Apply strand flips and force reference allele (PLINK 1.9)
+        # Both operations require PLINK 1.9:
+        # - --flip is not supported in PLINK2
+        # - --reference-allele sets allele to A1, matching Perl script behavior
+        #   (PLINK2's --ref-allele sets to REF/A2, which swaps allele order)
+        has_flips = flip_file.exists() and flip_file.stat().st_size > 0
+        has_force = force_file.exists() and force_file.stat().st_size > 0
+
+        if has_flips or has_force:
             step += 1
             # Convert to BED for PLINK 1.9
             bed_prefix = work_dir / f"step{step}_bed"
             self._run_plink(
                 input_args + ["--make-bed", "--out", str(bed_prefix)],
-                "Converting to BED for flip",
+                "Converting to BED for PLINK 1.9 operations",
             )
 
-            # Flip using PLINK 1.9
-            flipped_prefix = work_dir / f"step{step}_flipped"
+            # Build PLINK 1.9 command with both flip and reference-allele if needed
+            plink1_args = ["--bfile", str(bed_prefix)]
+            if has_flips:
+                plink1_args.extend(["--flip", str(flip_file)])
+            if has_force:
+                # Use --reference-allele (same as --a1-allele) to match Perl script
+                # This sets the specified allele to A1, matching original behavior
+                plink1_args.extend(["--reference-allele", str(force_file)])
+
+            corrected_prefix = work_dir / f"step{step}_corrected"
+            plink1_args.extend(["--make-bed", "--out", str(corrected_prefix)])
+
             self._run_plink1(
-                ["--bfile", str(bed_prefix), "--flip", str(flip_file),
-                 "--make-bed", "--out", str(flipped_prefix)],
-                "Flipping strand",
+                plink1_args,
+                "Applying flip and reference-allele",
             )
 
-            # Convert back to PGEN
+            # Convert back to PGEN for export step
             next_prefix = work_dir / f"step{step}"
             self._run_plink(
-                ["--bfile", str(flipped_prefix), "--make-pgen",
+                ["--bfile", str(corrected_prefix), "--make-pgen",
                  "--out", str(next_prefix)],
                 "Converting back to PGEN",
             )
             current_prefix = next_prefix
             input_args = ["--pfile", str(current_prefix)]
 
-        # Step 3: Force reference allele
-        if force_file.exists() and force_file.stat().st_size > 0:
-            step += 1
-            next_prefix = work_dir / f"step{step}"
-            self._run_plink(
-                input_args + ["--ref-allele", "force", str(force_file),
-                              "--make-pgen", "--out", str(next_prefix)],
-                "Forcing reference allele",
-            )
-            current_prefix = next_prefix
-            input_args = ["--pfile", str(current_prefix)]
-
-        # Step 4: Split by chromosome and export
+        # Step 4: Split by chromosome and export (parallel)
         self.console.print("\n[bold]Exporting per-chromosome files...[/bold]")
 
         # Detect chromosomes from current PVAR
@@ -697,6 +751,12 @@ class PlinkPipeline:
         sorted_chromosomes = sorted(chromosomes, key=int)
         output_files: list[Path] = []
 
+        # Determine number of workers (default to CPU count, capped at chromosome count)
+        num_workers = max_workers or os.cpu_count() or 4
+        num_workers = min(num_workers, len(sorted_chromosomes))
+
+        self.console.print(f"  Parallel workers: {num_workers}")
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -705,38 +765,45 @@ class PlinkPipeline:
             TimeElapsedColumn(),
             console=self.console,
         ) as progress:
-            task = progress.add_task("Exporting...", total=len(sorted_chromosomes))
+            task = progress.add_task(
+                f"Exporting {len(sorted_chromosomes)} chromosomes...",
+                total=len(sorted_chromosomes),
+            )
 
-            for chr_num in sorted_chromosomes:
-                progress.update(task, description=f"Exporting chr{chr_num}...")
+            # Use ThreadPoolExecutor for parallel I/O-bound subprocess calls
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                # Submit all chromosome export jobs
+                future_to_chr = {
+                    executor.submit(
+                        self._export_chromosome,
+                        chr_num,
+                        current_prefix,
+                        output_dir,
+                        file_stem,
+                        output_format,
+                    ): chr_num
+                    for chr_num in sorted_chromosomes
+                }
 
-                output_stem = f"{file_stem}-chr{chr_num}"
+                # Collect results as they complete
+                for future in as_completed(future_to_chr):
+                    chr_num = future_to_chr[future]
+                    try:
+                        result = future.result()
+                        if result:
+                            output_files.append(result)
+                        progress.update(
+                            task,
+                            description=f"Exported chr{chr_num}",
+                        )
+                    except Exception as e:
+                        self.console.print(
+                            f"[red]Error exporting chr{chr_num}:[/red] {e}"
+                        )
+                    progress.advance(task)
 
-                if output_format == "vcf":
-                    output_file = output_dir / f"{output_stem}.vcf.gz"
-                    self._run_plink(
-                        input_args + ["--chr", chr_num, "--export", "vcf", "bgz",
-                                      "--out", str(output_dir / output_stem)],
-                        f"Exporting VCF for chr{chr_num}",
-                    )
-                elif output_format == "plink2":
-                    output_file = output_dir / f"{output_stem}.pgen"
-                    self._run_plink(
-                        input_args + ["--chr", chr_num, "--make-pgen",
-                                      "--out", str(output_dir / output_stem)],
-                        f"Exporting PLINK2 for chr{chr_num}",
-                    )
-                else:  # plink1
-                    output_file = output_dir / f"{output_stem}.bed"
-                    self._run_plink(
-                        input_args + ["--chr", chr_num, "--make-bed",
-                                      "--out", str(output_dir / output_stem)],
-                        f"Exporting PLINK1 for chr{chr_num}",
-                    )
-
-                if output_file.exists():
-                    output_files.append(output_file)
-                progress.advance(task)
+        # Sort output files by chromosome number
+        output_files.sort(key=lambda p: int(p.stem.split("-chr")[-1].split(".")[0]))
 
         self.console.print(f"\n[green]Pipeline complete![/green]")
         self.console.print(f"  Output files: {len(output_files)}")
