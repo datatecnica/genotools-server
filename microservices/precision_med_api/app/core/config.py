@@ -18,6 +18,10 @@ class Settings(BaseModel):
         default=None,
         description="Override base path for WGS files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/wgs/joint-calling/plink)"
     )
+    master_key_path: Optional[str] = Field(
+        default=None,
+        description="Override path for master key file (e.g. ~/gcs_mounts/gp2_release12/individual_releases/GP2_R12_master_key.txt)"
+    )
     
     # Available ancestries in GP2 data
     ANCESTRIES: List[str] = Field(
@@ -374,7 +378,7 @@ class Settings(BaseModel):
         clinical_base = os.path.join(self.release_path, "clinical_data")
 
         return {
-            "master_key": os.path.join(
+            "master_key": self.master_key_path if self.master_key_path else os.path.join(
                 clinical_base,
                 f"master_key_release{self.release}_final_vwb.csv"
             ),

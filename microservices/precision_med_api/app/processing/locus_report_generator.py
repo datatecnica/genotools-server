@@ -54,10 +54,14 @@ class LocusReportGenerator:
 
     def _load_master_key(self) -> pd.DataFrame:
         """Load master key file with ancestry labels."""
-        key_path = Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"
+        if self.settings.master_key_path:
+            key_path = Path(self.settings.master_key_path)
+        else:
+            key_path = Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"
         self.logger.debug(f"Loading master key from: {key_path}")
 
-        df = pd.read_csv(key_path)
+        sep = '\t' if str(key_path).endswith('.txt') else ','
+        df = pd.read_csv(key_path, sep=sep)
         self.logger.debug(f"Loaded {len(df):,} samples from master key")
 
         # Select relevant columns (including age data for disease duration calculation)
@@ -462,7 +466,7 @@ class LocusReportGenerator:
             summary=summary,
             locus_reports=locus_reports,
             clinical_data_sources={
-                "master_key": str(Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"),
+                "master_key": str(self.settings.master_key_path or Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"),
                 "extended_clinical": str(Path(self.settings.release_path) / "clinical_data" / f"r{self.settings.release}_extended_clinical_data_vwb.csv")
             }
         )
@@ -516,7 +520,7 @@ class LocusReportGenerator:
             summary=summary,
             locus_reports=locus_reports,
             clinical_data_sources={
-                "master_key": str(Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"),
+                "master_key": str(self.settings.master_key_path or Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"),
                 "extended_clinical": str(Path(self.settings.release_path) / "clinical_data" / f"r{self.settings.release}_extended_clinical_data_vwb.csv")
             }
         )

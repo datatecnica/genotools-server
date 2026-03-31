@@ -126,6 +126,19 @@ def parse_args():
         help='Override base path for WGS files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/wgs/joint-calling/plink)'
     )
     parser.add_argument(
+        '--master-key',
+        type=str,
+        default=None,
+        metavar='PATH',
+        help='Override path for master key file (.csv or tab-separated .txt)'
+    )
+    parser.add_argument(
+        '--skip-preflight',
+        action='store_true',
+        default=False,
+        help='Skip preflight file existence checks before extraction (default: False)'
+    )
+    parser.add_argument(
         '--retry-failed',
         type=str,
         default=None,
@@ -172,6 +185,40 @@ def print_system_info():
     logger.debug(f"CPU cores: {cpu_count}")
     logger.debug(f"Total RAM: {memory_gb:.1f} GB")
     logger.debug(f"Available RAM: {psutil.virtual_memory().available / (1024**3):.1f} GB")
+
+def preflight_check(settings, data_types: List[str], enable_locus_reports: bool, enable_variant_report: bool) -> bool:
+    """Check all required input files exist before starting the pipeline."""
+    errors = []
+
+    if not os.path.exists(settings.snp_list_path):
+        errors.append(f"SNP list not found: {settings.snp_list_path}")
+
+    if enable_locus_reports or enable_variant_report:
+        clinical = settings.get_clinical_paths()
+        if not os.path.exists(clinical['master_key']):
+            errors.append(f"Master key not found: {clinical['master_key']}")
+        if enable_locus_reports and not os.path.exists(clinical['data_dictionary']):
+            errors.append(f"Data dictionary not found: {clinical['data_dictionary']}")
+
+    if 'NBA' in data_types:
+        nba_base = settings.nba_base_path or settings.release_path
+        if not os.path.exists(nba_base):
+            errors.append(f"NBA base path not found: {nba_base}")
+
+    if 'WGS' in data_types:
+        wgs_base = settings.wgs_base_path or settings.release_path
+        if not os.path.exists(wgs_base):
+            errors.append(f"WGS base path not found: {wgs_base}")
+
+    if errors:
+        print("\nPREFLIGHT FAILED — missing required files:")
+        for e in errors:
+            print(f"  x {e}")
+        print("\nFix the above before running the pipeline.\n")
+        return False
+
+    return True
+
 
 def check_extraction_results_exist(output_dir: str, job_name: str, data_types: List[str]) -> bool:
     """Check if extraction results already exist for all requested data types."""
@@ -263,6 +310,8 @@ def main():
             path_overrides['nba_base_path'] = args.nba_path
         if args.wgs_path:
             path_overrides['wgs_base_path'] = args.wgs_path
+        if args.master_key:
+            path_overrides['master_key_path'] = os.path.expanduser(args.master_key)
 
         if args.optimize:
             logger.debug("Using auto-optimized performance settings")
@@ -338,7 +387,13 @@ def main():
         logger.debug(f"Variant report: {enable_variant_report}")
         logger.debug(f"NBA path override: {args.nba_path or 'None (using default)'}")
         logger.debug(f"WGS path override: {args.wgs_path or 'None (using default)'}")
+        logger.debug(f"Master key override: {args.master_key or 'None (using default)'}")
         logger.debug(f"Retry failed: {args.retry_failed or 'No'}")
+
+        # Preflight: verify required files exist before starting expensive extraction
+        if not args.skip_preflight:
+            if not preflight_check(settings, args.data_types, enable_locus_reports, enable_variant_report):
+                return 1
 
         # Check if we should retry failed extractions
         if args.retry_failed:
