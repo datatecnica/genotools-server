@@ -55,6 +55,7 @@ pip install -r requirements.txt
 ```bash
 gcsfuse --implicit-dirs gp2tier2_vwb ~/gcs_mounts/gp2tier2_vwb
 gcsfuse --implicit-dirs genotools-server ~/gcs_mounts/genotools_server
+gcsfuse --implicit-dirs gp2_release12 ~/gcs_mounts/gp2_release12
 ```
 
 ## Usage

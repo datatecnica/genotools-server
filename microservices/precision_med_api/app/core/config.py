@@ -10,6 +10,14 @@ class Settings(BaseModel):
         default=os.path.expanduser("~/gcs_mounts"),
         description="Mount path for GCS buckets"
     )
+    nba_base_path: Optional[str] = Field(
+        default=None,
+        description="Override base path for NBA files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/nba)"
+    )
+    wgs_base_path: Optional[str] = Field(
+        default=None,
+        description="Override base path for WGS files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/wgs/joint-calling/plink)"
+    )
     
     # Available ancestries in GP2 data
     ANCESTRIES: List[str] = Field(
@@ -60,6 +68,13 @@ class Settings(BaseModel):
     @classmethod
     def validate_mnt_path(cls, v: str) -> str:
         return os.path.expanduser(v)
+
+    @field_validator('nba_base_path', 'wgs_base_path', mode='before')
+    @classmethod
+    def validate_override_paths(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return os.path.expanduser(v)
+        return v
     
     @classmethod
     def auto_detect_performance_settings(cls) -> Dict[str, int]:
@@ -185,7 +200,14 @@ class Settings(BaseModel):
     def get_nba_path(self, ancestry: str) -> str:
         if ancestry not in self.ANCESTRIES:
             raise ValueError(f"Invalid ancestry: {ancestry}. Must be one of {self.ANCESTRIES}")
-        
+
+        if self.nba_base_path is not None:
+            return os.path.join(
+                self.nba_base_path,
+                ancestry,
+                f"GP2_r{self.release}_v2_gp2id_post_genotools_{ancestry}"
+            )
+
         base_path = os.path.join(
             self.release_path,
             "raw_genotypes",
@@ -209,6 +231,9 @@ class Settings(BaseModel):
             raise ValueError(f"Invalid ancestry: {ancestry}. Must be one of {self.ANCESTRIES}")
         if chrom not in self.CHROMOSOMES:
             raise ValueError(f"Invalid chromosome: {chrom}. Must be one of {self.CHROMOSOMES}")
+
+        if self.wgs_base_path is not None:
+            return os.path.join(self.wgs_base_path, ancestry, f"chr{chrom}")
 
         base_path = os.path.join(
             self.release_path,
@@ -423,11 +448,9 @@ class Settings(BaseModel):
     
     def list_available_ancestries(self, data_type: str) -> List[str]:
         if data_type == "WGS":
-            base_path = os.path.join(
-                self.release_path,
-                "wgs",
-                "deepvariant_joint_calling",
-                "plink"
+            base_path = (
+                self.wgs_base_path if self.wgs_base_path is not None
+                else os.path.join(self.release_path, "wgs", "deepvariant_joint_calling", "plink")
             )
             if not os.path.exists(base_path):
                 return []
@@ -439,7 +462,10 @@ class Settings(BaseModel):
             return available
 
         if data_type == "NBA":
-            base_path = os.path.join(self.release_path, "raw_genotypes")
+            base_path = (
+                self.nba_base_path if self.nba_base_path is not None
+                else os.path.join(self.release_path, "raw_genotypes")
+            )
         elif data_type == "IMPUTED":
             base_path = os.path.join(self.release_path, "imputed_genotypes")
         else:
@@ -469,20 +495,13 @@ class Settings(BaseModel):
             List of available chromosome identifiers
         """
         if data_type == "WGS":
-            base_path = os.path.join(
-                self.release_path,
-                "wgs",
-                "deepvariant_joint_calling",
-                "plink",
-                ancestry
-            )
-            file_pattern = f"chr{{chrom}}_{ancestry}_release{self.release}.pgen"
+            # Use get_wgs_path so any override is automatically respected
+            pass
         else:  # IMPUTED
             base_path = os.path.join(self.release_path, "imputed_genotypes", ancestry)
             file_pattern = f"chr{{chrom}}_{ancestry}_release{self.release}_vwb.pgen"
-
-        if not os.path.exists(base_path):
-            return []
+            if not os.path.exists(base_path):
+                return []
 
         # Use SNP-based chromosome filtering by default
         chromosomes_to_check = self.get_snp_chromosomes() if filter_by_snp_list else self.CHROMOSOMES
@@ -495,8 +514,10 @@ class Settings(BaseModel):
 
         available = []
         for chrom in chromosomes_to_check:
-            # Check if any of the PLINK files exist for this chromosome
-            pgen_file = os.path.join(base_path, file_pattern.format(chrom=chrom))
+            if data_type == "WGS":
+                pgen_file = self.get_wgs_path(ancestry, chrom) + ".pgen"
+            else:
+                pgen_file = os.path.join(base_path, file_pattern.format(chrom=chrom))
             if os.path.exists(pgen_file):
                 available.append(chrom)
 

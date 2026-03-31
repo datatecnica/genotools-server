@@ -125,15 +125,18 @@ class LocusReportGenerator:
         return baseline_df
 
     def _load_snp_list(self) -> pd.DataFrame:
-        """Load SNP list with locus annotations."""
+        """Load SNP list with locus annotations and variant metadata."""
         snp_path = Path(self.settings.snp_list_path)
         self.logger.debug(f"Loading SNP list from: {snp_path}")
 
         df = pd.read_csv(snp_path)
         self.logger.debug(f"Loaded {len(df):,} variants from SNP list")
 
-        # Select relevant columns
-        df = df[['snp_name', 'locus', 'hg38']].copy()
+        # Select relevant columns — include extra metadata for variant report
+        base_cols = ['snp_name', 'locus', 'hg38']
+        extra_cols = ['snp_name_alt', 'moi', 'rsid', 'pathogenicity_prediction_new', 'new_source']
+        keep_cols = base_cols + [c for c in extra_cols if c in df.columns]
+        df = df[keep_cols].copy()
         df = df.rename(columns={'snp_name': 'snp_list_id'})
 
         return df
@@ -268,6 +271,152 @@ class LocusReportGenerator:
             self.logger.debug(f"Total variants: {collection.summary.total_variants:,}")
 
         return output_files
+
+    def generate_variant_report(
+        self,
+        parquet_files: Dict[str, str],
+        output_dir: str,
+        job_name: str,
+    ) -> Dict[str, str]:
+        """Generate per-sample variant report in clinician-friendly format.
+
+        Produces one row per carrier per variant with columns matching the
+        standard variant report template.  NBA and WGS are merged into a
+        single table; a ``validated_by_wgs`` flag marks variants found in
+        both data types for the same sample.
+
+        Args:
+            parquet_files: Dict mapping data type string to parquet file path.
+            output_dir: Directory where the CSV will be saved.
+            job_name: Job name used for output file naming.
+
+        Returns:
+            Dict with key ``"variant_report"`` mapping to the saved CSV path,
+            or empty dict if no carrier data was found.
+        """
+        REPORT_TYPES = ('NBA', 'WGS')
+
+        # --- Build per-data-type carrier DataFrames ---
+        dfs_by_type: Dict[str, pd.DataFrame] = {}
+        for data_type in REPORT_TYPES:
+            if data_type not in parquet_files:
+                continue
+            path = parquet_files[data_type]
+            if not Path(path).exists():
+                self.logger.warning(f"Parquet not found for {data_type}: {path}")
+                continue
+
+            self.logger.debug(f"Loading {data_type} parquet for variant report")
+            df = pd.read_parquet(path)
+            if df.empty:
+                continue
+
+            # Apply best-probe filter for NBA
+            if data_type == 'NBA' and self.probe_selector.has_probe_selection():
+                df = self._filter_to_selected_probes(df)
+
+            # Melt to long format, filter to carriers, join ancestry
+            carrier_df = self._join_clinical_data(df, data_type)
+            if carrier_df.empty:
+                continue
+
+            carrier_df['_source'] = data_type
+            dfs_by_type[data_type] = carrier_df
+
+        if not dfs_by_type:
+            self.logger.warning("No carrier data available for variant report")
+            return {}
+
+        # --- Merge NBA + WGS into one table ---
+        # Sort so NBA < WGS alphabetically: when deduplicating, NBA row is kept as primary
+        all_carriers = pd.concat(dfs_by_type.values(), ignore_index=True)
+        all_carriers = all_carriers.sort_values('_source').reset_index(drop=True)
+
+        grp = all_carriers.groupby(['GP2ID', 'snp_list_id'])['_source']
+        all_carriers['Data_type'] = grp.transform(
+            lambda x: ', '.join(sorted(x.unique()))
+        )
+        all_carriers['validated_by_wgs'] = grp.transform(
+            lambda x: ('WGS' in x.values) and ('NBA' in x.values)
+        )
+
+        # One row per (GP2ID, snp_list_id); prefer NBA row
+        report = all_carriers.drop_duplicates(
+            subset=['GP2ID', 'snp_list_id'], keep='first'
+        ).copy()
+
+        # --- Add SNP list metadata not already present ---
+        meta_cols = ['snp_list_id', 'hg38', 'moi', 'rsid',
+                     'pathogenicity_prediction_new', 'new_source']
+        available = [c for c in meta_cols if c in self.snp_list.columns]
+        report = report.merge(self.snp_list[available], on='snp_list_id', how='left')
+
+        # --- Derived columns ---
+        # NBA probe name: the PGEN variant_id for NBA-sourced rows
+        report['NBA_probe_name'] = report.apply(
+            lambda r: r['variant_id'] if r.get('_source') == 'NBA' else '', axis=1
+        )
+
+        # Zygosity (supports both discrete and dosage genotypes)
+        def _zygosity(g):
+            if pd.isna(g):
+                return ''
+            return 'hom' if float(g) >= 1.5 else 'het'
+
+        report['Zygosity'] = report['genotype'].apply(_zygosity)
+
+        # Compound het: ≥2 het variants in same AR gene per sample
+        report['potential_comp_het'] = False
+        if 'moi' in report.columns:
+            ar_mask = report['moi'].str.contains('AR', na=False)
+            het_mask = report['Zygosity'] == 'het'
+            ar_het_idx = report.index[ar_mask & het_mask]
+            if len(ar_het_idx) > 0:
+                counts = report.loc[ar_het_idx].groupby(
+                    ['GP2ID', 'locus']
+                )['snp_list_id'].transform('count')
+                report.loc[ar_het_idx, 'potential_comp_het'] = counts >= 2
+
+        # --- Rename and select final columns ---
+        report = report.rename(columns={
+            'ancestry': 'Ancestry',
+            'locus': 'Gene',
+            'hg38': 'Variant_ID',
+            'snp_list_id': 'AA_change',
+            'rsid': 'rsID',
+            'moi': 'MOI',
+            'pathogenicity_prediction_new': 'Pathogenicity',
+            'new_source': 'Pathogenicity_source',
+        })
+        report['Variant_interpretation'] = report.get('Pathogenicity', '')
+
+        output_cols = [
+            'GP2ID', 'Ancestry', 'Gene', 'Variant_ID', 'AA_change', 'rsID',
+            'NBA_probe_name', 'Zygosity', 'MOI', 'Data_type', 'Pathogenicity',
+            'Pathogenicity_source', 'Variant_interpretation',
+            'potential_comp_het', 'validated_by_wgs',
+        ]
+        report = report[[c for c in output_cols if c in report.columns]]
+
+        # Sort by Ancestry, Gene, GP2ID for readability
+        sort_cols = [c for c in ['Ancestry', 'Gene', 'GP2ID'] if c in report.columns]
+        if sort_cols:
+            report = report.sort_values(sort_cols).reset_index(drop=True)
+
+        # --- Save ---
+        out_path = Path(output_dir) / f"{job_name}_variant_report.csv"
+        report.to_csv(out_path, index=False)
+
+        n_validated = int(report['validated_by_wgs'].sum()) if 'validated_by_wgs' in report.columns else 0
+        n_comp_het = int(report['potential_comp_het'].sum()) if 'potential_comp_het' in report.columns else 0
+        self.logger.debug(
+            f"Saved variant report: {out_path} "
+            f"({len(report):,} carrier records, "
+            f"{n_validated:,} WGS-validated, "
+            f"{n_comp_het:,} potential comp-het)"
+        )
+
+        return {'variant_report': str(out_path)}
 
     def _generate_datatype_report(
         self,

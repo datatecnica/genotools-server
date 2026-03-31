@@ -1005,6 +1005,7 @@ class ExtractionCoordinator:
         enable_probe_selection: bool = True,
         enable_locus_reports: bool = True,
         enable_coverage_profiling: bool = True,
+        enable_variant_report: bool = True,
     ) -> Dict[str, Any]:
         """
         Run complete extraction pipeline from SNP list to final output.
@@ -1170,6 +1171,20 @@ class ExtractionCoordinator:
                     logger.debug("✅ Coverage profiling completed")
                 else:
                     logger.warning("⚠️ Coverage profiling did not generate results")
+
+            # Run variant report if enabled
+            if enable_variant_report:
+                logger.debug("📋 Running variant report generation...")
+                variant_report_results = self.run_variant_report_postprocessing(
+                    output_dir=output_dir,
+                    output_name=job_id,
+                    data_types=data_types
+                )
+                if variant_report_results:
+                    results['output_files'].update(variant_report_results)
+                    logger.debug("✅ Variant report generation completed")
+                else:
+                    logger.warning("⚠️ Variant report generation did not generate results")
 
         except Exception as e:
             logger.error(f"Pipeline failed: {e}")
@@ -1615,6 +1630,63 @@ class ExtractionCoordinator:
 
         except Exception as e:
             logger.error(f"Locus report generation failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def run_variant_report_postprocessing(
+        self,
+        output_dir: str,
+        output_name: str,
+        data_types: List[DataType]
+    ) -> Optional[Dict[str, str]]:
+        """
+        Generate per-sample variant report from existing parquet files.
+
+        Args:
+            output_dir: Directory containing parquet files
+            output_name: Base name for files (e.g., 'release12')
+            data_types: Data types available (NBA and WGS are used; others ignored)
+
+        Returns:
+            Dictionary with key 'variant_report' mapping to CSV path, or None if failed
+        """
+        try:
+            from .locus_report_generator import LocusReportGenerator
+
+            # Build parquet file map (variant report only uses NBA and WGS)
+            parquet_files = {}
+            for data_type in data_types:
+                if data_type.name not in ('NBA', 'WGS'):
+                    continue
+                parquet_path = os.path.join(output_dir, f"{output_name}_{data_type.name}.parquet")
+                if os.path.exists(parquet_path):
+                    parquet_files[data_type.name] = parquet_path
+                else:
+                    logger.warning(f"{data_type.name} parquet file not found: {parquet_path}")
+
+            if not parquet_files:
+                logger.warning("No NBA or WGS parquet files found for variant report generation")
+                return None
+
+            # Check for probe selection file (used to filter NBA to best probe)
+            probe_selection_path = os.path.join(output_dir, f"{output_name}_probe_selection.json")
+            if not os.path.exists(probe_selection_path):
+                probe_selection_path = None
+
+            generator = LocusReportGenerator(self.settings, probe_selection_path=probe_selection_path)
+
+            output_files = generator.generate_variant_report(
+                parquet_files=parquet_files,
+                output_dir=output_dir,
+                job_name=output_name,
+            )
+
+            logger.debug(f"Variant report generation complete: {output_files}")
+            return output_files if output_files else None
+
+        except Exception as e:
+            logger.error(f"Variant report generation failed: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None

@@ -108,6 +108,24 @@ def parse_args():
         help='Skip coverage profiling phase (default: False)'
     )
     parser.add_argument(
+        '--skip-variant-report',
+        action='store_true',
+        default=False,
+        help='Skip per-sample variant report generation (default: False)'
+    )
+    parser.add_argument(
+        '--nba-path',
+        type=str,
+        default=None,
+        help='Override base path for NBA files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/nba)'
+    )
+    parser.add_argument(
+        '--wgs-path',
+        type=str,
+        default=None,
+        help='Override base path for WGS files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/wgs/joint-calling/plink)'
+    )
+    parser.add_argument(
         '--retry-failed',
         type=str,
         default=None,
@@ -231,12 +249,18 @@ def main():
             'dosage_het_max': args.dosage_het_max,
             'dosage_hom_min': args.dosage_hom_min,
         }
+        path_overrides = {}
+        if args.nba_path:
+            path_overrides['nba_base_path'] = args.nba_path
+        if args.wgs_path:
+            path_overrides['wgs_base_path'] = args.wgs_path
+
         if args.optimize:
             logger.debug("Using auto-optimized performance settings")
-            settings = Settings.create_optimized(release=args.release, **dosage_overrides)
+            settings = Settings.create_optimized(release=args.release, **dosage_overrides, **path_overrides)
         else:
             logger.debug("Using default settings")
-            settings = Settings(release=args.release, **dosage_overrides)
+            settings = Settings(release=args.release, **dosage_overrides, **path_overrides)
         
         logger.debug(f"Performance settings: {settings.max_workers} workers, {settings.chunk_size} chunk_size, {settings.process_cap} process_cap")
         logger.debug(f"Dosage thresholds: het=[{settings.dosage_het_min}, {settings.dosage_het_max}), hom>={settings.dosage_hom_min}")
@@ -278,6 +302,9 @@ def main():
         # Handle coverage profiling logic - enabled by default unless skipped
         enable_coverage_profiling = not args.skip_coverage_profiling
 
+        # Handle variant report logic - enabled by default unless skipped
+        enable_variant_report = not args.skip_variant_report
+
         # Console: Show minimal config summary
         progress.info(f"Release {args.release} | {', '.join(args.data_types)} | {len(args.ancestries)} ancestries")
         progress.info(f"Output: {output_dir}")
@@ -297,6 +324,9 @@ def main():
         logger.debug(f"Probe selection: {enable_probe_selection}")
         logger.debug(f"Locus reports: {enable_locus_reports}")
         logger.debug(f"Coverage profiling: {enable_coverage_profiling}")
+        logger.debug(f"Variant report: {enable_variant_report}")
+        logger.debug(f"NBA path override: {args.nba_path or 'None (using default)'}")
+        logger.debug(f"WGS path override: {args.wgs_path or 'None (using default)'}")
         logger.debug(f"Retry failed: {args.retry_failed or 'No'}")
 
         # Check if we should retry failed extractions
@@ -362,6 +392,17 @@ def main():
                     if coverage_results:
                         output_files.update(coverage_results)
 
+                # Run variant report on existing results if enabled
+                if enable_variant_report:
+                    progress.info("  Running variant report...")
+                    variant_report_results = coordinator.run_variant_report_postprocessing(
+                        output_dir=output_dir,
+                        output_name=custom_name,
+                        data_types=data_type_enums
+                    )
+                    if variant_report_results:
+                        output_files.update(variant_report_results)
+
                 results = {
                     'success': True,
                     'job_id': custom_name,
@@ -384,7 +425,8 @@ def main():
                     output_name=custom_name,
                     enable_probe_selection=enable_probe_selection,
                     enable_locus_reports=enable_locus_reports,
-                    enable_coverage_profiling=enable_coverage_profiling
+                    enable_coverage_profiling=enable_coverage_profiling,
+                    enable_variant_report=enable_variant_report
                 )
         else:
             # Normal pipeline execution (will overwrite existing results)
