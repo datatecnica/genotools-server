@@ -180,3 +180,86 @@ The retry path uses its own `ProcessPoolExecutor`. Apply the same ancestry-group
 - Output format / parquet structure — untouched
 - Postprocessing (probe selection, locus reports, variant report) — untouched
 - All existing CLI args remain valid
+
+---
+
+## Option 4: Google Batch (Longer-Term Architectural Direction)
+
+Option 3 solves the memory problem in Python. Google Batch solves it at the
+infrastructure level — and addresses several other limitations of the current
+single-machine architecture at the same time.
+
+### Why It's a Natural Fit
+
+The pipeline's work units are already structured as independent tasks:
+`data_type × ancestry × chromosome`. This is exactly the task-array model that
+Batch is designed for. Each PLINK extraction task gets its own VM, sized
+appropriately for one file — no shared memory, no `--max-workers` tuning, no OOM.
+
+### Concrete Gains Over Option 3
+
+| Problem | Option 3 | Google Batch |
+|---------|----------|--------------|
+| OOM on large WGS files | Bounded by sequential ancestry batches | Each task on its own VM — physically impossible to OOM |
+| Manual `--max-workers` tuning | Still needed for chr-level parallelism | Gone — VM sizing handles it |
+| 40-min sequential run | Slightly slower but reliable | 220 tasks truly parallel → finishes in time of one file |
+| Failed task retry | `--retry-failed` + manual re-run | Automatic per-task retry with configurable attempts |
+| Monolithic failure modes | Ancestry-scoped blast radius | Single task failure, rest continue |
+| Missing file found after 40 min | Preflight check (see PREFLIGHT_CHECKS.md) | Job dependency DAG: validate → extract → postprocess |
+| Cost | Fixed VM running full duration | Spot/preemptible VMs for extraction; pay per task-minute |
+
+### Job Structure
+
+The pipeline maps naturally to a three-stage Batch job DAG:
+
+```
+Stage 1: preflight          (1 task, standard VM, fast)
+    ↓ only if all pass
+Stage 2: extraction         (1 task per ancestry × chromosome × data_type)
+    ↓ only if all pass                e.g. 220 tasks for R12 NBA+WGS
+Stage 3: postprocessing     (1 task, standard VM)
+    - probe selection
+    - locus reports
+    - variant report
+```
+
+Stage 2 tasks write parquet outputs to GCS. Stage 3 reads them. No single machine
+needs to hold everything in memory.
+
+### What Would Change
+
+- **Containerisation required** — each worker runs in Docker. The pipeline and its
+  dependencies (`plink2`, Python env) need to be packaged into an image and pushed
+  to Artifact Registry.
+- **GCS I/O explicit** — workers read PGEN files from GCS and write results to GCS.
+  The current gcsfuse mount approach works inside containers but needs configuration.
+- **Job submission replaces CLI** — `run_carriers_pipeline.py` becomes a job
+  submission script that creates a Batch job definition rather than running
+  extraction locally.
+- **Debugging changes** — logs go to Cloud Logging instead of local log files.
+  Individual task logs are accessible via `gcloud batch tasks describe` or the
+  Cloud Console.
+
+### What Would NOT Change
+
+- Extraction logic (`extractor.py`) — each Batch task runs the same PLINK extraction
+  code, just on one file
+- Output format — same parquet files, same postprocessing, same variant report
+- The SNP list, master key, and all other input files — same GCS paths
+
+### Prerequisites
+
+- Docker image with `plink2`, Python env, and pipeline code
+- GCS bucket for intermediate parquet outputs between stages
+- Batch API enabled on the GCP project
+- Service account with Batch + GCS read/write permissions
+
+### When to Consider This
+
+Option 3 is the right near-term fix — it's ~150 lines of Python with no new
+infrastructure. Google Batch becomes worth the investment when:
+
+- Releases get larger and extraction time consistently exceeds ~1 hour
+- Multiple releases need to run concurrently
+- Cost optimisation on the VM becomes a priority
+- The team wants fully automated, monitored pipeline runs without manual intervention
