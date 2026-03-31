@@ -150,6 +150,13 @@ def parse_args():
         default=1.5,
         help='Minimum dosage to call homozygous (default: 1.5 for soft calls, use 1.9 for hard calls)'
     )
+    parser.add_argument(
+        '--geno',
+        type=float,
+        default=None,
+        metavar='RATE',
+        help='Max per-variant missingness rate passed to PLINK --geno (e.g. 0.05 filters variants missing in >5%% of samples). Default: no filter.'
+    )
     return parser.parse_args()
 
 
@@ -249,6 +256,8 @@ def main():
             'dosage_het_max': args.dosage_het_max,
             'dosage_hom_min': args.dosage_hom_min,
         }
+        if args.geno is not None:
+            dosage_overrides['geno_filter'] = args.geno
         path_overrides = {}
         if args.nba_path:
             path_overrides['nba_base_path'] = args.nba_path
@@ -264,6 +273,8 @@ def main():
         
         logger.debug(f"Performance settings: {settings.max_workers} workers, {settings.chunk_size} chunk_size, {settings.process_cap} process_cap")
         logger.debug(f"Dosage thresholds: het=[{settings.dosage_het_min}, {settings.dosage_het_max}), hom>={settings.dosage_hom_min}")
+        if settings.geno_filter is not None:
+            logger.debug(f"PLINK QC filter: --geno {settings.geno_filter} (variants missing in >{settings.geno_filter*100:.0f}% of samples will be excluded)")
 
         # Initialize components
         extractor = VariantExtractor(settings)

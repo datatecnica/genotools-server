@@ -12,6 +12,7 @@ from typing import List, Dict, Optional, Any, Tuple
 from pathlib import Path
 import logging
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
 import time
 from datetime import datetime
 from tqdm import tqdm
@@ -427,6 +428,7 @@ class ExtractionCoordinator:
                 ncols=80,
                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
             )
+            oom_reported = False
             with pbar:
                 for future in as_completed(future_to_task):
                     file_path, data_type = future_to_task[future]
@@ -438,6 +440,29 @@ class ExtractionCoordinator:
                         else:
                             # Empty result - file processed but no matching variants
                             extraction_outcomes[data_type]['empty'].append(file_path)
+                        pbar.update(1)
+                    except BrokenProcessPool:
+                        if not oom_reported:
+                            oom_reported = True
+                            print(
+                                f"\n{'='*70}\n"
+                                f"OUT OF MEMORY ERROR: A worker process was killed by the OS.\n"
+                                f"\n"
+                                f"  Current workers : {optimal_workers}\n"
+                                f"  Likely cause    : Too many PLINK processes running in parallel,\n"
+                                f"                    each memory-mapping a large WGS PGEN file.\n"
+                                f"\n"
+                                f"  Fix             : Re-run with fewer workers, e.g.:\n"
+                                f"    --max-workers {max(1, optimal_workers // 2)}\n"
+                                f"\n"
+                                f"  All remaining tasks in this pool have been cancelled.\n"
+                                f"  Use --retry-failed with the failed_files.json to resume.\n"
+                                f"{'='*70}\n"
+                            )
+                        extraction_outcomes[data_type]['failed'].append({
+                            'file': file_path,
+                            'error': 'OOM/BrokenProcessPool'
+                        })
                         pbar.update(1)
                     except Exception as e:
                         logger.error(f"Process extraction failed for {file_path}: {e}")
@@ -790,7 +815,10 @@ class ExtractionCoordinator:
 
     def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
         """Calculate optimal process count based on system resources and settings."""
-        return self.settings.get_optimal_workers(total_files)
+        optimal = self.settings.get_optimal_workers(total_files)
+        if max_workers is not None:
+            optimal = min(optimal, max_workers)
+        return optimal
     
     def _extract_data_type(
         self, 
@@ -1318,6 +1346,13 @@ class ExtractionCoordinator:
                                     retry_outcomes['successful'].append(file_path)
                                 else:
                                     retry_outcomes['empty'].append(file_path)
+                                pbar.update(1)
+                            except BrokenProcessPool:
+                                logger.error(
+                                    f"Process pool worker killed (likely OOM) during retry of {file_path}. "
+                                    f"Try reducing --max-workers (currently {optimal_workers}) to lower memory pressure."
+                                )
+                                retry_outcomes['failed'].append({'file': file_path, 'error': 'OOM/BrokenProcessPool'})
                                 pbar.update(1)
                             except Exception as e:
                                 logger.error(f"Retry failed for {file_path}: {e}")

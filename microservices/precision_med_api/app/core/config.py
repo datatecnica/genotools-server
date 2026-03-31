@@ -52,6 +52,12 @@ class Settings(BaseModel):
     dosage_het_min: float = Field(default=0.5, description="Minimum dosage to call heterozygous")
     dosage_het_max: float = Field(default=1.5, description="Maximum dosage to call heterozygous")
     dosage_hom_min: float = Field(default=1.5, description="Minimum dosage to call homozygous")
+
+    # PLINK QC filters applied during extraction (Step 1 --make-pgen)
+    geno_filter: Optional[float] = Field(
+        default=None,
+        description="Max per-variant missingness rate (PLINK --geno). E.g. 0.05 excludes variants missing in >5% of samples. None = no filter."
+    )
     
     @field_validator('release')
     @classmethod
@@ -78,18 +84,29 @@ class Settings(BaseModel):
     
     @classmethod
     def auto_detect_performance_settings(cls) -> Dict[str, int]:
-        """Auto-detect optimal performance settings based on machine specs."""
+        """Auto-detect optimal performance settings based on machine specs.
+
+        Worker count is capped by available RAM, not just CPU count, because
+        PLINK extraction is memory-bound (each worker memory-maps a PGEN file).
+        Assumes ~20 GB RAM per worker to safely handle large WGS joint-calling files.
+        Exceeding this leads to OOM kills. Use --max-workers to override.
+        """
         import psutil
-        
+
         cpu_count = os.cpu_count() or 4
         total_ram_gb = psutil.virtual_memory().total / (1024**3)
-        
+
+        # RAM-based worker cap: each PLINK worker can use ~20 GB for large WGS files.
+        # Use 80% of total RAM to leave headroom for the OS and other processes.
+        RAM_GB_PER_WORKER = 20
+        ram_based_cap = max(1, int(total_ram_gb * 0.8 / RAM_GB_PER_WORKER))
+
         # Performance tier detection
         if cpu_count <= 4 and total_ram_gb <= 16:
             # Small: Development/laptop
             return {
                 'chunk_size': 15000,
-                'max_workers': max(2, cpu_count - 2),
+                'max_workers': min(ram_based_cap, max(2, cpu_count - 2)),
                 'process_cap': min(6, cpu_count),
                 'cpu_reservation': 2
             }
@@ -97,7 +114,7 @@ class Settings(BaseModel):
             # Medium: Small production
             return {
                 'chunk_size': 25000,
-                'max_workers': max(4, cpu_count - 2),
+                'max_workers': min(ram_based_cap, max(4, cpu_count - 2)),
                 'process_cap': min(12, cpu_count + 2),
                 'cpu_reservation': 2
             }
@@ -105,35 +122,45 @@ class Settings(BaseModel):
             # Large: Medium production
             return {
                 'chunk_size': 40000,
-                'max_workers': max(8, cpu_count - 2),
+                'max_workers': min(ram_based_cap, max(8, cpu_count - 2)),
                 'process_cap': min(20, cpu_count + 4),
                 'cpu_reservation': 2
             }
         elif cpu_count <= 32 and total_ram_gb <= 128:
-            # XLarge: High-end production (current system)
+            # XLarge: High-end production
             return {
                 'chunk_size': 50000,
-                'max_workers': max(16, cpu_count - 4),
+                'max_workers': min(ram_based_cap, max(16, cpu_count - 4)),
                 'process_cap': min(30, cpu_count - 2),
                 'cpu_reservation': 4
             }
         else:
             # XXLarge: Workstation/Server
+            # ram_based_cap on a 503 GB machine = int(503 * 0.8 / 20) = 20 workers
             return {
                 'chunk_size': 75000,
-                'max_workers': max(24, cpu_count - 6),
-                'process_cap': min(60, cpu_count - 4),
+                'max_workers': min(ram_based_cap, max(8, cpu_count - 6)),
+                'process_cap': min(ram_based_cap, cpu_count - 4),
                 'cpu_reservation': 6
             }
     
     def get_optimal_workers(self, total_files: int) -> int:
-        """Get optimal worker count for given number of files."""
+        """Get optimal worker count for given number of files.
+
+        Capped by available RAM at runtime in addition to CPU and configured limits,
+        because PLINK extraction is memory-bound. Each worker may use ~20 GB for
+        large WGS joint-calling files. If you hit OOM errors, reduce --max-workers.
+        """
+        import psutil
         cpu_count = os.cpu_count() or 4
+        available_ram_gb = psutil.virtual_memory().available / (1024**3)
+        ram_based_cap = max(1, int(available_ram_gb * 0.8 / 20))
         return min(
             total_files,
             max(1, cpu_count - self.cpu_reservation),
             self.max_workers,
-            self.process_cap
+            self.process_cap,
+            ram_based_cap
         )
     
     @cached_property

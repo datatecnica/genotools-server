@@ -80,6 +80,8 @@ class VariantExtractor:
                 '--make-pgen',
                 '--out', intermediate_prefix
             ]
+            if self.settings.geno_filter is not None:
+                cmd_step1 += ['--geno', str(self.settings.geno_filter)]
             
             logger.debug(f"Step 1: Extracting {len(variant_ids)} variants to intermediate PGEN")
             result_step1 = subprocess.run(cmd_step1, capture_output=True, text=True, timeout=self.settings.plink_timeout_medium)

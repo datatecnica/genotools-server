@@ -24,9 +24,10 @@ Processes ~760 pathogenic SNPs across 254+ PLINK 2.0 files from four data source
 ### Performance
 
 - Extraction: <10 minutes for 400 variants across all files
-- Parallelization: 28 concurrent workers on XLarge machines
-- Memory: <8GB RAM through stream processing
+- Parallelization: Auto-detected based on available RAM (not CPU count)
+- Memory: Worker count capped at `floor(available_RAM * 0.8 / 20GB)` to prevent OOM
 - Auto-optimization: Detects machine specs and tunes performance
+- Override with `--max-workers` if OOM errors occur on large joint-calling WGS files
 
 ## Installation
 
@@ -89,31 +90,49 @@ curl -X POST http://localhost:8000/api/v1/carriers/pipeline \
 
 ```bash
 # Quick validation (2 ancestries, 5-10 minutes)
-python run_carriers_pipeline.py --ancestries AAC AFR
+python run_carriers_pipeline.py --release 11 --ancestries AAC AFR
 
-# Full pipeline (all ancestries, ~45 minutes)
-python run_carriers_pipeline.py --job-name release10
+# Full pipeline - standard release layout
+python run_carriers_pipeline.py --release 11 --job-name release11
+
+# R12+ with custom paths and QC filter (joint-calling WGS layout)
+python run_carriers_pipeline.py \
+  --release 12 \
+  --data-types NBA WGS \
+  --nba-path ~/gcs_mounts/gp2_release12/variant_report_files/nba \
+  --wgs-path ~/gcs_mounts/gp2_release12/variant_report_files/wgs/joint-calling/plink \
+  --job-name release12 \
+  --geno 0.05 \
+  --max-workers 20
 
 # Skip extraction (reuse existing results)
-python run_carriers_pipeline.py --job-name release10 --skip-extraction
+python run_carriers_pipeline.py --release 11 --job-name release11 --skip-extraction
 
 # Custom output location
-python run_carriers_pipeline.py --output /path/to/output
+python run_carriers_pipeline.py --release 11 --output /path/to/output
 ```
 
 ### Command-Line Options
 
 ```
+--release INT            GP2 release version (required, e.g. 11, 12)
 --job-name TEXT          Job name for output files (default: carriers_analysis)
 --ancestries [list]      Ancestries to process (default: all 11)
---data-types [list]      Data types: NBA, WGS, IMPUTED, EXOMES (default: NBA, WGS, IMPUTED)
---release INT            GP2 release version (default: 10, EXOMES requires 8+)
+--data-types [list]      Data types: NBA, WGS, IMPUTED, EXOMES (default: all four)
+--nba-path PATH          Override base path for NBA files (e.g. R12 custom layout)
+--wgs-path PATH          Override base path for WGS files (e.g. R12 joint-calling layout)
+--geno RATE              Max per-variant missingness for PLINK --geno filter (e.g. 0.05)
 --parallel               Enable parallel processing (default: True)
---max-workers INT        Maximum workers (default: auto-detect)
+--max-workers INT        Maximum parallel workers (default: auto from RAM)
 --optimize               Use performance optimizations (default: True)
 --skip-extraction        Skip extraction if results exist
 --skip-probe-selection   Skip probe selection phase
 --skip-locus-reports     Skip locus report generation
+--skip-variant-report    Skip per-sample variant report generation
+--dosage-het-min FLOAT   Min dosage to call heterozygous (default: 0.5)
+--dosage-het-max FLOAT   Max dosage to call heterozygous (default: 1.5)
+--dosage-hom-min FLOAT   Min dosage to call homozygous (default: 1.5)
+--retry-failed PATH      Path to failed_files.json from a previous run to retry
 --output PATH            Custom output directory
 ```
 
@@ -216,31 +235,36 @@ export PROCESS_CAP=30
 
 ### Performance Tiers
 
-- **Small** (≤4 CPU, ≤16GB): 2 workers, 15K chunk_size
-- **Medium** (≤8 CPU, ≤32GB): 4 workers, 25K chunk_size
-- **Large** (≤16 CPU, ≤64GB): 8 workers, 40K chunk_size
-- **XLarge** (≤32 CPU, ≤128GB): 16 workers, 50K chunk_size
-- **XXLarge** (>32 CPU, >128GB): 24+ workers, 75K chunk_size
+Worker counts are capped by available RAM (`floor(RAM * 0.8 / 20GB)`) in addition to CPU count, since PLINK extraction is memory-bound. Large joint-calling WGS files (R12+) can use ~20 GB per worker.
+
+- **Small** (≤4 CPU, ≤16GB): up to 2 workers, 15K chunk_size
+- **Medium** (≤8 CPU, ≤32GB): up to 4 workers, 25K chunk_size
+- **Large** (≤16 CPU, ≤64GB): up to 8 workers, 40K chunk_size
+- **XLarge** (≤32 CPU, ≤128GB): up to 16 workers, 50K chunk_size
+- **XXLarge** (>32 CPU, >128GB): up to 20 workers (RAM-capped), 75K chunk_size
+
+Use `--max-workers` to override. If you see OOM errors, halve the current worker count.
 
 ## Output
 
 ### Directory Structure
 
-Default: `~/gcs_mounts/genotools_server/precision_med/results/release10/`
+Default: `~/gcs_mounts/genotools_server/precision_med/results/release12/`
 
 ```
-results/release10/
-├── release10_NBA.parquet                  # NBA genotypes
-├── release10_WGS.parquet                  # WGS genotypes
-├── release10_IMPUTED.parquet              # IMPUTED genotypes
-├── release10_probe_selection.json         # Probe quality analysis
-├── release10_locus_reports_NBA.json       # Clinical phenotype stats (NBA)
-├── release10_locus_reports_NBA.csv
-├── release10_locus_reports_WGS.json       # Clinical phenotype stats (WGS)
-├── release10_locus_reports_WGS.csv
-├── release10_locus_reports_IMPUTED.json   # Clinical phenotype stats (IMPUTED)
-├── release10_locus_reports_IMPUTED.csv
-└── release10_pipeline_results.json        # Pipeline execution summary
+results/release12/
+├── release12_NBA.parquet                  # NBA genotypes
+├── release12_WGS.parquet                  # WGS genotypes
+├── release12_IMPUTED.parquet              # IMPUTED genotypes
+├── release12_probe_selection.json         # Probe quality analysis
+├── release12_locus_reports_NBA.json       # Clinical phenotype stats (NBA)
+├── release12_locus_reports_NBA.csv
+├── release12_locus_reports_WGS.json       # Clinical phenotype stats (WGS)
+├── release12_locus_reports_WGS.csv
+├── release12_locus_reports_IMPUTED.json   # Clinical phenotype stats (IMPUTED)
+├── release12_locus_reports_IMPUTED.csv
+├── release12_variant_report.csv           # Per-sample clinician-facing carrier report
+└── release12_pipeline_results.json        # Pipeline execution summary
 ```
 
 ### Output Formats
@@ -250,6 +274,14 @@ results/release10/
 - Correct pathogenic allele counting (0=none, 1=het, 2=hom)
 - MAF correction columns: `maf_corrected` (bool), `original_alt_af` (float)
 - Metadata columns first, then sorted sample columns
+
+**_variant_report.csv** - Per-sample clinician-facing carrier report:
+- One row per carrier per variant (NBA and WGS only)
+- Columns: GP2ID, Ancestry, Gene, Variant_ID, AA_change, rsID, NBA_probe_name, Zygosity, MOI, Data_type, Pathogenicity, Pathogenicity_source, Variant_interpretation, potential_comp_het, validated_by_wgs
+- `Data_type` shows `NBA`, `WGS`, or `NBA, WGS` (cross-validated)
+- `validated_by_wgs`: True if variant found in both NBA and WGS for the same sample
+- `potential_comp_het`: True if sample has ≥2 het variants in an AR gene
+- Only best-performing NBA probe included per variant (via probe selection)
 
 **_probe_selection.json** - Probe quality validation:
 - Per-mutation analysis with quality metrics
@@ -269,9 +301,9 @@ results/release10/
 - Processing: Direct single-file per ancestry
 
 **WGS (Whole Genome Sequencing)**
-- Format: `R{version}_wgs_carrier_vars.{pgen|pvar|psam}`
-- Example: `R10_wgs_carrier_vars.pgen`
-- Processing: Single consolidated file
+- R10/R11 format: `R{version}_wgs_carrier_vars.{pgen|pvar|psam}` (single consolidated file)
+- R12+ format: `{ancestry}/chr{N}.{pgen|pvar|psam}` (joint-calling, split by ancestry and chromosome)
+- R12+ requires `--wgs-path` to override the default path
 
 **IMPUTED**
 - Format: `chr{chrom}_{ancestry}_release{version}_vwb.{pgen|pvar|psam}`
@@ -351,6 +383,20 @@ SNP List: ~/gcs_mounts/genotools_server/precision_med/summary_data/precision_med
 - **API**: uvicorn, FastAPI with background tasks
 
 ## Changelog
+
+### March 2026 Update
+
+**Per-sample variant report**: New clinician-facing output (`{job_name}_variant_report.csv`)
+- Columns match requested format: GP2ID, Ancestry, Gene, Variant_ID, AA_change, rsID, Zygosity, MOI, Data_type, Pathogenicity, Pathogenicity_source, Variant_interpretation
+- Cross-validates NBA and WGS: `validated_by_wgs` flag, combined `Data_type` field
+- Flags potential compound heterozygotes (`potential_comp_het`) in AR genes
+- Only includes best NBA probe per variant
+
+**R12 path overrides**: `--nba-path` and `--wgs-path` CLI args for non-standard release layouts
+
+**PLINK QC filter**: `--geno RATE` applies PLINK `--geno` during extraction to remove high-missingness variants before they enter the pipeline
+
+**Memory-aware parallelization**: Worker count now capped by available RAM (not CPU count). OOM errors print a clear actionable message with a suggested `--max-workers` value. `--max-workers` now correctly enforced.
 
 ### December 2025 Update
 
