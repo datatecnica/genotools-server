@@ -47,6 +47,7 @@ archive/
 # Results and data (large files)
 results/
 cache/
+coverage_reports/
 *.parquet
 *.pgen
 *.pvar

@@ -1,0 +1,763 @@
+GP2_approved,snp_name,snp_name_alt,locus,moi,rsid,hg19,hg38,ancestry,gnomad_exomes_af,gnomad_genomes_af,precision_medicine,pipeline,new_source,pathogenicity_prediction_new,medelian_or_risk,submitter_email
+yes,Arg1067Gln,p.Arg1067Gln,LRRK2,AD,rs111341148,12:40692148:G:A,12:40298346:G:A,,,,yes,,MDSGene,Likely pathogenic,Mendelian,lara.lange@nih.gov
+yes,Ile1122Val,p.(Ile1122Val),LRRK2,AD,rs34805604,12:40692927:A:G,12:40299125:A:G,,1.3688e:06,,yes,,HGMD and Clinvar,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg1325Gln,p.(Arg1325Gln),LRRK2,AD,rs72546338,12:40702283:G:A,12:40308481:G:A,,0.000383294,0.000203816,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Ser1403Arg,p.(Ser1403Arg),LRRK2,AD,,12:40702927:T:A,12:40309125:T:A,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Asn1437His,p.(Asn1437His),LRRK2,AD,rs74163686,12:40703027:A:C,12:40309225:A:C,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Asn1437Asp,p.(Asn1437Asp),LRRK2,AD,,12:40703027:A:G,12:40309225:A:G,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Asn1437Ser,p.(Asn1437Ser),LRRK2,AD,,12:40703028:A:G,12:40309226:A:G,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Ala1440Pro,p.(Ala1440Pro),LRRK2,AD,rs1592270134,12:40704233:G:C,12:40310431:G:C,,,,yes,,HGMD and Clinvar,"DM, Likely pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg1441Ser,p.(Arg1441Ser),LRRK2,AD,rs33939927,12:40704236:C:A,12:40310434:C:A,,,,yes,,HGMD and Clinvar and MDSGene,"DM, Likely pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg1441Gly,p.(Arg1441Gly),LRRK2,AD,rs33939927,12:40704236:C:G,12:40310434:C:G,,3.42098e:06,,yes,,HGMD and Clinvar and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg1441Cys,p.(Arg1441Cys),LRRK2,AD,rs33939927,12:40704236:C:T,12:40310434:C:T,,2.25785e:05,3.96338e:05,yes,,HGMD and Clinvar and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg1441His,p.(Arg1441His),LRRK2,AD,rs34995376,12:40704237:G:A,12:40310435:G:A,,6.84194e:06,6.61402e:06,yes,,HGMD and Clinvar and MDSGene,"DM, Pathogenic/Likely pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ala1442Pro,p.(Ala1442Pro),LRRK2,AD,rs281865048,12:40704239:G:C,12:40310437:G:C,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Val1447Met,p.(Val1447Met),LRRK2,AD,,12:40704254:G:A,12:40310452:G:A,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Ile1658Phe,p.(Ile1658Phe),LRRK2,AD,,12:40713934:A:T,12:40320132:A:T,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Tyr1699Cys,p.(Tyr1699Cys),LRRK2,AD,rs35801418,12:40714916:A:G,12:40321114:A:G,,,,yes,,HGMD and Clinvar and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Phe1700Leu,p.Phe1700Leu,LRRK2,AD,,12:40714918:T:C,12:40321116:T:C,,,,yes,,MDSGene,Pathogenic,Mendelian,lara.lange@nih.gov
+yes,Arg1728His,p.(Arg1728His),LRRK2,AD,rs145364431,12:40715849:G:A,12:40322047:G:A,,5.4752e:06,3.29515e:05,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Ser1761Arg,p.(Ser1761Arg),LRRK2,AD,rs1555189847,12:40715947:A:C,12:40322145:A:C,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Leu1795Phe,p.(Leu1795Phe),LRRK2,AD,rs111910483,12:40716188:G:T,12:40322386:G:T,EUR only,1.36841e:06,,yes,,HGMD and GP2,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly2019Ser,p.(Gly2019Ser),LRRK2,AD,rs34637584,12:40734202:G:A,12:40340400:G:A,,0.00041666,0.000361409,yes,,HGMD and Clinvar and MDSGene,"DM, Pathogenic/Likely pathogenic; risk factor",Mendelian,lara.lange@nih.gov
+yes,Ile2020Leu,p.(Ile2020Leu),LRRK2,AD,,12:40734205:A:C,12:40340403:A:C,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Ile2020Thr,p.(Ile2020Thr),LRRK2,AD,rs35870237,12:40734206:T:C,12:40340404:T:C,,,,yes,,HGMD and Clinvar and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ile2020Ser,p.(Ile2020Ser),LRRK2,AD,,12:40734206:T:G,12:40340404:T:G,,,,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Thr2031Ser,p.(Thr2031Ser),LRRK2,AD,rs78029637,12:40734238:A:T,12:40340436:A:T,,,6.57272e:06,yes,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Arg1628Pro,p.Arg1628Pro,LRRK2,risk,rs33949390,12:40713845:G:C,12:40320043:G:C,,,,yes,,NA,risk,risk,lara.lange@nih.gov
+yes,Gly2385Arg,p.Gly2385Arg,LRRK2,risk,rs34778348,12:40757328:G:A,12:40363526:G:A,,,,yes,,NA,risk,risk,lara.lange@nih.gov
+yes,Asp620Asn,p.(Asp620Asn),VPS35,AD,rs188286943,16:46696364:C:T,16:46662452:C:T,,,,,,HGMD and Clinvar,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu46Lys,p.(Glu46Lys),SNCA,AD,rs104893875,4:90749321:C:T,4:89828170:C:T,,,,,,Clinvar and HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly51Asp,p.(Gly51Asp),SNCA,AD,rs431905511,4:90749305:C:T,4:89828154:C:T,,,,,,Clinvar and HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ala53Thr,p.(Ala53Thr),SNCA,AD,rs104893877,4:90749300:C:T,4:89828149:C:T,,,,,,Clinvar and HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ala53Glu,p.(Ala53Glu),SNCA,AD,,4:90749299:G:T,4:89828148:G:T,,,,,,Clinvar and HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ala30Pro,p.(Ala30Pro),SNCA,AD,rs104893878,4:90756731:C:G,4:89835580:C:G,,,,,,Clinvar and HGMD and MDSGene,"DM, Likely pathogenic",Mendelian,lara.lange@nih.gov
+yes,entire gene duplication,,SNCA,AD,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,entire gene triplication,,SNCA,AD,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ser71Arg,p.Ser71Arg,RAB32,AD,rs200251693,6:146865220:C:G,6:146544084:C:G,,,,,,NA,NA,Mendelian,lara.lange@nih.gov
+yes,Leu10Pro,p.(Leu10Pro),PARK7,AR,rs1553122735,1:8022874:T:C,1:7962814:T:C,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Thr19Lysfs*5,p.Thr19Lysfs*5,PARK7,AR,,1:8022901:CG:A,1:7962841:CG:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Met26Ile,p.(Met26Ile),PARK7,AR,rs74315351,1:8022923:G:A,1:7962863:G:A,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg28Gln,p.(Arg28Gln),PARK7,AR,rs142405016,1:8022928:G:A,1:7962868:G:A,,3.69564e:05,0.000112205,,,Clinvar and HGMD,"Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,c.90+1dupG,c.90+1dupG,PARK7,AR,rs1578089802,1:8022932:T:TG,1:7962872:T:TG,,,,,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.91-2A>G,c.91-2A>G,PARK7,AR,rs144300896,1:8025382:A:G,1:7965322:A:G,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ala36Cysfs*12,p.Ala36Cysfs*12,PARK7,AR,rs781600849,1:8025396:G:GT,1:7965336:G:GT,,2.12072e:05,6.57298e:06,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Ala39Ser,p.(Ala39Ser),PARK7,AR,rs137853051,1:8025408:G:T,1:7965348:G:T,,,,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Gln45*,p.(Gln45Ter),PARK7,AR,rs1553122918,1:8025426:C:T,1:7965366:C:T,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu64Argfs*5,p.Glu64Argfs*5,PARK7,AR,rs759703272,1:8025475:C:CA,1:7965415:C:CA,,1.36824e:06,,,,Clinvar and HGMD,"Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Glu64Asp,p.(Glu64Asp),PARK7,AR,rs74315353,1:8025485:G:C,1:7965425:G:C,,1.36859e:06,6.5716e:06,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu101Pro,p.(Leu101Pro),PARK7,AR,,1:8031003:T:C,1:7970943:T:C,,,,,,Clinvar and HGMD,"Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Ile105Phe,p.(Ile105Phe),PARK7,AR,,1:8031014:A:T,1:7970954:A:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Thr154Lys,p.(Thr154Lys),PARK7,AR,rs1185581139,1:8045005:C:A,1:7984945:C:A,,,6.56961e:06,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Pro158del,p.(Pro158del),PARK7,AR,rs764877312,1:8045014:GGCC:G,1:7984954:GGCC:G,,0.000129969,3.94223e:05,,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu163Lys,p.(Glu163Lys),PARK7,AR,rs74315354,1:8045031:G:A,1:7984971:G:A,,4.10427e:06,6.56978e:06,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu166Pro,p.(Leu166Pro),PARK7,AR,rs28938172,1:8045041:T:C,1:7984981:T:C,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu172Gln,p.(Leu172Gln),PARK7,AR,rs1187709511,1:8045059:T:A,1:7984999:T:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5 deletion,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,ex. 2 deletion,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,ex. 3 deletion,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,ex. 4 deletion,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,ex. 5 deletion,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,ex. 5-7 deletion,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,ex. 5-7 deletion,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,incl. ex. 1-5 deletion,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,incl. ex. 3 duplication,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,incl. ex. 5 duplication,,PARK7,AR,,,,,,,,,HGMD,DM,Mendelian,lara.lange@nih.gov
+yes,Gln1140*,p.(Gln1140Ter),ATP13A2,AR,rs1057519289,1:17312841:G:A,1:16986346:G:A,,7.01191e:07,,,,Clinvar and HGMD,"Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Leu1059Arg,p.(Leu1059Arg),ATP13A2,AR,rs137853967,1:17313359:A:C,1:16986864:A:C,,,,,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Phe1051del,p.(Phe1051del),ATP13A2,AR,rs1057519290,1:17313380:GAGA:G,1:16986885:GAGA:G,,6.84087e:07,,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Tyr1020Thrfs*3,p.Tyr1020Thrfs*3,ATP13A2,AR,rs765632065,1:17313566:AG:A,1:16987071:AG:A,,6.63831e:05,6.57358e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ser941Thrfs*2,p.Ser941Thrfs*2,ATP13A2,AR,,1:17314669:GC:G,1:16988174:GC:G,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly892Asp,p.(Gly892Asp),ATP13A2,AR,rs756683120,1:17314904:C:T,1:16988409:C:T,,2.05241e:06,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly877Arg,p.(Gly877Arg),ATP13A2,AR,rs144701072,1:17314950:C:T,1:16988455:C:T,,6.84203e:06,3.28472e:05,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Gln858*,p.(Gln858Ter),ATP13A2,AR,rs1260569481,1:17316223:G:A,1:16989728:G:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Met854Arg,p.(Met854Arg),ATP13A2,AR,rs587777053,1:17316234:A:C,1:16989739:A:C,,6.84103e:07,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Phe851Cysfs*6,p.Phe851Cysfs*6,ATP13A2,AR,rs587776890,1:17316241:CAA:C,1:16989746:CAA:C,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu825Asnfs*33,p.Leu825Asnfs*33,ATP13A2,AR,,1:17316438:G:TT,1:16989943:G:TT,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu789Argfs*15,p.Leu789Argfs*15,ATP13A2,AR,,1:17316666:CGA:C,1:16990171:CGA:C,,6.84119e:07,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln737*,p.(Gln737Ter),ATP13A2,AR,,1:17318271:G:A,1:16991776:G:A,,6.8407e:07,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg709Thr,p.(Arg709Thr),ATP13A2,AR,,1:17318504:C:G,1:16992009:C:G,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ser700Alafs*8,p.Ser700Alafs*8,ATP13A2,AR,,1:17318532:TG:T,1:16992037:TG:T,,6.84524e:07,,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Gln613*,p.(Gln613Ter),ATP13A2,AR,rs2100785804,1:17318989:G:A,1:16992494:G:A,,,,,,Clinvar and HGMD,"Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Leu552Profs*238,p.Leu552Profs*238,ATP13A2,AR,rs2100817106,1:17320218:A:AGCAGGGGCCCCACAGGCAGGCG,1:16993723:A:AGCAGGGGCCCCACAGGCAGGCG,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln534*,p.(Gln534Ter),ATP13A2,AR,rs1412349209,1:17320273:G:A,1:16993778:G:A,,6.97148e:07,,,,Clinvar and HGMD,"Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Thr517Ile,p.(Thr517Ile),ATP13A2,AR,rs1057519291,1:17320323:G:A,1:16993828:G:A,,0,,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Gly504Arg,p.(Gly504Arg),ATP13A2,AR,rs121918227,1:17322503:C:G,1:16996008:C:G,,6.84118e:07,,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic; DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg487*,p.(Arg487Ter),ATP13A2,AR,rs1303653650,1:17322554:G:A,1:16996059:G:A,,1.23141e:05,1.31392e:05,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Arg449*,p.(Arg449Ter),ATP13A2,AR,rs1057519293,1:17322757:G:A,1:16996262:G:A,,1.0261e:05,,,,HGMD and Clinvar,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.1306+5G>A,c.1306+5G>A,ATP13A2,AR,rs786205056,1:17322876:C:T,1:16996381:C:T,,,,,,Clinvar and MDSGene,"Pathogenic/Likely pathogenic, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Thr368Argfs*29,p.Thr368Argfs*29,ATP13A2,AR,rs762033589,1:17323607:G:GTC,1:16997112:G:GTC,,6.84232e:07,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Trp258*,p.(Trp258Ter),ATP13A2,AR,rs1334843918,1:17326961:C:T,1:17000466:C:T,,,6.57479e:06,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln230*,p.(Gln230Ter),ATP13A2,AR,,1:17328546:G:A,1:17002051:G:A,,,,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Phe182Leu,p.(Phe182Leu),ATP13A2,AR,rs780027766,1:17330838:G:T,1:17004343:G:T,,3.42077e:06,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln122*,p.(Gln122Ter),ATP13A2,AR,rs1057519292,1:17331300:G:A,1:17004805:G:A,,,,,,Clinvar and HGMD,"Pathogenic/Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Val73Glyfs*26,p.Val73Glyfs*26,ATP13A2,AR,rs1389678247,1:17331939:A:AC,1:17005444:A:AC,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Val73Glyfs*20,p.Val73Glyfs*20,ATP13A2,AR,rs1389678247,1:17331939:AC:A,1:17005444:AC:A,,1.36829e:06,1.31548e:05,,,Clinvar and MDSGene,"Pathogenic, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly192Arg,p.(Gly192Arg),RAB39B,XLR,rs864309527,X:154490156:C:T,X:155260871:C:T,,,,,,Clinvar and HGMD,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu187Lysfs*3,p.Glu187Lysfs*3,RAB39B,XLR,,X:154490170:TC:T,X:155260885:TC:T,,,,,,Clinvar and HGMD,"DM, Likely pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu187*,p.(Glu187Ter),RAB39B,XLR,rs1557314191,X:154490171:C:A,X:155260886:C:A,,,,,,Clinvar and HGMD,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Thr168Lys,p.(Thr168Lys),RAB39B,XLR,rs587777874,X:154490227:G:T,X:155260942:G:T,,,,,,Clinvar and HGMD,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.215+1G>A,c.215+1G>A,RAB39B,XLR,rs587776734,X:154493358:C:T,X:155264073:C:T,,,,,,Clinvar and HGMD,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Trp63Cys,p.(Trp63Cys),RAB39B,XLR,rs1569561107,X:154493385:C:A,X:155264100:C:A,,,,,,Clinvar and HGMD,"DM, Likely pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ser47Leufs*44,p.Ser47Leufs*44,RAB39B,XLR,,X:154493436:G:GA,X:155264151:G:GA,,9.10644e:07,,,,Clinvar and HGMD,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Tyr7*,p.(Tyr7Ter),RAB39B,XLR,rs267606995,X:154493553:G:T,X:155264268:G:T,,,,,,Clinvar and HGMD,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Met1Thr,p.(Met1Thr),RAB39B,XLR,rs1557314544,X:154493572:A:G,X:155264287:A:G,,,,,,Clinvar and HGMD,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Pro1243Leu,p.(Pro1282Leu),SYNJ1,AR,,21:34011405:G:A,21:32639095:G:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.2462-2A>G,c.2579-2A>G,SYNJ1,AR,,21:34029432:T:C,21:32657122:T:C,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Tyr793Cys,p.(Tyr832Cys),SYNJ1,AR,rs1283151166,21:34030109:T:C,21:32657799:T:C,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg219Gln,p.(Arg258Gln),SYNJ1,AR,rs398122403,21:34067416:C:T,21:32695106:C:T,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg420Pro,p.(Arg459Pro),SYNJ1,AR,rs1060499619,21:34053900:C:G,21:32681590:C:G,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu1320Phefs*42,p.Leu1406Phefs*42,SYNJ1,AR,rs761852713,21:34003926:C:CG,21:32631616:C:CG,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Trp132*,p.(Trp171Ter),SYNJ1,AR,rs1555907463,21:34072232:C:T,21:32699922:C:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Tyr29Argfs*71,p.Tyr29Argfs*71,PINK1,AR,rs1480758482,1:20960115:CCGGCCGGGCCTACGGCTTGGGG:C,1:20633622:CCGGCCGGGCCTACGGCTTGGGG:C,,1.75097e:06,6.60476e:06,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu31*,p.(Leu31Ter),PINK1,AR,,1:20960133:T:A,1:20633640:T:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Val59Serfs*48,p.Val59Serfs*48,PINK1,AR,,1:20960213:AG:A,1:20633720:AG:A,,,,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu77Pro,p.(Leu77Pro),PINK1,AR,,1:20960271:T:C,1:20633778:T:C,,0,,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Trp90*,p.(Trp90Ter),PINK1,AR,rs1570397211,1:20960311:G:A,1:20633818:G:A,,1.40359e:06,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys92Alafs*15,p.Cys92Alafs*15,PINK1,AR,rs755000580,1:20960313:GC:G,1:20633820:GC:G,,1.40308e:06,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys92Phe,p.(Cys92Phe),PINK1,AR,rs1553145550,1:20960316:G:T,1:20633823:G:T,,0,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu113Lysfs*45,p.Glu113Lysfs*45,PINK1,AR,,1:20960376:AG:A,1:20633883:AG:A,,,,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln115Thrfs*27,p.Gln115Thrfs*27,PINK1,AR,,1:20960378:G:GA,1:20633885:G:GA,,,,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys125Gly,p.(Cys125Gly),PINK1,AR,,1:20960414:T:G,1:20633921:T:G,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln126Pro,p.(Gln126Pro),PINK1,AR,rs775809722,1:20960418:A:C,1:20633925:A:C,,3.55833e:06,,,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln129*,p.(Gln129Ter),PINK1,AR,rs777146957,1:20960426:C:T,1:20633933:C:T,,0,6.63315e:06,,,Clinvar and HGMD,"Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,c.388-2A>G,c.388-2A>G,PINK1,AR,rs758661907,1:20964333:A:G,1:20637840:A:G,,,,,,PDGENE,,Mendelian,lara.lange@nih.gov
+yes,Q149Afs*16,p.Gln149Alafs*16,PINK1,AR,,1:20964386:C:CG,1:20637893:C:CG,,,,,,Clinvar and PDGENE,Likely pathogenic,Mendelian,lara.lange@nih.gov
+yes,Gly163Valfs*22,p.Gly163Valfs*22,PINK1,AR,,1:20964433:TG:T,1:20637940:TG:T,,,,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ala168Pro,p.(Ala168Pro),PINK1,AR,rs768091663,1:20964449:G:C,1:20637956:G:C,,7.52452e:06,,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ala217Asp,p.(Ala217Asp),PINK1,AR,rs74315360,1:20964597:C:A,1:20638104:C:A,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Asn223Lysfs*12,Asn223Lysfs*12,PINK1,AR,,1:20964615:AC:A,1:20638122:AC:A,,,,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln239*,p.(Gln239Ter),PINK1,AR,rs1553146084,1:20966424:C:T,1:20639931:C:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu240Lys,p.(Glu240Lys),PINK1,AR,rs573931674,1:20966427:G:A,1:20639934:G:A,,3.42244e:06,6.56547e:06,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ala244Gly,p.(Ala244Gly),PINK1,AR,rs776953195,1:20966440:C:G,1:20639947:C:G,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg246*,p.(Arg246Ter),PINK1,AR,rs74315357,1:20966445:C:T,1:20639952:C:T,,8.21669e:06,6.57073e:06,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Tyr258*,p.(Tyr258Ter),PINK1,AR,rs756783990,1:20966483:C:A,1:20639990:C:A,,2.0692e:06,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln267*,p.(Gln267Ter),PINK1,AR,rs730882053,1:20971005:C:T,1:20644512:C:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,His271Gln,p.(His271Gln),PINK1,AR,rs28940284,1:20971019:C:A,1:20644526:C:A,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Asp297Metfs*22,Asp297Metfs*22,PINK1,AR,,1:20971094:TG:T,1:20644601:TG:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly309Asp,p.(Gly309Asp),PINK1,AR,rs74315355,1:20971132:G:A,1:20644639:G:A,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Thr313Met,p.(Thr313Met),PINK1,AR,rs74315359,1:20971144:C:T,1:20644651:C:T,,1.23131e:05,2.62526e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Val317Ile,p.(Val317Ile),PINK1,AR,rs200949139,1:20971155:G:A,1:20644662:G:A,,5.47258e:05,9.18925e:05,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Q327*,p.Gln327*,PINK1,AR,,1:20972072:C:T,1:20645579:C:T,,,,,,PDGENE,,Mendelian,lara.lange@nih.gov
+yes,Leu347Pro,p.(Leu347Pro),PINK1,AR,rs28940285,1:20972133:T:C,1:20645640:T:C,,1.4365e:05,3.28684e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Asn367Ser,p.(Asn367Ser),PINK1,AR,rs749040285,1:20972193:A:G,1:20645700:A:G,,1.16288e:05,1.31517e:05,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ile368Asn,p.(Ile368Asn),PINK1,AR,rs774647122,1:20972196:T:A,1:20645703:T:A,,2.73619e:06,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu369Pro,p.(Leu369Pro),PINK1,AR,rs1195888869,1:20972199:T:C,1:20645706:T:C,,1.36809e:06,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly386Ala,p.(Gly386Ala),PINK1,AR,,1:20975031:G:C,1:20648538:G:C,,1.36811e:06,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys388Arg,p.(Cys388Arg),PINK1,AR,rs1553146806,1:20975036:T:C,1:20648543:T:C,,2.73622e:06,,,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln397*,p.(Gln397Ter),PINK1,AR,rs139094526,1:20975063:C:T,1:20648570:C:T,,1.36813e:06,,,,Clinvar and PDGENE,Likely pathogenic,Mendelian,lara.lange@nih.gov
+yes,Pro399Leu,p.(Pro399Leu),PINK1,AR,rs119451946,1:20975070:C:T,1:20648577:C:T,,7.52468e:06,1.96959e:05,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Tyr404*,p.(Tyr404Ter),PINK1,AR,rs747239996,1:20975086:C:A,1:20648593:C:A,,,,,,Clinvar and HGMD,"Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Gly409Arg,p.(Gly409Arg),PINK1,AR,rs574890623,1:20975099:G:A,1:20648606:G:A,,7.52539e:06,5.25196e:05,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly409Val,p.(Gly409Val),PINK1,AR,rs1553146818,1:20975100:G:T,1:20648607:G:T,,0,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Pro416Arg,p.(Pro416Arg),PINK1,AR,rs1553146821,1:20975121:C:G,1:20648628:C:G,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Pro416Leu,p.(Pro416Leu),PINK1,AR,rs1553146821,1:20975121:C:T,1:20648628:C:T,,6.84233e:07,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu417Gly,p.(Glu417Gly),PINK1,AR,rs1553146822,1:20975124:A:G,1:20648631:A:G,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.1252-2_1272del,c.1252-2_1272del,PINK1,AR,rs748860758,1:20975483:AGCAGGTGTCCACGGCCCGTCCTG:A,1:20648990:AGCAGGTGTCCACGGCCCGTCCTG:A,,4.1084e:06,,,,Clinvar and MDSGene,"Likely pathogenic, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Ser419Pro,p.(Ser419Pro),PINK1,AR,rs1553146849,1:20975491:T:C,1:20648998:T:C,,6.84636e:07,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Tyr431His,p.(Tyr431His),PINK1,AR,rs74315361,1:20975527:T:C,1:20649034:T:C,,,,,,Clinvar and HGMD,"risk factor, DM",Mendelian,lara.lange@nih.gov
+yes,Trp437Arg,p.(Trp437Arg),PINK1,AR,rs1557566897,1:20975545:T:C,1:20649052:T:C,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Trp437*,p.(Trp437Ter),PINK1,AR,rs74315356,1:20975547:G:A,1:20649054:G:A,,4.10464e:06,1.31339e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Tyr444Metfs*39,p.Tyr444Metfs*39,PINK1,AR,rs775479526,1:20975563:GC:G,1:20649070:GC:G,,1.91541e:05,1.31349e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln456*,p.(Gln456Ter),PINK1,AR,rs45539432,1:20975602:C:T,1:20649109:C:T,,3.96753e:05,5.25058e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg464His,p.(Arg464His),PINK1,AR,rs764328076,1:20975627:G:A,1:20649134:G:A,,3.62551e:05,6.56771e:06,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Leu489Pro,p.(Leu489Pro),PINK1,AR,rs1553146903,1:20975702:T:C,1:20649209:T:C,,2.05231e:06,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg492*,p.(Arg492Ter),PINK1,AR,rs34208370,1:20975710:C:T,1:20649217:C:T,,6.4308e:05,4.59505e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.1488+1G>A,c.1488+1G>A,PINK1,AR,rs2053233432,1:20975725:G:A,1:20649232:G:A,,1.36836e:06,1.31344e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Lys520Argfs*3,p.Lys520Argfs*3,PINK1,AR,rs765320312,1:20976994:TG:T,1:20650501:TG:T,,2.05216e:06,6.57022e:06,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,N521Tfs*40,p.Asn521Thrfs*40,PINK1,AR,rs2053253370,1:20976999:AAT:A,1:20650506:AAT:A,,,6.57013e:06,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Asp525Valfs*38,p.Asp525Valfs*38,PINK1,AR,rs730880302,1:20977005:A:AAGTT,1:20650512:A:AAGTT,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys549Trpfs*5,p.Cys549Trpfs*5,PINK1,AR,,1:20977082:TTGTG:T,1:20650589:TTGTG:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 1 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 1 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-4 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-8 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 4 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 4-5 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7 deletion,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2 duplication,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5 duplication,,PINK1,AR,,,,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Asp460Glyfs*109,p.Asp460Glyfs*109,PRKN,AR,,6:161771150:T:TC,6:161350118:T:TC,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Trp453*,p.(Trp453Ter),PRKN,AR,rs137853056,6:161771171:C:T,6:161350139:C:T,,6.84336e:07,,,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys446Phe,p.(Cys446Phe),PRKN,AR,rs1784465451,6:161771192:C:A,6:161350160:C:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Trp445*,p.(Trp445Ter),PRKN,AR,rs961239925,6:161771195:C:T,6:161350163:C:T,,2.73715e:06,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys441Arg,p.(Cys441Arg),PRKN,AR,rs778305273,6:161771208:A:G,6:161350176:A:G,,4.10556e:06,,,,Clinvar and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Pro437Leu,p.(Pro437Leu),PRKN,AR,rs149953814,6:161771219:G:A,6:161350187:G:A,,0.00280143,0.00211505,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys431Phe,p.(Cys431Phe),PRKN,AR,rs397514694,6:161771237:C:A,6:161350205:C:A,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly430Asp,p.(Gly430Asp),PRKN,AR,rs191486604,6:161771240:C:T,6:161350208:C:T,,0.000233624,0.000131453,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly430Ser,p.(Gly430Ser),PRKN,AR,rs1226997153,6:161771241:C:T,6:161350209:C:T,,2.74073e:06,6.57177e:06,,,HGMD and PDGENE,DM,Mendelian,lara.lange@nih.gov
+yes,Asn428Lysfs*141,p.Asn428Lysfs*141,PRKN,AR,rs758718482,6:161781121:A:AT,6:161360089:A:AT,,3.43779e:06,,,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,N428Mfs*7,p.Asn428Metfs*7,PRKN,AR,rs758718482,6:161781121:AT:A,6:161360089:AT:A,,4.12569e:06,,,,Clinvar and PDGENE,Likely pathogenic,Mendelian,lara.lange@nih.gov
+yes,Cys418Arg,p.(Cys418Arg),PRKN,AR,rs1554252200,6:161781153:A:G,6:161360121:A:G,,,,,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Thr415Asn,p.(Thr415Asn),PRKN,AR,rs778125254,6:161781161:G:T,6:161360129:G:T,,3.42031e:06,,,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Thr414Profs*20,p.Thr414Profs*20,PRKN,AR,,6:161781164:GT:G,6:161360132:GT:G,,1.36828e:06,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu409*,p.(Glu409Ter),PRKN,AR,rs1554252213,6:161781180:C:A,6:161360148:C:A,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu395*,p.(Glu395Ter),PRKN,AR,rs1554252239,6:161781222:C:A,6:161360190:C:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg392Serfs*3,p.Arg392Serfs*3,PRKN,AR,,6:161781227:ACT:A,6:161360195:ACT:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.1084-1G>C,c.1084-1G>C,PRKN,AR,rs771555178,6:161807910:C:G,6:161386878:C:G,,,,,,PDGENE,,Mendelian,lara.lange@nih.gov
+yes,c.1083+1delG,c.1083+1delG,PRKN,AR,rs2115426221,6:161969884:AC:A,6:161548852:AC:A,,0,,,,Clinvar and HGMD and PDGENE and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.1083+1G>A,c.1083+1G>A,PRKN,AR,rs111546299,6:161969885:C:T,6:161548853:C:T,,4.10576e:06,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys360Phe,p.(Cys360Phe),PRKN,AR,,6:161969890:C:A,6:161548858:C:A,,,,,,HGMD and PDGENE,DM,Mendelian,lara.lange@nih.gov
+yes,Leu358Argfs*77,p.Leu358Argfs*77,PRKN,AR,,6:161969896:AG:T,6:161548864:AG:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys352Tyr,p.(Cys352Tyr),PRKN,AR,,6:161969914:C:T,6:161548882:C:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Lys349Serfs*20,p.Lys349Serfs*20,PRKN,AR,,6:161969921:CTT:C,6:161548889:CTT:C,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu344Serfs*91,p.Glu344Serfs*91,PRKN,AR,,6:161969938:TC:T,6:161548906:TC:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys332*,p.(Cys332Ter),PRKN,AR,rs1345155769,6:161969973:G:T,6:161548941:G:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,L331Yfs*104,p.Leu331Tyrfs*104,PRKN,AR,rs1583215504,6:161969976:TA:T,6:161548944:TA:T,,,,,,Clinvar and PDGENE,Likely pathogenic,Mendelian,lara.lange@nih.gov
+yes,Cys323_Val324del,p.Cys323_Val324del,PRKN,AR,,6:161969995:AGGACAC:A,6:161548963:AGGACAC:A,,,,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Val324Alafs*111,p.Val324Alafs*111,PRKN,AR,rs1562519380,6:161969997:GA:G,6:161548965:GA:G,,5.47247e:06,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gln311*,p.(Gln311Ter),PRKN,AR,rs137853055,6:161990389:G:A,6:161569357:G:A,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.872-1G>C,c.872-1G>C,PRKN,AR,rs772074730,6:161990449:C:G,6:161569417:C:G,,1.36903e:06,,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,c.871+1delG,c.871+1delG,PRKN,AR,,6:162206802:AC:A,6:161785770:AC:A,,,,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys289Gly,p.(Cys289Gly),PRKN,AR,rs55961220,6:162206810:A:C,6:161785778:A:C,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Gly284Arg,p.(Gly284Arg),PRKN,AR,rs751037529,6:162206825:C:G,6:161785793:C:G,,4.78873e:06,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg275Trp,p.(Arg275Trp),PRKN,AR,rs34424986,6:162206852:G:A,6:161785820:G:A,,0.00309565,0.00218011,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys268*,p.(Cys268Ter),PRKN,AR,rs377554392,6:162206871:A:T,6:161785839:A:T,,8.89296e:06,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg256Cys,p.(Arg256Cys),PRKN,AR,rs150562946,6:162206909:G:A,6:161785877:G:A,,0.000617734,0.00045968,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys253Phe,p.(Cys253Phe),PRKN,AR,rs747427602,6:162206917:C:A,6:161785885:C:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys253Tyr,p.(Cys253Tyr),PRKN,AR,rs747427602,6:162206917:C:T,6:161785885:C:T,,7.52484e:06,,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Thr240Met,p.(Thr240Met),PRKN,AR,rs137853054,6:162394349:G:A,6:161973317:G:A,,0.000277754,0.00024297,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Thr240Arg,p.(Thr240Arg),PRKN,AR,rs137853054,6:162394349:G:C,6:161973317:G:C,,6.85808e:07,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys238Alafs*21,p.Cys238Alafs*21,PRKN,AR,,6:162394355:CA:C,6:161973323:CA:C,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys212Tyr,p.(Cys212Tyr),PRKN,AR,rs137853058,6:162394433:C:T,6:161973401:C:T,,4.11556e:06,6.56797e:06,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Lys211Asn,p.(Lys211Asn),PRKN,AR,rs137853060,6:162394435:T:A,6:161973403:T:A,,1.71546e:05,,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.619-1G>C,c.619-1G>C,PRKN,AR,,6:162394450:C:G,6:161973418:C:G,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.619-1G>A,c.619-1G>A,PRKN,AR,,6:162394450:C:T,6:161973418:C:T,,7.02814e:07,,,,HGMD and MDSGene,DM,Mendelian,lara.lange@nih.gov
+yes,Cys201*,p.(Cys201Ter),PRKN,AR,rs1231455463,6:162475139:C:CT,6:162054107:C:CT,,6.8612e:07,,,,Clinvar and HGMD,"Pathogenic/Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Met192Val,p.(Met192Val),PRKN,AR,,6:162475167:T:C,6:162054135:T:C,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.535-3A>G,c.535-3A>G,PRKN,AR,,6:162475209:T:C,6:162054177:T:C,,1.37747e:06,,,,HGMD and PDGENE,DM,Mendelian,lara.lange@nih.gov
+yes,Gln178*,p.(Gln178Ter),PRKN,AR,,6:162622165:G:A,6:162201133:G:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Val164fs,p.(Val164fs),PRKN,AR,,6:162622205:TA:T,6:162201173:TA:T,,,,,,Clinvar and HGMD,"Pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Lys161Asn,p.(Lys161Asn),PRKN,AR,rs137853057,6:162622214:T:A,6:162201182:T:A,,,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg156Serfs*29,p.Arg156Serfs*29,PRKN,AR,rs764358789,6:162622230:CTT:C,6:162201198:CTT:C,,6.84093e:07,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Cys154Phefs*23,p.Cys154Phefs*23,PRKN,AR,,6:162622235:AC:A,6:162201203:AC:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,P113Tfs*51,p.Pro113Thrfs*51,PRKN,AR,rs771529549,6:162683592:TCAGTGTGCAGAATGACAGCCAGCCCCACAGAGTCTCCTGG:T,6:162262560:TCAGTGTGCAGAATGACAGCCAGCCCCACAGAGTCTCCTGG:T,,0.000267472,0.000157889,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Glu79*,p.(Glu79Ter),PRKN,AR,rs770994041,6:162683734:C:A,6:162262702:C:A,,8.90687e:06,6.74837e:06,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg75Glufs*22,p.Arg75Glufs*22,PRKN,AR,,6:162683746:T:TC,6:162262714:T:TC,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,W74Cfs*8,p.Trp74Cysfs*8,PRKN,AR,rs746646126,6:162683747:C:CCA,6:162262715:C:CCA,,2.60113e:05,3.96045e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Val56Glu,p.(Val56Glu),PRKN,AR,rs137853059,6:162864346:A:T,6:162443314:A:T,,2.0547e:05,1.97143e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,N52Mfs*29,p.Asn52Metfs*29,PRKN,AR,rs754809877,6:162864357:AT:A,6:162443325:AT:A,,0.000277351,0.000289192,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg42Pro,p.(Arg42Pro),PRKN,AR,rs368134308,6:162864388:C:G,6:162443356:C:G,,4.44876e:05,1.31454e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Pro37Leu,p.(Pro37Leu),PRKN,AR,rs148990138,6:162864403:G:A,6:162443371:G:A,,0.000426964,0.000236602,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Q34Rfs*5,p.Gln34Argfs*5,PRKN,AR,rs55777503,6:162864410:CCT:C,6:162443378:CCT:C,,0.000343455,0.00026922,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Q34Rfs*10,p.Gln34Argfs*10,PRKN,AR,rs748142049,6:162864411:CT:C,6:162443379:CT:C,,1.36926e:06,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg33Gln,p.(Arg33Gln),PRKN,AR,rs147757966,6:162864415:C:T,6:162443383:C:T,,0.000164194,5.25742e:05,,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Arg33*,p.(Arg33Ter),PRKN,AR,rs770591350,6:162864416:G:A,6:162443384:G:A,,6.15733e:06,6.57531e:06,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Lys27*,p.(Lys27Ter),PRKN,AR,,6:162864434:T:A,6:162443402:T:A,,,,,,HGMD and PDGENE,DM,Mendelian,lara.lange@nih.gov
+yes,Asp18Valfs*26,p.Asp18Valfs*26,PRKN,AR,,6:162864459:AT:A,6:162443427:AT:A,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Val3Glu,p.(Val3Glu),PRKN,AR,,6:162864505:A:T,6:162443473:A:T,,,6.57039e:06,,,Clinvar and HGMD,"Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,c.7+1G>T,c.7+1G>T,PRKN,AR,rs397518439,6:163148693:C:A,6:162727661:C:A,,0,,,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.7+1G>A,c.7+1G>A,PRKN,AR,,6:163148693:C:T,6:162727661:C:T,,,,,,HGMD and MDSGene,"DM, Probably pathogenic",Mendelian,lara.lange@nih.gov
+yes,Met1Thr,p.(Met1Thr),PRKN,AR,rs771586218,6:163148699:A:G,6:162727667:A:G,,3.21338e:05,1.31517e:05,,,Clinvar and HGMD,"Pathogenic/Likely pathogenic, DM",Mendelian,lara.lange@nih.gov
+yes,Met1Leu,p.(Met1Leu),PRKN,AR,rs772786691,6:163148700:T:A,6:162727668:T:A,,0,,,,HGMD and MDSGene,"DM, (Probably) pathogenic",Mendelian,lara.lange@nih.gov
+yes,Met1Val,p.(Met1Val),PRKN,AR,rs772786691,6:163148700:T:C,6:162727668:T:C,,6.98732e:06,1.31546e:05,,,Clinvar and HGMD,Pathogenic/Likely pathogenic; DM,Mendelian,lara.lange@nih.gov
+yes,ex. 2 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-4 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 4 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 9 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 10 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 10-11 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 10-12 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 12 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-12 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-3 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-4 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-5 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-4 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-4 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-5 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 6 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 6-7 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 9-10 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 9-12 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 1 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 1-2 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 1-4 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 11 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-6 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-7 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-9 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-6 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-7 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-9 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 4-5 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 4-6 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 4-7 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5-6 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5-7 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5-9 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 6-12 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7-10 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7-8 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7-9 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 8 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 8-10 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 8-12 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 8-9 deletion,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 12 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 1 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 1-2 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 10 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 10-11 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 10-12 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 11 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 12 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2 (triplication),,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-3 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-4 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-4 (triplication) ,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-5 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 2-6 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3 [triplication],,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-4 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-6 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-7 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 3-8 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 4 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 4-5 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 4-6 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5-10 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5-6 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5-7 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5-7 (triplication),,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5-8 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 5-9 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 6 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 6-7 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 6-8 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7-12 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7-8 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 7-9 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 8 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,ex. 9 duplication,,PRKN,AR,,,,,,,,,HGMD and MDSGene,"DM, Pathogenic",Mendelian,lara.lange@nih.gov
+yes,c.-68-82A>G,c.-68-82A>G,GBA1,"risk, AD, (AR)",rs1232943445,1:155211053:T:C,1:155241262:T:C,,6.83518e:05,2.62864e:05,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,E9Gfs*8,p.Glu9Glyfs*8,GBA1,"risk, AD, (AR)",rs766291162,1:155210876:CCT:C,1:155241085:CCT:C,,,,yes,,PDGENE and MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.27+2T>G,c.27+2T>G,GBA1,"risk, AD, (AR)",,1:155210875:A:C,1:155241084:A:C,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu10*,p.(Glu10Ter),GBA1,"risk, AD, (AR)",,1:155210508:C:A,1:155240717:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu25Serfs*66,c.73delC,GBA1,"risk, AD, (AR)",rs397518433,1:155210462:AG:A,1:155240671:AG:A,,6.84219e:07,,yes,,HGMD and MDSGene,"DM, Patogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu29Alafs*18,p.Leu29Alafs*18,GBA1,"risk, AD, (AR)",rs387906315,1:155210451:G:GC,1:155240660:G:GC,,2.8739e:05,5.25859e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val34Cysfs*57,p.Val34Cysfs*57,GBA1,"risk, AD, (AR)",,1:155210435:AC:A,1:155240644:AC:A,,,,yes,,MDSGene,Likely pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp36*,p.(Trp36Ter),GBA1,"risk, AD, (AR)",rs777383151,1:155210428:C:T,1:155240637:C:T,,6.84393e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.115+1G>A,c.115+1G>A,GBA1,"risk, AD, (AR)",rs104886460,1:155210420:C:T,1:155240629:C:T,,7.8045e:05,7.87898e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.115+1G>T,c.115+1G>T,GBA1,"risk, AD, (AR)",rs104886460,1:155210420:C:A,1:155240629:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg41Profs*6,c.121dupC,GBA1,"risk, AD, (AR)",,1:155209862:C:CG,1:155240071:C:CG,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Cys43Trp,p.(Cys43Trp),GBA1,"risk, AD, (AR)",,1:155209855:G:C,1:155240064:G:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly49Cys,p.(Gly49Cys),GBA1,"risk, AD, (AR)",,1:155209839:C:A,1:155240048:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr50*,c.149_150insGTAT,GBA1,"risk, AD, (AR)",,1:155209834:G:GATAC,1:155240043:G:GATAC,,,,yes,,HGMD and MDS Gene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr50_Ser51dup,c.149_154dupACAGCT,GBA1,"risk, AD, (AR)",,1:155209829:G:GAGCTGT,1:155240038:G:GAGCTGT,,8.89305e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val54Met,p.(Val54Met),GBA1,"risk, AD, (AR)",,1:155209824:C:T,1:155240033:C:T,,6.84076e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val54Leu,p.(Val54Leu),GBA1,"risk, AD, (AR)",rs121908302,1:155209824:C:G,1:155240033:C:G,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val54Leu,p.(Val54Leu),GBA1,"risk, AD, (AR)",rs121908302,1:155209824:C:A,1:155240033:C:A,,6.84076e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Cys55Ser,p.(Cys55Ser),GBA1,"risk, AD, (AR)",rs773007510,1:155209820:C:G,1:155240029:C:G,,2.73627e:06,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val56Gly,p.(Val56Gly),GBA1,"risk, AD, (AR)",rs878853318,1:155209817:A:C,1:155240026:A:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,C57Sfs*35,p.Cys57Serfs*35,GBA1,"risk, AD, (AR)",,1:155209816:G:GAC,1:155240025:G:GAC,,,,yes,,,,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Cys57*,p.Cys57*,GBA1,"risk, AD, (AR)",,1:155209813:G:T,1:155240022:G:T,,,,yes,,MDSGene,Likely pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr61Cys,p.(Tyr61Cys),GBA1,"risk, AD, (AR)",,1:155209802:T:C,1:155240011:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Cys62Trp,p.(Cys62Trp),GBA1,"risk, AD, (AR)",,1:155209798:A:C,1:155240007:A:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp63Asn,p.(Asp63Asn),GBA1,"risk, AD, (AR)",,1:155209797:C:T,1:155240006:C:T,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro68Argfs*23,p.Pro68Argfs*23,GBA1,"risk, AD, (AR)",,1:155209780:CG:C,1:155239989:CG:C,,6.84052e:07,,yes,,Clinvar and HGMD,"Pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr69Aspfs*12,p.Thr69Aspfs*12,GBA1,"risk, AD, (AR)",rs1170895261,1:155209780:C:CG,1:155239989:C:CG,,7.52457e:06,,yes,,Clinvar and HGMD and MDSGene and PDGENE,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr69Serfs*10,p.Thr69Serfs*10,GBA1,"risk, AD, (AR)",,1:155209774:AAAGGT:A,1:155239983:AAAGGT:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr75del,p.(Thr75del),GBA1,"risk, AD, (AR)",rs761621516,1:155209759:GGTA:G,1:155239968:GGTA:G,,2.18898e:05,0.000138045,yes,,Clinvar and HGMD and MDSGene and PDGENE,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe76Val,p.(Phe76Val),GBA1,"risk, AD, (AR)",,1:155209758:A:C,1:155239967:A:C,,,,yes,,HGMD and MDS Gene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg78His,p.(Arg78His),GBA1,"risk, AD, (AR)",rs752857428,1:155209751:C:T,1:155239960:C:T,,1.0945e:05,2.63019e:05,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu80Lys,p.(Glu80Lys),GBA1,"risk, AD, (AR)",,1:155209746:C:T,1:155239955:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr82Ile,p.(Thr82Ile),GBA1,"risk, AD, (AR)",rs1141811,1:155209739:G:A,1:155239948:G:A,,2.05216e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly85Glu,p.(Gly85Glu),GBA1,"risk, AD, (AR)",rs77829017,1:155209730:C:T,1:155239939:C:T,,1.36811e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg86*,p.(Arg86Ter),GBA1,"risk, AD, (AR)",rs1671987417,1:155209728:G:A,1:155239937:G:A,,4.78843e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg87del,c.255_257delGCG,GBA1,"risk, AD, (AR)",,1:155209726:TCGC:T,1:155239935:TCGC:T,,6.84056e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg87Trp,p.(Arg87Trp),GBA1,"risk, AD, (AR)",rs1141814,1:155209725:G:A,1:155239934:G:A,,1.16289e:05,1.97047e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg87Glyfs*4,c.259delC,GBA1,"risk, AD, (AR)",,1:155209724:CG:C,1:155239933:CG:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg87Gln,p.(Arg87Gln),GBA1,"risk, AD, (AR)",rs78769774,1:155209724:C:T,1:155239933:C:T,,2.73624e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.307+1G>A,c.307+1G>A,GBA1,"risk, AD, (AR)",rs1553218253,1:155209676:C:T,1:155239885:C:T,,,,yes,,HGMD and PDGENE and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.308-1G>A,c.308-1G>A,GBA1,"risk, AD, (AR)",,1:155209554:C:T,1:155239763:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln109Argfs*9,c.326delA,GBA1,"risk, AD, (AR)",,1:155209534:CT:C,1:155239743:CT:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu111Asnfs*7,c.330delA,GBA1,"risk, AD, (AR)",rs779619231,1:155209530:CT:C,1:155239739:CT:C,,5.47235e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln112*,p.(Gln112Ter),GBA1,"risk, AD, (AR)",,1:155209527:G:A,1:155239736:G:A,,6.84046e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys113*,p.(Lys113Ter),GBA1,"risk, AD, (AR)",,1:155209524:T:A,1:155239733:T:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln112Valfs*32,c.334_338delCAGAA,GBA1,"risk, AD, (AR)",rs1671973851,1:155209522:CTTCTG:C,1:155239731:CTTCTG:C,,6.84044e:07,6.57652e:06,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln115Argfs*3,c.344delA,GBA1,"risk, AD, (AR)",,1:155209516:CT:C,1:155239725:CT:C,,,,yes,,HGMD and MDSGene and PDGENE,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys118Asn,p.(Lys118Asn),GBA1,"risk, AD, (AR)",rs121908312,1:155209507:C:G,1:155239716:C:G,,6.84045e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe120Leu,p.(Phe120Leu),GBA1,"risk, AD, (AR)",,1:155209503:A:G,1:155239712:A:G,,6.84045e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly122Glu,p.(Gly122Glu),GBA1,"risk, AD, (AR)",rs868211463,1:155209496:C:T,1:155239705:C:T,,,6.57696e:06,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu135Valfs*10,p.Leu135Valfs*10,GBA1,"risk, AD, (AR)",rs1671970302,1:155209456:CAG:C,1:155239665:CAG:C,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro137Cysfs*7,p.Pro137Cysfs*7,GBA1,"risk, AD, (AR)",,1:155209448:GGGGGT:G,1:155239657:GGGGGT:G,,,,yes,,Clinvar and MDSGene,"Pathogenic/Likely pathogenic, Patthogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro138Leufs*62,c.413delC,GBA1,"risk, AD, (AR)",rs1571974696,1:155209447:AG:A,1:155239656:AG:A,,2.05214e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala139Pro,p.(Ala139Pro),GBA1,"risk, AD, (AR)",rs878853314,1:155209446:C:G,1:155239655:C:G,,,,yes,,Clinvar and MDSGene,"Likely pathogenic, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser146*,p.(Ser146Ter),GBA1,"risk, AD, (AR)",rs758447515,1:155209424:G:T,1:155239633:G:T,,6.84049e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser146Leu,p.(Ser146Leu),GBA1,"risk, AD, (AR)",rs758447515,1:155209424:G:A,1:155239633:G:A,,1.09448e:05,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.454+1G>A,c.454+1G>A,GBA1,"risk, AD, (AR)",rs539166948,1:155209406:C:T,1:155239615:C:T,,,6.56538e:06,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly152Glu,p.(Gly152Glu),GBA1,"risk, AD, (AR)",rs1671900493,1:155208441:C:T,1:155238650:C:T,,1.36834e:06,,yes,,HGMD and MDSGene and PDGENE,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly152Ala,p.(Gly152Ala),GBA1,"risk, AD, (AR)",,1:155208441:C:G,1:155238650:C:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr155His,p.(Tyr155His),GBA1,"risk, AD, (AR)",rs1280343264,1:155208433:A:G,1:155238642:A:G,,1.36832e:06,0,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn156Asp,p.(Asn156Asp),GBA1,"risk, AD, (AR)",,1:155208430:T:C,1:155238639:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile158Serfs*42,c.471delC,GBA1,"risk, AD, (AR)",,1:155208424:TG:T,1:155238633:TG:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile158Thr,p.(Ile158Thr),GBA1,"risk, AD, (AR)",rs77834747,1:155208423:A:G,1:155238632:A:G,,,6.58597e:06,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile158Ser,p.(Ile158Ser),GBA1,"risk, AD, (AR)",rs77834747,1:155208423:A:C,1:155238632:A:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg159Trp,p.(Arg159Trp),GBA1,"risk, AD, (AR)",rs439898,1:155208421:G:A,1:155238630:G:A,,2.46301e:05,4.60872e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg159Gln,p.(Arg159Gln),GBA1,"risk, AD, (AR)",rs79653797,1:155208420:C:T,1:155238629:C:T,,8.20984e:06,6.58944e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val160Ala,p.(Val160Ala),GBA1,"risk, AD, (AR)",,1:155208417:A:G,1:155238626:A:G,,1.3683e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro161Thr,p.(Pro161Thr),GBA1,"risk, AD, (AR)",,1:155208415:G:T,1:155238624:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro161Ser,p.(Pro161Ser),GBA1,"risk, AD, (AR)",rs121908299,1:155208415:G:A,1:155238624:G:A,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro161Leu,p.(Pro161Leu),GBA1,"risk, AD, (AR)",rs79637617,1:155208414:G:A,1:155238623:G:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Met162Val,p.(Met162Val),GBA1,"risk, AD, (AR)",rs377325220,1:155208412:T:C,1:155238621:T:C,,2.05245e:06,,yes,,HGMD and MDSGene and PDGENE,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Met162Lys,p.(Met162Lys),GBA1,"risk, AD, (AR)",rs794727783,1:155208411:A:T,1:155238620:A:T,,,,yes,,Clinvar and MDSGene,"Likely pathogenic, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Met162Thr,p.(Met162Thr),GBA1,"risk, AD, (AR)",rs794727783,1:155208411:A:G,1:155238620:A:G,,2.05245e:06,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser164Asn,p.(Ser164Asn),GBA1,"risk, AD, (AR)",,1:155208405:C:T,1:155238614:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser164Arg,p.(Ser164Arg),GBA1,"risk, AD, (AR)",rs746019841,1:155208404:G:C,1:155238613:G:C,,4.78906e:06,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp166Val,p.(Asp166Val),GBA1,"risk, AD, (AR)",rs79796061,1:155208399:T:A,1:155238608:T:A,,2.05245e:06,2.63664e:05,yes,,Clinvar and HGMD,"Likely pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser168Leufs*12,c.500dupT,GBA1,"risk, AD, (AR)",,1:155208395:G:GA,1:155238604:G:GA,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg170Ser,p.(Arg170Ser),GBA1,"risk, AD, (AR)",,1:155208388:G:T,1:155238597:G:T,,6.84154e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg170Cys,p.(Arg170Cys),GBA1,"risk, AD, (AR)",rs398123530,1:155208388:G:A,1:155238597:G:A,,1.50514e:05,0,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg170Leu,p.(Arg170Leu),GBA1,"risk, AD, (AR)",rs80356763,1:155208387:C:A,1:155238596:C:A,,6.84155e:07,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr172*,p.(Tyr172Ter),GBA1,"risk, AD, (AR)",,1:155208380:G:T,1:155238589:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr173Pro,p.(Thr173Pro),GBA1,"risk, AD, (AR)",rs1441909908,1:155208379:T:G,1:155238588:T:G,,,,yes,,HGMD and MDSGene and PDGENE,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr173Ile,p.(Thr173Ile),GBA1,"risk, AD, (AR)",rs78657146,1:155208378:G:A,1:155238587:G:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr174Ser,p.(Tyr174Ser),GBA1,"risk, AD, (AR)",,1:155208375:T:G,1:155238584:T:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr174*,p.(Tyr174Ter),GBA1,"risk, AD, (AR)",rs1490743860,1:155208374:A:C,1:155238583:A:C,,6.8415e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala175Glu,p.(Ala175Glu),GBA1,"risk, AD, (AR)",rs79660787,1:155208372:G:T,1:155238581:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp176Asn,p.(Asp176Asn),GBA1,"risk, AD, (AR)",rs1553217946,1:155208370:C:T,1:155238579:C:T,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro178Leufs*22,p.Pro178Leufs*22,GBA1,"risk, AD, (AR)",rs397518434,1:155208362:AG:A,1:155238571:AG:A,,,,yes,,Clinvar and HGMD,"Likely pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp179Metfs*21,c.534delT,GBA1,"risk, AD, (AR)",,1:155208361:CA:C,1:155238570:CA:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp179His,p.(Asp179His),GBA1,"risk, AD, (AR)",rs147138516,1:155208361:C:G,1:155238570:C:G,,0.000124518,0.000158151,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln182*,p.(Gln182Ter),GBA1,"risk, AD, (AR)",,1:155208352:G:A,1:155238561:G:A,,6.8418e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe186Serfs*14,p.Phe186Serfs*14,GBA1,"risk, AD, (AR)",rs1671890998,1:155208338:GA:G,1:155238547:GA:G,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu188Phe,p.(Leu188Phe),GBA1,"risk, AD, (AR)",,1:155208334:G:A,1:155238543:G:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys196Gln,p.(Lys196Gln),GBA1,"risk, AD, (AR)",rs121908297,1:155208310:T:G,1:155238519:T:G,,0.00246246,1.32347e:05,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys196Arg,p.(Lys196Arg),GBA1,"risk, AD, (AR)",,1:155208309:T:C,1:155238518:T:C,,6.8452e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.588+1G>T,c.588+1G>T,GBA1,"risk, AD, (AR)",,1:155208307:C:A,1:155238516:C:A,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.589-2A>G,c.589-2A>G,GBA1,"risk, AD, (AR)",,1:155208099:T:C,1:155238308:T:C,,1.40897e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.589-1G>C,c.589-1G>C,GBA1,"risk, AD, (AR)",,1:155208098:C:G,1:155238307:C:G,,,,yes,,PDGENE,,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile197Lys,p.(Ile197Lys),GBA1,"risk, AD, (AR)",,1:155208096:A:T,1:155238305:A:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro198Thr,p.(Pro198Thr),GBA1,"risk, AD, (AR)",,1:155208094:G:T,1:155238303:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro198Leu,p.(Pro198Leu),GBA1,"risk, AD, (AR)",rs80222298,1:155208093:G:A,1:155238302:G:A,,7.02575e:07,6.59317e:06,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu199Hisfs*62,p.Leu199Hisfs*62,GBA1,"risk, AD, (AR)",,1:155208089:CAG:G,1:155238298:CAG:G,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile200Asn,p.(Ile200Asn),GBA1,"risk, AD, (AR)",rs77933015,1:155208087:A:T,1:155238296:A:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile200Thr,p.(Ile200Thr),GBA1,"risk, AD, (AR)",,1:155208087:A:G,1:155238296:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile200Ser,p.(Ile200Ser),GBA1,"risk, AD, (AR)",rs77933015,1:155208087:A:C,1:155238296:A:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,His201Pro,p.(His201Pro),GBA1,"risk, AD, (AR)",rs76500263,1:155208084:T:G,1:155238293:T:G,,6.97922e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg202*,p.(Arg202Ter),GBA1,"risk, AD, (AR)",rs1009850780,1:155208082:G:A,1:155238291:G:A,,1.11706e:05,6.58441e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln208*,p.(Gln208Ter),GBA1,"risk, AD, (AR)",,1:155208064:G:A,1:155238273:G:A,,6.8883e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg209Cys,p.(Arg209Cys),GBA1,"risk, AD, (AR)",rs398123532,1:155208061:G:A,1:155238270:G:A,,8.25843e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg209His,p.(Arg209His),GBA1,"risk, AD, (AR)",rs749416070,1:155208060:C:T,1:155238269:C:T,,4.12763e:05,2.63345e:05,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg209Pro,p.(Arg209Pro),GBA1,"risk, AD, (AR)",rs749416070,1:155208060:C:G,1:155238269:C:G,,1.37587e:06,6.58363e:06,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val211Phefs*20,p.Val211Phefs*20,GBA1,"risk, AD, (AR)",rs1553217879,1:155208055:CG:C,1:155238264:CG:C,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser212*,p.(Ser212Ter),GBA1,"risk, AD, (AR)",rs1671872221,1:155208051:G:C,1:155238260:G:C,,1.23539e:05,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu214Pro,p.(Leu214Pro),GBA1,"risk, AD, (AR)",,1:155208045:A:G,1:155238254:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala215Asp,p.(Ala215Asp),GBA1,"risk, AD, (AR)",,1:155208042:G:T,1:155238251:G:T,,1.36983e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro217Ser,p.(Pro217Ser),GBA1,"risk, AD, (AR)",,1:155208037:G:A,1:155238246:G:A,,6.84546e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp218*,p.(Trp218Ter),GBA1,"risk, AD, (AR)",rs867929413,1:155208033:C:T,1:155238242:C:T,,2.7379e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr219Ala,p.(Thr219Ala),GBA1,"risk, AD, (AR)",,1:155208031:T:C,1:155238240:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro221Thr,p.(Pro221Thr),GBA1,"risk, AD, (AR)",rs866075757,1:155208025:G:T,1:155238234:G:T,,1.02629e:05,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro221Leu,p.(Pro221Leu),GBA1,"risk, AD, (AR)",rs80205046,1:155208024:G:A,1:155238233:G:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp223Arg,p.(Trp223Arg),GBA1,"risk, AD, (AR)",rs61748906,1:155208019:A:G,1:155238228:A:G,,1.09459e:05,2.62854e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys225Asn,p.(Lys225Asn),GBA1,"risk, AD, (AR)",,1:155208011:C:G,1:155238220:C:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn227Ser,p.(Asn227Ser),GBA1,"risk, AD, (AR)",rs364897,1:155208006:T:C,1:155238215:T:C,,5.82122e:05,9.85377e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn227Ile,p.(Asn227Ile),GBA1,"risk, AD, (AR)",rs364897,1:155208006:T:A,1:155238215:T:A,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn227Arg,c.680_681delATinsGG,GBA1,"risk, AD, (AR)",rs786200979,1:155208005:AT:CC,1:155238214:AT:CC,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn227Lys,p.(Asn227Lys),GBA1,"risk, AD, (AR)",rs381418,1:155208005:A:C,1:155238214:A:C,,6.157e:06,2.62936e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly228Arg,p.(Gly228Arg),GBA1,"risk, AD, (AR)",,1:155208004:C:T,1:155238213:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly228Val,p.(Gly228Val),GBA1,"risk, AD, (AR)",rs78911246,1:155208003:C:A,1:155238212:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala229Thr,p.(Ala229Thr),GBA1,"risk, AD, (AR)",,1:155208001:C:T,1:155238210:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val230Glu,p.(Val230Glu),GBA1,"risk, AD, (AR)",rs381427,1:155207997:A:T,1:155238206:A:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val230Gly,p.(Val230Gly),GBA1,"risk, AD, (AR)",rs381427,1:155207997:A:C,1:155238206:A:C,,4.10441e:06,1.97384e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly232Trp,p.(Gly232Trp),GBA1,"risk, AD, (AR)",,1:155207992:C:A,1:155238201:C:A,,6.84052e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly232Glu,p.(Gly232Glu),GBA1,"risk, AD, (AR)",rs1376479747,1:155207991:C:T,1:155238200:C:T,,1.02608e:05,1.3142e:05,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly234Trp,p.(Gly234Trp),GBA1,"risk, AD, (AR)",,1:155207986:C:A,1:155238195:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly234Glu,p.(Gly234Glu),GBA1,"risk, AD, (AR)",rs74462743,1:155207985:C:T,1:155238194:C:T,,8.89263e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser235Pro,p.(Ser235Pro),GBA1,"risk, AD, (AR)",rs1064644,1:155207983:A:G,1:155238192:A:G,,3.42025e:06,6.59552e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser235Valfs*27,p.Ser235Valfs*27,GBA1,"risk, AD, (AR)",,1:155207983:A:AC,1:155238192:A:AC,,6.8405e:07,,yes,,Clinvar and HGMD,"Pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu236Phe,p.(Leu236Phe),GBA1,"risk, AD, (AR)",,1:155207980:G:A,1:155238189:G:A,,2.05214e:06,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys237Argfs*17,c.708delC,GBA1,"risk, AD, (AR)",,1:155207977:TG:T,1:155238186:TG:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys237Glu,p.(Lys237Glu),GBA1,"risk, AD, (AR)",rs773409311,1:155207977:T:C,1:155238186:T:C,,6.1564e:06,6.57142e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys237Thr,p.(Lys237Thr),GBA1,"risk, AD, (AR)",,1:155207976:T:G,1:155238185:T:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly238Arg,p.(Gly238Arg),GBA1,"risk, AD, (AR)",,1:155207974:C:T,1:155238183:C:T,,6.84048e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro240Thrfs*23,c.714_717dupACAG,GBA1,"risk, AD, (AR)",,1:155207968:G:GCTGT,1:155238177:G:GCTGT,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro240His,p.(Pro240His),GBA1,"risk, AD, (AR)",,1:155207967:G:T,1:155238176:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro240Leu,p.(Pro240Leu),GBA1,"risk, AD, (AR)",,1:155207967:G:A,1:155238176:G:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly241Arg,p.(Gly241Arg),GBA1,"risk, AD, (AR)",rs409652,1:155207965:C:T,1:155238174:C:T,,3.14662e:05,2.62926e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly241Glu,p.(Gly241Glu),GBA1,"risk, AD, (AR)",rs77451368,1:155207964:C:T,1:155238173:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr244Cys,p.(Tyr244Cys),GBA1,"risk, AD, (AR)",rs76026102,1:155207955:T:C,1:155238164:T:C,,6.84049e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr247Ser,p.(Thr247Ser),GBA1,"risk, AD, (AR)",,1:155207946:G:C,1:155238155:G:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp248Glyfs*6,c.741delC,GBA1,"risk, AD, (AR)",,1:155207944:AG:A,1:155238153:AG:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp248Arg,p.(Trp248Arg),GBA1,"risk, AD, (AR)",,1:155207944:A:G,1:155238153:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala249Profs*5,p.Ala249Profs*5,GBA1,"risk, AD, (AR)",,1:155207940:GC:G,1:155238149:GC:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr251His,p.(Tyr251His),GBA1,"risk, AD, (AR)",rs121908300,1:155207935:A:G,1:155238144:A:G,,1.3681e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe252Ile,p.(Phe252Ile),GBA1,"risk, AD, (AR)",rs381737,1:155207932:A:T,1:155238141:A:T,,2.18897e:05,6.5722e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe252Leu,p.(Phe252Leu),GBA1,"risk, AD, (AR)",,1:155207930:A:C,1:155238139:A:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,F252Lfs*2,p.Phe252Leufs*2,GBA1,"risk, AD, (AR)",,1:155207929:CA:C,1:155238138:CA:C,,,,yes,,PDGENE,,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.761+4A>G,c.761+4A>G,GBA1,"risk, AD, (AR)",,1:155207921:T:C,1:155238130:T:C,,,,yes,,Clinvar and HGMD,"Likely pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.762-2A>G,c.762-2A>G,GBA1,"risk, AD, (AR)",,1:155207371:T:C,1:155237580:T:C,,,,yes,,MDSGene,Likely pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.762-1G>C,c.762-1G>C,GBA1,"risk, AD, (AR)",rs1237637353,1:155207370:C:G,1:155237579:C:G,,1.36882e:06,6.57151e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe255Val,p.(Phe255Val),GBA1,"risk, AD, (AR)",rs121908303,1:155207368:A:C,1:155237577:A:C,,,,yes,,Clinvar and HGMD,"Pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe255Tyr,p.(Phe255Tyr),GBA1,"risk, AD, (AR)",rs74500255,1:155207367:A:T,1:155237576:A:T,,2.53209e:05,1.31416e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp257Ala,p.(Asp257Ala),GBA1,"risk, AD, (AR)",,1:155207361:T:G,1:155237570:T:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp257Val,p.(Asp257Val),GBA1,"risk, AD, (AR)",,1:155207361:T:A,1:155237570:T:A,,2.73726e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr259Cys,p.(Tyr259Cys),GBA1,"risk, AD, (AR)",rs749014188,1:155207355:T:C,1:155237564:T:C,,3.42126e:06,,yes,,Clinvar and MDSGene,"Likely pathogenic, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln265Serfs*5,c.793delC,GBA1,"risk, AD, (AR)",,1:155207337:TG:T,1:155237546:TG:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe266Leu,p.(Phe266Leu),GBA1,"risk, AD, (AR)",,1:155207333:G:C,1:155237542:G:C,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr270Arg,p.(Thr270Arg),GBA1,"risk, AD, (AR)",rs76725886,1:155207322:G:C,1:155237531:G:C,,6.84147e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr270Ile,p.(Thr270Ile),GBA1,"risk, AD, (AR)",rs76725886,1:155207322:G:A,1:155237531:G:A,,,,yes,,HGMD and MDSGene and PDGENE,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu272*,p.(Glu272Ter),GBA1,"risk, AD, (AR)",,1:155207317:C:A,1:155237526:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu272Asp,p.(Glu272Asp),GBA1,"risk, AD, (AR)",,1:155207315:T:G,1:155237524:T:G,,6.84126e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu274Lys,p.(Glu274Lys),GBA1,"risk, AD, (AR)",,1:155207311:C:T,1:155237520:C:T,,6.84134e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser276Pro,p.(Ser276Pro),GBA1,"risk, AD, (AR)",,1:155207305:A:G,1:155237514:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser276Phe,p.(Ser276Phe),GBA1,"risk, AD, (AR)",rs755512507,1:155207304:G:A,1:155237513:G:A,,3.42064e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly278Valfs*14,p.Gly278Valfs*14,GBA1,"risk, AD, (AR)",,1:155207293:ACAGCC:A,1:155237502:ACAGCC:A,,,,yes,,PDGENE,,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu280_Ser281insMet,c.839_841dupTGA,GBA1,"risk, AD, (AR)",,1:155207289:C:CTCA,1:155237498:C:CTCA,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly282Val,p.(Gly282Val),GBA1,"risk, AD, (AR)",,1:155207286:C:A,1:155237495:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr283His,p.(Tyr283His),GBA1,"risk, AD, (AR)",rs750777791,1:155207284:A:G,1:155237493:A:G,,6.84131e:07,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro284Thr,p.(Pro284Thr),GBA1,"risk, AD, (AR)",rs1557904068,1:155207281:G:T,1:155237490:G:T,,,6.57341e:06,yes,,HGMD and MDSGene and PDGENE,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly289Ala,p.(Gly289Ala),GBA1,"risk, AD, (AR)",rs878853321,1:155207265:C:G,1:155237474:C:G,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly289Val,p.(Gly289Val),GBA1,"risk, AD, (AR)",rs878853321,1:155207265:C:A,1:155237474:C:A,,2.73656e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe290Leu,p.(Phe290Leu),GBA1,"risk, AD, (AR)",rs121908313,1:155207261:G:T,1:155237470:G:T,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln295Serfs*9,p.Gln295Serfs*9,GBA1,"risk, AD, (AR)",,1:155207247:TG:T,1:155237456:TG:T,,,,yes,,MDSGene,Likely pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg296*,p.(Arg296Ter),GBA1,"risk, AD, (AR)",rs1553217626,1:155207245:G:A,1:155237454:G:A,,6.84149e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg296Gln,p.(Arg296Gln),GBA1,"risk, AD, (AR)",rs78973108,1:155207244:C:T,1:155237453:C:T,,7.79929e:05,3.94306e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe298Leu,p.(Phe298Leu),GBA1,"risk, AD, (AR)",rs1671825414,1:155207237:G:T,1:155237446:G:T,,5.47319e:06,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile299Thr,p.(Ile299Thr),GBA1,"risk, AD, (AR)",rs794727908,1:155207235:A:G,1:155237444:A:G,,4.10489e:06,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala300Profs*4,c.898delG,GBA1,"risk, AD, (AR)",,1:155207232:GC:G,1:155237441:GC:G,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg301Gly,p.(Arg301Gly),GBA1,"risk, AD, (AR)",,1:155207230:G:C,1:155237439:G:C,,6.84147e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg301His,p.(Arg301His),GBA1,"risk, AD, (AR)",rs140955685,1:155207229:C:T,1:155237438:C:T,,0.000188141,0.000111675,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu303Ile,p.(Leu303Ile),GBA1,"risk, AD, (AR)",rs1296507371,1:155207224:G:T,1:155237433:G:T,,6.84149e:07,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu303Val,p.(Leu303Val),GBA1,"risk, AD, (AR)",,1:155207224:G:C,1:155237433:G:C,,,,yes,,HGMD and MDSGene and PDGENE,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly304Asp,p.(Gly304Asp),GBA1,"risk, AD, (AR)",rs80116658,1:155207220:C:T,1:155237429:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro305Ala,p.(Pro305Ala),GBA1,"risk, AD, (AR)",rs770796008,1:155207218:G:C,1:155237427:G:C,,6.84149e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro305Arg,p.(Pro305Arg),GBA1,"risk, AD, (AR)",rs79215220,1:155207217:G:C,1:155237426:G:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro305Leu,p.(Pro305Leu),GBA1,"risk, AD, (AR)",,1:155207217:G:A,1:155237426:G:A,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro305Leufs*31,p.Pro305Leufs*31,GBA1,"risk, AD, (AR)",rs1366567865,1:155207216:AG:A,1:155237425:AG:A,,2.39452e:05,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser310Gly,p.(Ser310Gly),GBA1,"risk, AD, (AR)",rs1057942,1:155207203:T:C,1:155237412:T:C,,1.77881e:05,3.94197e:05,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser310Cys,p.(Ser310Cys),GBA1,"risk, AD, (AR)",rs1057942,1:155207203:T:A,1:155237412:T:A,,6.8415e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser310Asn,p.(Ser310Asn),GBA1,"risk, AD, (AR)",rs74731340,1:155207202:C:T,1:155237411:C:T,,6.84148e:07,,yes,,HGMD and MDS Gene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg316Cys,p.(Arg316Cys),GBA1,"risk, AD, (AR)",rs1264734195,1:155207185:G:A,1:155237394:G:A,,8.89392e:06,1.97112e:05,yes,,HGMD and PDGENE (and MDSGene),"DM, (Possibly pathogenic)","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu318Pro,p.(Leu318Pro),GBA1,"risk, AD, (AR)",,1:155207178:A:G,1:155237387:A:G,,6.84148e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu318Profs*18,c.953delT,GBA1,"risk, AD, (AR)",,1:155207177:GA:G,1:155237386:GA:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp322Asn,p.(Asp322Asn),GBA1,"risk, AD, (AR)",,1:155207167:C:T,1:155237376:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg324Cys,p.(Arg324Cys),GBA1,"risk, AD, (AR)",rs765633380,1:155207161:G:A,1:155237370:G:A,,1.98403e:05,6.56883e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg324His,p.(Arg324His),GBA1,"risk, AD, (AR)",rs79696831,1:155207160:C:T,1:155237369:C:T,,2.05245e:06,6.57099e:06,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu327Pro,p.(Leu327Pro),GBA1,"risk, AD, (AR)",rs1404627009,1:155207151:A:G,1:155237360:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu327dup,c.980_982dupTGC,GBA1,"risk, AD, (AR)",,1:155207148:G:GGCA,1:155237357:G:GGCA,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro328Leu,p.(Pro328Leu),GBA1,"risk, AD, (AR)",rs121908298,1:155207148:G:A,1:155237357:G:A,,6.84158e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp330Arg,p.(Trp330Arg),GBA1,"risk, AD, (AR)",,1:155207143:A:T,1:155237352:A:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp330*,p.Trp330*,GBA1,"risk, AD, (AR)",,1:155207142:C:T,1:155237351:C:T,,,,yes,,MDSGene,Likely pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro328Argfs*12,c.983_990delCCCACTGG,GBA1,"risk, AD, (AR)",,1:155207140:CCCAGTGGG:C,1:155237349:CCCAGTGGG:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.999+1G>A,c.999+1G>A,GBA1,"risk, AD, (AR)",,1:155207131:C:T,1:155237340:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.999+1G>T,c.999+1G>T,GBA1,"risk, AD, (AR)",,1:155207131:C:A,1:155237340:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.1000-1G>A,c.1000-1G>A,GBA1,"risk, AD, (AR)",,1:155206261:C:T,1:155236470:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.1000-1G>C,c.1000-1G>C,GBA1,"risk, AD, (AR)",rs754148803,1:155206261:C:G,1:155236470:C:G,,6.84829e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu335Val,p.(Leu335Val),GBA1,"risk, AD, (AR)",,1:155206257:G:C,1:155236466:G:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala340Thr,p.(Ala340Thr),GBA1,"risk, AD, (AR)",,1:155206242:C:T,1:155236451:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys342Ile,p.(Lys342Ile),GBA1,"risk, AD, (AR)",rs77714449,1:155206235:T:A,1:155236444:T:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr343Cys,p.(Tyr343Cys),GBA1,"risk, AD, (AR)",rs77321207,1:155206232:T:C,1:155236441:T:C,,,,yes,,Clinvar and HGMD and MDSGene and PDGENE,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr343*,p.Tyr343*,GBA1,"risk, AD, (AR)",rs1553217314,1:155206230:CA:C,1:155236439:CA:C,,2.73621e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile347Thr,p.(Ile347Thr),GBA1,"risk, AD, (AR)",,1:155206220:A:G,1:155236429:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile347Ser,p.(Ile347Ser),GBA1,"risk, AD, (AR)",,1:155206220:A:C,1:155236429:A:C,,6.84049e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala348Val,p.(Ala348Val),GBA1,"risk, AD, (AR)",rs78396650,1:155206217:G:A,1:155236426:G:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,His350Asn,p.(His350Asn),GBA1,"risk, AD, (AR)",,1:155206212:G:T,1:155236421:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,His350Tyr,p.(His350Tyr),GBA1,"risk, AD, (AR)",,1:155206212:G:A,1:155236421:G:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,His350Arg,p.(His350Arg),GBA1,"risk, AD, (AR)",rs78198234,1:155206211:T:C,1:155236420:T:C,,,6.57246e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp351Arg,p.(Trp351Arg),GBA1,"risk, AD, (AR)",,1:155206209:A:G,1:155236418:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp351Ser,p.(Trp351Ser),GBA1,"risk, AD, (AR)",rs1553217294,1:155206208:C:G,1:155236417:C:G,,6.84048e:07,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp351Cys,p.(Trp351Cys),GBA1,"risk, AD, (AR)",,1:155206207:C:G,1:155236416:C:G,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp351Cys,p.(Trp351Cys),GBA1,"risk, AD, (AR)",rs121908304,1:155206207:C:A,1:155236416:C:A,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr352His,p.(Tyr352His),GBA1,"risk, AD, (AR)",,1:155206206:A:G,1:155236415:A:G,,6.84048e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr352*,p.(Tyr352Ter),GBA1,"risk, AD, (AR)",,1:155206204:G:T,1:155236413:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu353Arg,p.(Leu353Arg),GBA1,"risk, AD, (AR)",rs540967271,1:155206202:A:C,1:155236411:A:C,,,6.56504e:06,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp354Asn,p.(Asp354Asn),GBA1,"risk, AD, (AR)",rs398123526,1:155206200:C:T,1:155236409:C:T,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp354His,p.(Asp354His),GBA1,"risk, AD, (AR)",rs398123526,1:155206200:C:G,1:155236409:C:G,,1.71012e:05,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu356Trpfs*8,p.Leu356Trpfs*8,GBA1,"risk, AD, (AR)",,1:155206193:AG:A,1:155236402:AG:A,,,,yes,,Clinvar and MDSGene,"Likely pathogenic, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala357Asp,p.(Ala357Asp),GBA1,"risk, AD, (AR)",rs78188205,1:155206190:G:T,1:155236399:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Thr362Ile,p.(Thr362Ile),GBA1,"risk, AD, (AR)",rs76539814,1:155206175:G:A,1:155236384:G:A,,1.02608e:05,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu363Gln,p.(Leu363Gln),GBA1,"risk, AD, (AR)",,1:155206172:A:T,1:155236381:A:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu363Pro,p.(Leu363Pro),GBA1,"risk, AD, (AR)",rs1178732315,1:155206172:A:G,1:155236381:A:G,,8.20879e:06,1.31449e:05,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly364Arg,p.(Gly364Arg),GBA1,"risk, AD, (AR)",rs121908305,1:155206170:C:T,1:155236379:C:T,,4.7885e:06,,yes,,Clinvar and HGMD and MDSGene and PDGENE,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly364Trp,p.(Gly364Trp),GBA1,"risk, AD, (AR)",,1:155206170:C:A,1:155236379:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,E365K,p.Glu365Lys,GBA1,"risk, AD, (AR)",rs2230288,1:155206167:C:T,1:155236376:C:T,,,,yes,,MDSGene,PD risk,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu365Glyfs*71,c.1093dupG,GBA1,"risk, AD, (AR)",,1:155206166:T:TC,1:155236375:T:TC,,,,yes,,HGMD and PDGENE,DM,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,His367Thrfs*69,c.1098dupA,GBA1,"risk, AD, (AR)",,1:155206161:G:GT,1:155236370:G:GT,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg368Cys,p.(Arg368Cys),GBA1,"risk, AD, (AR)",rs374306700,1:155206158:G:A,1:155236367:G:A,,1.36814e:05,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe370Ser,p.(Phe370Ser),GBA1,"risk, AD, (AR)",,1:155206151:A:G,1:155236360:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro371Leu,p.(Pro371Leu),GBA1,"risk, AD, (AR)",,1:155206148:G:A,1:155236357:G:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu375Cysfs*20,c.1121_1122dupTG,GBA1,"risk, AD, (AR)",,1:155206137:G:GCA,1:155236346:G:GCA,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu375Pro,p.(Leu375Pro),GBA1,"risk, AD, (AR)",,1:155206136:A:G,1:155236345:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe376Ser,p.(Phe376Ser),GBA1,"risk, AD, (AR)",,1:155206133:A:G,1:155236342:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe376Cysfs*59,c.1127_1128delTT,GBA1,"risk, AD, (AR)",rs1361222621,1:155206131:CAA:C,1:155236340:CAA:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala377Thr,p.(Ala377Thr),GBA1,"risk, AD, (AR)",rs80356765,1:155206131:C:T,1:155236340:C:T,,6.84044e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser378Leu,p.(Ser378Leu),GBA1,"risk, AD, (AR)",,1:155206127:G:A,1:155236336:G:A,,1.36809e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala380Thr,p.(Ala380Thr),GBA1,"risk, AD, (AR)",rs781306264,1:155206122:C:T,1:155236331:C:T,,2.05214e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala380Val,p.(Ala380Val),GBA1,"risk, AD, (AR)",,1:155206121:G:A,1:155236330:G:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Cys381Arg,p.(Cys381Arg),GBA1,"risk, AD, (AR)",rs121908306,1:155206119:A:G,1:155236328:A:G,,1.36809e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Cys381Gly,p.(Cys381Gly),GBA1,"risk, AD, (AR)",rs121908306,1:155206119:A:C,1:155236328:A:C,,,,yes,,Clinvar and HGMD and MDSGen,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Cys381Tyr,p.(Cys381Tyr),GBA1,"risk, AD, (AR)",,1:155206118:C:T,1:155236327:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly383Ser,p.(Gly383Ser),GBA1,"risk, AD, (AR)",rs1553217243,1:155206113:C:T,1:155236322:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly383Alafs*11,c.1148delG,GBA1,"risk, AD, (AR)",,1:155206111:GC:G,1:155236320:GC:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp387Gly,p.(Trp387Gly),GBA1,"risk, AD, (AR)",rs765182863,1:155206101:A:C,1:155236310:A:C,,2.05214e:06,6.56944e:06,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu388Lys,p.(Glu388Lys),GBA1,"risk, AD, (AR)",rs1161552095,1:155206098:C:T,1:155236307:C:T,,6.84047e:07,1.31435e:05,yes,,Clinvar and MDSGene,"Likely pathogenic, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln389*,p.(Gln389Ter),GBA1,"risk, AD, (AR)",,1:155206095:G:A,1:155236304:G:A,,6.84053e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val391Met,p.(Val391Met),GBA1,"risk, AD, (AR)",rs398123527,1:155206089:C:T,1:155236298:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val391Leu,p.(Val391Leu),GBA1,"risk, AD, (AR)",rs398123527,1:155206089:C:G,1:155236298:C:G,,1.3681e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg392Gly,p.(Arg392Gly),GBA1,"risk, AD, (AR)",rs121908308,1:155206086:G:C,1:155236295:G:C,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg392Trp,p.(Arg392Trp),GBA1,"risk, AD, (AR)",rs121908308,1:155206086:G:A,1:155236295:G:A,,6.84058e:06,6.5722e:06,yes,,Clinvar and MDSGene and PDGENE,"Pathogenic/Likely pathogenic, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg392Glyfs*2,c.1174delC,GBA1,"risk, AD, (AR)",,1:155206085:CG:C,1:155236294:CG:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu393Val,p.(Leu393Val),GBA1,"risk, AD, (AR)",rs878853315,1:155206083:G:C,1:155236292:G:C,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly394Asp,p.(Gly394Asp),GBA1,"risk, AD, (AR)",,1:155206079:C:T,1:155236288:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser395Phe,p.(Ser395Phe),GBA1,"risk, AD, (AR)",rs760307559,1:155206076:G:A,1:155236285:G:A,,4.1043e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp396*,p.(Trp396Ter),GBA1,"risk, AD, (AR)",,1:155206073:C:T,1:155236282:C:T,,6.84053e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp396Cys,p.(Trp396Cys),GBA1,"risk, AD, (AR)",,1:155206072:C:G,1:155236281:C:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg398*,p.(Arg398Ter),GBA1,"risk, AD, (AR)",rs121908309,1:155206068:G:A,1:155236277:G:A,,1.50494e:05,,yes,,Clinvar and HGMD and MDSGene and PDGENE,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg398Gln,p.(Arg398Gln),GBA1,"risk, AD, (AR)",rs74979486,1:155206067:C:T,1:155236276:C:T,,2.05216e:06,6.57237e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg398Pro,p.(Arg398Pro),GBA1,"risk, AD, (AR)",,1:155206067:C:G,1:155236276:C:G,,,,yes,,Clinvar and HGMD,"Pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg398Leu,p.(Arg398Leu),GBA1,"risk, AD, (AR)",rs74979486,1:155206067:C:A,1:155236276:C:A,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr402His,p.(Tyr402His),GBA1,"risk, AD, (AR)",,1:155206056:A:G,1:155236265:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr402Cys,p.(Tyr402Cys),GBA1,"risk, AD, (AR)",rs76228122,1:155206055:T:C,1:155236264:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser403Arg,p.(Ser403Arg),GBA1,"risk, AD, (AR)",,1:155206053:T:G,1:155236262:T:G,,2.05244e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser403Asn,p.(Ser403Asn),GBA1,"risk, AD, (AR)",,1:155206052:C:T,1:155236261:C:T,,1.36835e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser403Thr,p.(Ser403Thr),GBA1,"risk, AD, (AR)",rs121908307,1:155206052:C:G,1:155236261:C:G,,6.84173e:07,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser403Lysfs*33,c.1207dupA,GBA1,"risk, AD, (AR)",,1:155206052:C:CT,1:155236261:C:CT,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser405Gly,p.(Ser405Gly),GBA1,"risk, AD, (AR)",,1:155206047:T:C,1:155236256:T:C,,1.36841e:06,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser405Asn,p.(Ser405Asn),GBA1,"risk, AD, (AR)",rs1392291885,1:155206046:C:T,1:155236255:C:T,,,1.97153e:05,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser405Thr,p.(Ser405Thr),GBA1,"risk, AD, (AR)",rs1392291885,1:155206046:C:G,1:155236255:C:G,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser405Arg,p.(Ser405Arg),GBA1,"risk, AD, (AR)",rs75528494,1:155206045:G:T,1:155236254:G:T,,,,yes,,Clinvar and HGMD,"Likely pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser405Asnfs*30,c.1214_1215delGC,GBA1,"risk, AD, (AR)",,1:155206044:TGC:T,1:155236253:TGC:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile406Phe,p.(Ile406Phe),GBA1,"risk, AD, (AR)",,1:155206044:T:A,1:155236253:T:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,T408M,p.Thr408Met,GBA1,"risk, AD, (AR)",rs75548401,1:155206037:G:A,1:155236246:G:A,,,,yes,,MDSGene,PD risk,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.1225-34C>A,c.1225-34C>A,GBA1,"risk, AD, (AR)",rs3115534,1:155205669:G:T,1:155235878:G:T,,,,yes,,GP2,GP2 African intronic risk variant,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn409Ser,p.(Asn409Ser),GBA1,"risk, AD, (AR)",rs76763715,1:155205634:T:C,1:155235843:T:C,,0.00201181,0.00185468,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic; risk factor, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu410Val,p.(Leu410Val),GBA1,"risk, AD, (AR)",rs121908314,1:155205632:G:C,1:155235841:G:C,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,His413Pro,p.(His413Pro),GBA1,"risk, AD, (AR)",rs911331923,1:155205622:T:G,1:155235831:T:G,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val414Leu,p.(Val414Leu),GBA1,"risk, AD, (AR)",rs398123528,1:155205620:C:G,1:155235829:C:G,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val414Leu,p.(Val414Leu),GBA1,"risk, AD, (AR)",rs398123528,1:155205620:C:A,1:155235829:C:A,,1.36809e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly416Ser,p.(Gly416Ser),GBA1,"risk, AD, (AR)",rs121908311,1:155205614:C:T,1:155235823:C:T,,2.39416e:05,6.57099e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly416Cys,p.(Gly416Cys),GBA1,"risk, AD, (AR)",rs121908311,1:155205614:C:A,1:155235823:C:A,,6.84045e:07,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp417Arg,p.(Trp417Arg),GBA1,"risk, AD, (AR)",rs1450426641,1:155205611:A:G,1:155235820:A:G,,6.84044e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp417Gly,p.(Trp417Gly),GBA1,"risk, AD, (AR)",rs1450426641,1:155205611:A:C,1:155235820:A:C,,2.05213e:06,,yes,,Clinvar and HGMD and MDSGene and PDGENE,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp417*,p.(Trp417Ter),GBA1,"risk, AD, (AR)",rs754743440,1:155205610:C:T,1:155235819:C:T,,6.84044e:07,6.56987e:06,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp417*,p.(Trp417Ter),GBA1,"risk, AD, (AR)",,1:155205609:C:T,1:155235818:C:T,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp417Cys,p.(Trp417Cys),GBA1,"risk, AD, (AR)",,1:155205609:C:G,1:155235818:C:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp417del,c.1249_1251delTGG,GBA1,"risk, AD, (AR)",,1:155205608:TCCA:T,1:155235817:TCCA:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp419Asn,p.(Asp419Asn),GBA1,"risk, AD, (AR)",rs1671712475,1:155205605:C:T,1:155235814:C:T,,3.42024e:06,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp419His,p.(Asp419His),GBA1,"risk, AD, (AR)",,1:155205605:C:G,1:155235814:C:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp419Tyr,p.(Asp419Tyr),GBA1,"risk, AD, (AR)",,1:155205605:C:A,1:155235814:C:A,,6.84048e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp419Ala,p.(Asp419Ala),GBA1,"risk, AD, (AR)",rs77284004,1:155205604:T:G,1:155235813:T:G,,5.47236e:06,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp420*,p.(Trp420Ter),GBA1,"risk, AD, (AR)",rs1671711470,1:155205601:C:T,1:155235810:C:T,,4.10428e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp420*,p.(Trp420Ter),GBA1,"risk, AD, (AR)",,1:155205600:C:T,1:155235809:C:T,,6.84045e:07,,yes,,Clinvar and MDSGene,"Pathogenic, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn421Lys,p.(Asn421Lys),GBA1,"risk, AD, (AR)",,1:155205597:G:T,1:155235806:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu422Arg,p.(Leu422Arg),GBA1,"risk, AD, (AR)",,1:155205595:A:C,1:155235804:A:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala423Asp,p.(Ala423Asp),GBA1,"risk, AD, (AR)",,1:155205592:G:T,1:155235801:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu424Pro,p.(Leu424Pro),GBA1,"risk, AD, (AR)",rs772548282,1:155205589:A:G,1:155235798:A:G,,6.84046e:07,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu424Arg,p.(Leu424Arg),GBA1,"risk, AD, (AR)",,1:155205589:A:C,1:155235798:A:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn425Lys,p.(Asn425Lys),GBA1,"risk, AD, (AR)",rs1026993108,1:155205585:G:T,1:155235794:G:T,,6.84045e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu427*,p.(Glu427Ter),GBA1,"risk, AD, (AR)",rs149171124,1:155205581:C:A,1:155235790:C:A,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Glu427del,c.1280_1282delAAG,GBA1,"risk, AD, (AR)",,1:155205577:CCTT:C,1:155235786:CCTT:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly428Glu,p.(Gly428Glu),GBA1,"risk, AD, (AR)",,1:155205577:C:T,1:155235786:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly428Val,p.(Gly428Val),GBA1,"risk, AD, (AR)",,1:155205577:C:A,1:155235786:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro430Leu,p.(Pro430Leu),GBA1,"risk, AD, (AR)",rs76910485,1:155205571:G:A,1:155235780:G:A,,2.05214e:06,,yes,,Clinvar and HGMD ad MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn431Ser,p.(Asn431Ser),GBA1,"risk, AD, (AR)",rs77738682,1:155205568:T:C,1:155235777:T:C,,5.47235e:06,6.57151e:06,yes,,Clinvar and MDSGene,"Likely pathogenic, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn431Ile,p.(Asn431Ile),GBA1,"risk, AD, (AR)",rs77738682,1:155205568:T:A,1:155235777:T:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp432Arg,p.(Trp432Arg),GBA1,"risk, AD, (AR)",rs1557901552,1:155205566:A:T,1:155235775:A:T,,6.84046e:07,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp432*,p.(Trp432Ter),GBA1,"risk, AD, (AR)",,1:155205565:C:T,1:155235774:C:T,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp432*,p.(Trp432Ter),GBA1,"risk, AD, (AR)",rs1484043383,1:155205564:C:T,1:155235773:C:T,,1.36809e:06,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Trp432Cys,p.(Trp432Cys),GBA1,"risk, AD, (AR)",,1:155205564:C:G,1:155235773:C:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val433Met,p.(Val433Met),GBA1,"risk, AD, (AR)",,1:155205563:C:T,1:155235772:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val433Leu,p.(Val433Leu),GBA1,"risk, AD, (AR)",rs80356769,1:155205563:C:A,1:155235772:C:A,,1.02607e:05,6.56909e:06,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg434Cys,p.(Arg434Cys),GBA1,"risk, AD, (AR)",rs747284798,1:155205560:G:A,1:155235769:G:A,,7.52464e:06,6.57022e:06,yes,,Clinvar and HGMD and MDSGene and PDGENE,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg434Pro,p.(Arg434Pro),GBA1,"risk, AD, (AR)",rs775661835,1:155205559:C:G,1:155235768:C:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn435Thr,p.(Asn435Thr),GBA1,"risk, AD, (AR)",rs75385858,1:155205556:T:G,1:155235765:T:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe436Ser,p.(Phe436Ser),GBA1,"risk, AD, (AR)",rs75243000,1:155205553:A:G,1:155235762:A:G,,1.36811e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val437Ile,p.(Val437Ile),GBA1,"risk, AD, (AR)",,1:155205551:C:T,1:155235760:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val437Leu,p.(Val437Leu),GBA1,"risk, AD, (AR)",rs121908310,1:155205551:C:G,1:155235760:C:G,,6.84057e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,p.Val437Cysfs*32,c.1308dupT,GBA1,"risk, AD, (AR)",,1:155205551:C:CA,1:155235760:C:CA,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val437Phe,p.(Val437Phe),GBA1,"risk, AD, (AR)",rs121908310,1:155205551:C:A,1:155235760:C:A,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val437Serfs*7,c.1309delG,GBA1,"risk, AD, (AR)",,1:155205550:AC:A,1:155235759:AC:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp438Asn,p.(Asp438Asn),GBA1,"risk, AD, (AR)",rs1553217009,1:155205548:C:T,1:155235757:C:T,,4.78857e:06,6.57168e:06,yes,,Clinvar and HGMD and MDSGene and PDGENE,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp438His,p.(Asp438His),GBA1,"risk, AD, (AR)",rs1553217009,1:155205548:C:G,1:155235757:C:G,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp438Tyr,p.(Asp438Tyr),GBA1,"risk, AD, (AR)",rs1553217009,1:155205548:C:A,1:155235757:C:A,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser439Gly,p.(Ser439Gly),GBA1,"risk, AD, (AR)",,1:155205545:T:C,1:155235754:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro440Arg,p.(Pro440Arg),GBA1,"risk, AD, (AR)",,1:155205541:G:C,1:155235750:G:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro440Leu,p.(Pro440Leu),GBA1,"risk, AD, (AR)",rs74598136,1:155205541:G:A,1:155235750:G:A,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu422Profs*4,p.Leu422Profs*4,GBA1,"risk, AD, (AR)",rs80356768,1:155205540:GGGACTGTCGACAAAGTTACGCACCCAATTGGGTCCTCCTTCGGGGTTCAGGGCAA:G,1:155235749:GGGACTGTCGACAAAGTTACGCACCCAATTGGGTCCTCCTTCGGGGTTCAGGGCAA:G,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile441Phe,p.(Ile441Phe),GBA1,"risk, AD, (AR)",,1:155205539:T:A,1:155235748:T:A,,2.05224e:06,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile441Thr,p.(Ile441Thr),GBA1,"risk, AD, (AR)",rs75564605,1:155205538:A:G,1:155235747:A:G,,6.84081e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile442Thr,p.(Ile442Thr),GBA1,"risk, AD, (AR)",rs1312499220,1:155205535:A:G,1:155235744:A:G,,6.84091e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val443Cysfs*26,c.1326dupT,GBA1,"risk, AD, (AR)",,1:155205533:C:CA,1:155235742:C:CA,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp444Val,p.(Asp444Val),GBA1,"risk, AD, (AR)",,1:155205529:T:A,1:155235738:T:A,,6.84145e:07,,yes,,Clinvar and HGMD,"Likely pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp448His,p.(Asp448His),GBA1,"risk, AD, (AR)",rs1064651,1:155205518:C:G,1:155235727:C:G,,0.000103333,0.0001972,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp448Gly,p.(Asp448Gly),GBA1,"risk, AD, (AR)",,1:155205517:T:C,1:155235726:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp448Val,p.(Asp448Val),GBA1,"risk, AD, (AR)",rs77369218,1:155205517:T:A,1:155235726:T:A,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe450Ile,p.(Phe450Ile),GBA1,"risk, AD, (AR)",rs1553216985,1:155205512:A:T,1:155235721:A:T,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr451His,p.(Tyr451His),GBA1,"risk, AD, (AR)",,1:155205509:A:G,1:155235718:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr451Cys,p.(Tyr451Cys),GBA1,"risk, AD, (AR)",,1:155205508:T:C,1:155235717:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Y451*,p.Tyr451*,GBA1,"risk, AD, (AR)",,1:155205507:G:T,1:155235716:G:T,,,,yes,,,,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys452Gln,p.(Lys452Gln),GBA1,"risk, AD, (AR)",,1:155205506:T:G,1:155235715:T:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln453*,p.(Gln453Ter),GBA1,"risk, AD, (AR)",rs1557901325,1:155205503:G:A,1:155235712:G:A,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln453Arg,p.(Gln453Arg),GBA1,"risk, AD, (AR)",,1:155205502:T:C,1:155235711:T:C,,6.85001e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro454Arg,p.(Pro454Arg),GBA1,"risk, AD, (AR)",rs121908295,1:155205499:G:C,1:155235708:G:C,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Pro454Leu,p.(Pro454Leu),GBA1,"risk, AD, (AR)",rs121908295,1:155205499:G:A,1:155235708:G:A,,1.37063e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Met455Val,p.(Met455Val),GBA1,"risk, AD, (AR)",,1:155205497:T:C,1:155235706:T:C,,6.85417e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe456Val,p.(Phe456Val),GBA1,"risk, AD, (AR)",,1:155205494:A:C,1:155235703:A:C,,6.85855e:07,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr457Cys,p.(Tyr457Cys),GBA1,"risk, AD, (AR)",rs74752878,1:155205490:T:C,1:155235699:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr457*,p.(Tyr457Ter),GBA1,"risk, AD, (AR)",,1:155205489:G:T,1:155235698:G:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,His458Arg,p.(His458Arg),GBA1,"risk, AD, (AR)",,1:155205487:T:C,1:155235696:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,G460Tfs*28,p.Gly460Thrfs*28,GBA1,"risk, AD, (AR)",,1:155205478:TGGCC:T,1:155235687:TGGCC:T,,,,yes,,PDGENE,,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.1388+1G>A,c.1388+1G>A,GBA1,"risk, AD, (AR)",,1:155205471:C:T,1:155235680:C:T,,4.84101e:06,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.1389-1G>A,c.1389-1G>A,GBA1,"risk, AD, (AR)",,1:155205103:C:T,1:155235312:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys464Glu,p.(Lys464Glu),GBA1,"risk, AD, (AR)",,1:155205101:T:C,1:155235310:T:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe465Val,p.(Phe465Val),GBA1,"risk, AD, (AR)",,1:155205098:A:C,1:155235307:A:C,,,,yes,,Clinvar and HGMD (and MDSGene),"Likely pathogenic, DM, (VUS)","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Phe465Ser,p.(Phe465Ser),GBA1,"risk, AD, (AR)",,1:155205097:A:G,1:155235306:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ile466Ser,p.(Ile466Ser),GBA1,"risk, AD, (AR)",rs878853320,1:155205094:A:C,1:155235303:A:C,,,,yes,,Clinvar and HGMD,"Likely pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val473Gly,p.(Val473Gly),GBA1,"risk, AD, (AR)",,1:155205073:A:C,1:155235282:A:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln479*,p.(Gln479Ter),GBA1,"risk, AD, (AR)",,1:155205056:G:A,1:155235265:G:A,,6.84156e:07,,yes,,Clinvar and MDSGene,"Likely pathogenic, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Lys480Thrfs*7,p.Lys480Thrfs*7,GBA1,"risk, AD, (AR)",,1:155205045:GTCGTTCT:G,1:155235254:GTCGTTCT:G,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu483Pro,p.(Leu483Pro),GBA1,"risk, AD, (AR)",rs421016,1:155205043:A:G,1:155235252:A:G,,8.41946e:05,0.000236718,yes,Gauchian,Clinvar and HGMD and MDSGene,"Pathogenic; risk factor, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu483Arg,p.(Leu483Arg),GBA1,"risk, AD, (AR)",rs421016,1:155205043:A:C,1:155235252:A:C,,1.3686e:06,,yes,Gauchian,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp484Glyfs*21,c.1451_1452delAC,GBA1,"risk, AD, (AR)",,1:155205038:CGT:C,1:155235247:CGT:C,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val486Glu,p.(Val486Glu),GBA1,"risk, AD, (AR)",,1:155205034:A:T,1:155235243:A:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala487Thr,p.(Ala487Thr),GBA1,"risk, AD, (AR)",rs878853317,1:155205032:C:T,1:155235241:C:T,,,,yes,,Clinvar and MDSGene,"Likely pathogenic, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Leu483_Met489delinsTrp,c.1447_1466del20insTG,GBA1,"risk, AD, (AR)",,1:155205025:ATCAGTGCCACTGCGTCCAG:CA,1:155235234:ATCAGTGCCACTGCGTCCAG:CA,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ala495Pro,p.(Ala495Pro),GBA1,"risk, AD, (AR)",rs368060,1:155205008:C:G,1:155235217:C:G,,0.00055649,0.000813309,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val499Met,p.(Val499Met),GBA1,"risk, AD, (AR)",rs369068553,1:155204996:C:T,1:155235205:C:T,,2.46317e:05,5.27684e:05,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Val499Leu,p.(Val499Leu),GBA1,"risk, AD, (AR)",rs369068553,1:155204996:C:G,1:155235205:C:G,,4.17371e:05,3.96066e:05,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn501Tyr,p.(Asn501Tyr),GBA1,"risk, AD, (AR)",,1:155204990:T:A,1:155235199:T:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asn501Lys,p.(Asn501Lys),GBA1,"risk, AD, (AR)",rs755265316,1:155204988:G:C,1:155235197:G:C,,4.78996e:06,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg502Cys,p.(Arg502Cys),GBA1,"risk, AD, (AR)",rs80356771,1:155204987:G:A,1:155235196:G:A,,0.000245677,7.27956e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg502His,p.(Arg502His),GBA1,"risk, AD, (AR)",rs80356772,1:155204986:C:T,1:155235195:C:T,,3.42182e:06,,yes,,Clinvar and HGMD and MDSGene,"DM, Pathogenic/Likely pathogenic, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.1505+2T>A,c.1505+2T>A,GBA1,"risk, AD, (AR)",,1:155204984:A:T,1:155235193:A:T,,,,yes,,Clinvar and HGMD and MDSGene,"Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.1505+2T>C,c.1505+2T>C,GBA1,"risk, AD, (AR)",,1:155204984:A:G,1:155235193:A:G,,,,yes,,Clinvar and HGMD,"Pathogenic, DM","Mendelian (GD), risk",lara.lange@nih.gov
+yes,c.1506-1G>A,c.1506-1G>A,GBA1,"risk, AD, (AR)",rs1571964338,1:155204892:C:T,1:155235101:C:T,,,,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp513Asn,p.(Asp513Asn),GBA1,"risk, AD, (AR)",,1:155204860:C:T,1:155235069:C:T,,3.84198e:06,,yes,,Clinvar and MDSGene,"Likely pathogenic, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Asp513Tyr,p.(Asp513Tyr),GBA1,"risk, AD, (AR)",,1:155204860:C:A,1:155235069:C:A,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gly517Ser,p.(Gly517Ser),GBA1,"risk, AD, (AR)",rs121908301,1:155204848:C:T,1:155235057:C:T,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Ser527Pro,p.(Ser527Pro),GBA1,"risk, AD, (AR)",,1:155204818:A:G,1:155235027:A:G,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Tyr531*,p.(Tyr531Ter),GBA1,"risk, AD, (AR)",,1:155204804:G:T,1:155235013:G:T,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg535Cys,p.(Arg535Cys),GBA1,"risk, AD, (AR)",rs747506979,1:155204794:G:A,1:155235003:G:A,,7.28101e:06,0,yes,,Clinvar and HGMD and MDSGene,"Pathogenic, DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Arg535His,p.(Arg535His),GBA1,"risk, AD, (AR)",rs75822236,1:155204793:C:T,1:155235002:C:T,,0.000117575,5.52792e:05,yes,,Clinvar and HGMD and MDSGene,"Pathogenic/Likely pathogenic, DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,Gln536*,p.(Gln536Ter),GBA1,"risk, AD, (AR)",rs758806595,1:155204791:G:A,1:155235000:G:A,,7.50395e:06,7.89818e:05,yes,,Clinvar and MDSGene,"Pathogenic, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 9-11 deletion ,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,HGMD,DM,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 10-12 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,HGMD,DM,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 2-8 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,HGMD and MDSGene,"DM, Pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,entire gene deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,HGMD,DM,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 6 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,HGMD and MDSGene,"DM, Likely pathogenic","Mendelian (GD), risk",lara.lange@nih.gov
+yes,partial ex. 8 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,HGMD,DM,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,Recombination with GBA pseudogene,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,Gauchian,HGMD,DM,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 4 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,MDSGene,Likely pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 6-7 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 7-11 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 4-11 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 3-11 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 3-10 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 2-11 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,ex. 1-11 deletion,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,,MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,recTL,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,Gauchian,MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov
+yes,RecNcil,NA,GBA1,"risk, AD, (AR)",,,,,,,yes,Gauchian,MDSGene,Pathogenic,"Mendelian (GD), risk",lara.lange@nih.gov

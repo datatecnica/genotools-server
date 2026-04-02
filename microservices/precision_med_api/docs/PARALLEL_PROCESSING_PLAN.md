@@ -1,5 +1,21 @@
 # Parallel Processing Overhaul: Sequential-Ancestry / Parallel-Chromosome
 
+## Implementation Status
+
+| Item | Status |
+|------|--------|
+| `--max-workers` correctly caps the pool | **Implemented** (2026-03-31) |
+| RAM-based worker cap (`floor(RAM × 0.8 / 20 GB)`) | **Implemented** (2026-03-31) |
+| `BrokenProcessPool` caught with actionable OOM message | **Implemented** (2026-03-31) |
+| Option 3: Sequential-ancestry / parallel-chromosome refactor | **Planned** — not yet implemented |
+| Option 4: Google Batch infrastructure | **Long-term** — not yet started |
+
+The current stopgaps (RAM-based cap + `--max-workers`) are sufficient for normal
+use. Option 3 is the recommended next step if OOM errors persist on very large
+joint-calling WGS files even with a manual `--max-workers` override.
+
+---
+
 ## Problem with the Current Approach
 
 The pipeline uses a flat `ProcessPoolExecutor` that submits **all tasks at once** across all ancestries and chromosomes:
