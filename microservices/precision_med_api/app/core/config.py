@@ -10,6 +10,18 @@ class Settings(BaseModel):
         default=os.path.expanduser("~/gcs_mounts"),
         description="Mount path for GCS buckets"
     )
+    nba_base_path: Optional[str] = Field(
+        default=None,
+        description="Override base path for NBA files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/nba)"
+    )
+    wgs_base_path: Optional[str] = Field(
+        default=None,
+        description="Override base path for WGS files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/wgs/joint-calling/plink)"
+    )
+    master_key_path: Optional[str] = Field(
+        default=None,
+        description="Override path for master key file (e.g. ~/gcs_mounts/gp2_release12/individual_releases/GP2_R12_master_key.txt)"
+    )
     
     # Available ancestries in GP2 data
     ANCESTRIES: List[str] = Field(
@@ -44,6 +56,12 @@ class Settings(BaseModel):
     dosage_het_min: float = Field(default=0.5, description="Minimum dosage to call heterozygous")
     dosage_het_max: float = Field(default=1.5, description="Maximum dosage to call heterozygous")
     dosage_hom_min: float = Field(default=1.5, description="Minimum dosage to call homozygous")
+
+    # PLINK QC filters applied during extraction (Step 1 --make-pgen)
+    geno_filter: Optional[float] = Field(
+        default=None,
+        description="Max per-variant missingness rate (PLINK --geno). E.g. 0.05 excludes variants missing in >5% of samples. None = no filter."
+    )
     
     @field_validator('release')
     @classmethod
@@ -60,21 +78,39 @@ class Settings(BaseModel):
     @classmethod
     def validate_mnt_path(cls, v: str) -> str:
         return os.path.expanduser(v)
+
+    @field_validator('nba_base_path', 'wgs_base_path', mode='before')
+    @classmethod
+    def validate_override_paths(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return os.path.expanduser(v)
+        return v
     
     @classmethod
     def auto_detect_performance_settings(cls) -> Dict[str, int]:
-        """Auto-detect optimal performance settings based on machine specs."""
+        """Auto-detect optimal performance settings based on machine specs.
+
+        Worker count is capped by available RAM, not just CPU count, because
+        PLINK extraction is memory-bound (each worker memory-maps a PGEN file).
+        Assumes ~20 GB RAM per worker to safely handle large WGS joint-calling files.
+        Exceeding this leads to OOM kills. Use --max-workers to override.
+        """
         import psutil
-        
+
         cpu_count = os.cpu_count() or 4
         total_ram_gb = psutil.virtual_memory().total / (1024**3)
-        
+
+        # RAM-based worker cap: each PLINK worker can use ~20 GB for large WGS files.
+        # Use 80% of total RAM to leave headroom for the OS and other processes.
+        RAM_GB_PER_WORKER = 20
+        ram_based_cap = max(1, int(total_ram_gb * 0.8 / RAM_GB_PER_WORKER))
+
         # Performance tier detection
         if cpu_count <= 4 and total_ram_gb <= 16:
             # Small: Development/laptop
             return {
                 'chunk_size': 15000,
-                'max_workers': max(2, cpu_count - 2),
+                'max_workers': min(ram_based_cap, max(2, cpu_count - 2)),
                 'process_cap': min(6, cpu_count),
                 'cpu_reservation': 2
             }
@@ -82,7 +118,7 @@ class Settings(BaseModel):
             # Medium: Small production
             return {
                 'chunk_size': 25000,
-                'max_workers': max(4, cpu_count - 2),
+                'max_workers': min(ram_based_cap, max(4, cpu_count - 2)),
                 'process_cap': min(12, cpu_count + 2),
                 'cpu_reservation': 2
             }
@@ -90,35 +126,45 @@ class Settings(BaseModel):
             # Large: Medium production
             return {
                 'chunk_size': 40000,
-                'max_workers': max(8, cpu_count - 2),
+                'max_workers': min(ram_based_cap, max(8, cpu_count - 2)),
                 'process_cap': min(20, cpu_count + 4),
                 'cpu_reservation': 2
             }
         elif cpu_count <= 32 and total_ram_gb <= 128:
-            # XLarge: High-end production (current system)
+            # XLarge: High-end production
             return {
                 'chunk_size': 50000,
-                'max_workers': max(16, cpu_count - 4),
+                'max_workers': min(ram_based_cap, max(16, cpu_count - 4)),
                 'process_cap': min(30, cpu_count - 2),
                 'cpu_reservation': 4
             }
         else:
             # XXLarge: Workstation/Server
+            # ram_based_cap on a 503 GB machine = int(503 * 0.8 / 20) = 20 workers
             return {
                 'chunk_size': 75000,
-                'max_workers': max(24, cpu_count - 6),
-                'process_cap': min(60, cpu_count - 4),
+                'max_workers': min(ram_based_cap, max(8, cpu_count - 6)),
+                'process_cap': min(ram_based_cap, cpu_count - 4),
                 'cpu_reservation': 6
             }
     
     def get_optimal_workers(self, total_files: int) -> int:
-        """Get optimal worker count for given number of files."""
+        """Get optimal worker count for given number of files.
+
+        Capped by available RAM at runtime in addition to CPU and configured limits,
+        because PLINK extraction is memory-bound. Each worker may use ~20 GB for
+        large WGS joint-calling files. If you hit OOM errors, reduce --max-workers.
+        """
+        import psutil
         cpu_count = os.cpu_count() or 4
+        available_ram_gb = psutil.virtual_memory().available / (1024**3)
+        ram_based_cap = max(1, int(available_ram_gb * 0.8 / 20))
         return min(
             total_files,
             max(1, cpu_count - self.cpu_reservation),
             self.max_workers,
-            self.process_cap
+            self.process_cap,
+            ram_based_cap
         )
     
     @cached_property
@@ -185,7 +231,14 @@ class Settings(BaseModel):
     def get_nba_path(self, ancestry: str) -> str:
         if ancestry not in self.ANCESTRIES:
             raise ValueError(f"Invalid ancestry: {ancestry}. Must be one of {self.ANCESTRIES}")
-        
+
+        if self.nba_base_path is not None:
+            return os.path.join(
+                self.nba_base_path,
+                ancestry,
+                f"GP2_r{self.release}_v2_gp2id_post_genotools_{ancestry}"
+            )
+
         base_path = os.path.join(
             self.release_path,
             "raw_genotypes",
@@ -209,6 +262,9 @@ class Settings(BaseModel):
             raise ValueError(f"Invalid ancestry: {ancestry}. Must be one of {self.ANCESTRIES}")
         if chrom not in self.CHROMOSOMES:
             raise ValueError(f"Invalid chromosome: {chrom}. Must be one of {self.CHROMOSOMES}")
+
+        if self.wgs_base_path is not None:
+            return os.path.join(self.wgs_base_path, ancestry, f"chr{chrom}")
 
         base_path = os.path.join(
             self.release_path,
@@ -322,7 +378,7 @@ class Settings(BaseModel):
         clinical_base = os.path.join(self.release_path, "clinical_data")
 
         return {
-            "master_key": os.path.join(
+            "master_key": self.master_key_path if self.master_key_path else os.path.join(
                 clinical_base,
                 f"master_key_release{self.release}_final_vwb.csv"
             ),
@@ -423,11 +479,9 @@ class Settings(BaseModel):
     
     def list_available_ancestries(self, data_type: str) -> List[str]:
         if data_type == "WGS":
-            base_path = os.path.join(
-                self.release_path,
-                "wgs",
-                "deepvariant_joint_calling",
-                "plink"
+            base_path = (
+                self.wgs_base_path if self.wgs_base_path is not None
+                else os.path.join(self.release_path, "wgs", "deepvariant_joint_calling", "plink")
             )
             if not os.path.exists(base_path):
                 return []
@@ -439,7 +493,10 @@ class Settings(BaseModel):
             return available
 
         if data_type == "NBA":
-            base_path = os.path.join(self.release_path, "raw_genotypes")
+            base_path = (
+                self.nba_base_path if self.nba_base_path is not None
+                else os.path.join(self.release_path, "raw_genotypes")
+            )
         elif data_type == "IMPUTED":
             base_path = os.path.join(self.release_path, "imputed_genotypes")
         else:
@@ -469,20 +526,13 @@ class Settings(BaseModel):
             List of available chromosome identifiers
         """
         if data_type == "WGS":
-            base_path = os.path.join(
-                self.release_path,
-                "wgs",
-                "deepvariant_joint_calling",
-                "plink",
-                ancestry
-            )
-            file_pattern = f"chr{{chrom}}_{ancestry}_release{self.release}.pgen"
+            # Use get_wgs_path so any override is automatically respected
+            pass
         else:  # IMPUTED
             base_path = os.path.join(self.release_path, "imputed_genotypes", ancestry)
             file_pattern = f"chr{{chrom}}_{ancestry}_release{self.release}_vwb.pgen"
-
-        if not os.path.exists(base_path):
-            return []
+            if not os.path.exists(base_path):
+                return []
 
         # Use SNP-based chromosome filtering by default
         chromosomes_to_check = self.get_snp_chromosomes() if filter_by_snp_list else self.CHROMOSOMES
@@ -495,8 +545,10 @@ class Settings(BaseModel):
 
         available = []
         for chrom in chromosomes_to_check:
-            # Check if any of the PLINK files exist for this chromosome
-            pgen_file = os.path.join(base_path, file_pattern.format(chrom=chrom))
+            if data_type == "WGS":
+                pgen_file = self.get_wgs_path(ancestry, chrom) + ".pgen"
+            else:
+                pgen_file = os.path.join(base_path, file_pattern.format(chrom=chrom))
             if os.path.exists(pgen_file):
                 available.append(chrom)
 

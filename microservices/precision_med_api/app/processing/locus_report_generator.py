@@ -54,14 +54,18 @@ class LocusReportGenerator:
 
     def _load_master_key(self) -> pd.DataFrame:
         """Load master key file with ancestry labels."""
-        key_path = Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"
+        if self.settings.master_key_path:
+            key_path = Path(self.settings.master_key_path)
+        else:
+            key_path = Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"
         self.logger.debug(f"Loading master key from: {key_path}")
 
-        df = pd.read_csv(key_path)
+        sep = '\t' if str(key_path).endswith('.txt') else ','
+        df = pd.read_csv(key_path, sep=sep)
         self.logger.debug(f"Loaded {len(df):,} samples from master key")
 
         # Select relevant columns (including age data for disease duration calculation)
-        cols_to_keep = ['GP2ID', 'nba_label', 'nba', 'wgs', 'extended_clinical_data']
+        cols_to_keep = [c for c in ['GP2ID', 'nba_label', 'nba', 'wgs', 'extended_clinical_data'] if c in df.columns]
 
         # Add wgs_label for WGS ancestry assignment
         if 'wgs_label' in df.columns:
@@ -96,7 +100,8 @@ class LocusReportGenerator:
         matches = [m for m in matches if 'dictionary' not in m.lower()]
 
         if not matches:
-            raise FileNotFoundError(f"No extended clinical file found matching pattern: {pattern}")
+            self.logger.warning(f"No extended clinical file found matching pattern: {pattern} — clinical metrics (MoCA, H&Y, DAT scan) will be absent from locus reports")
+            return pd.DataFrame(columns=['GP2ID'])
 
         clin_path = Path(matches[0])  # Use first match
         self.logger.debug(f"Loading extended clinical from: {clin_path}")
@@ -125,15 +130,18 @@ class LocusReportGenerator:
         return baseline_df
 
     def _load_snp_list(self) -> pd.DataFrame:
-        """Load SNP list with locus annotations."""
+        """Load SNP list with locus annotations and variant metadata."""
         snp_path = Path(self.settings.snp_list_path)
         self.logger.debug(f"Loading SNP list from: {snp_path}")
 
         df = pd.read_csv(snp_path)
         self.logger.debug(f"Loaded {len(df):,} variants from SNP list")
 
-        # Select relevant columns
-        df = df[['snp_name', 'locus', 'hg38']].copy()
+        # Select relevant columns — include extra metadata for variant report
+        base_cols = ['snp_name', 'locus', 'hg38']
+        extra_cols = ['snp_name_alt', 'moi', 'rsid', 'pathogenicity_prediction_new', 'new_source']
+        keep_cols = base_cols + [c for c in extra_cols if c in df.columns]
+        df = df[keep_cols].copy()
         df = df.rename(columns={'snp_name': 'snp_list_id'})
 
         return df
@@ -269,6 +277,190 @@ class LocusReportGenerator:
 
         return output_files
 
+    def generate_variant_report(
+        self,
+        parquet_files: Dict[str, str],
+        output_dir: str,
+        job_name: str,
+    ) -> Dict[str, str]:
+        """Generate per-sample variant report in clinician-friendly format.
+
+        Produces one row per carrier per variant with columns matching the
+        standard variant report template.  NBA and WGS are merged into a
+        single table; a ``validated_by_wgs`` flag marks variants found in
+        both data types for the same sample.
+
+        Args:
+            parquet_files: Dict mapping data type string to parquet file path.
+            output_dir: Directory where the CSV will be saved.
+            job_name: Job name used for output file naming.
+
+        Returns:
+            Dict with key ``"variant_report"`` mapping to the saved CSV path,
+            or empty dict if no carrier data was found.
+        """
+        REPORT_TYPES = ('NBA', 'WGS')
+
+        # --- Build per-data-type carrier DataFrames ---
+        dfs_by_type: Dict[str, pd.DataFrame] = {}
+        wgs_sample_ids: set = set()
+        metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
+                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
+                         'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry',
+                         'maf_corrected', 'original_alt_af']
+        for data_type in REPORT_TYPES:
+            if data_type not in parquet_files:
+                continue
+            path = parquet_files[data_type]
+            if not Path(path).exists():
+                self.logger.warning(f"Parquet not found for {data_type}: {path}")
+                continue
+
+            self.logger.debug(f"Loading {data_type} parquet for variant report")
+            df = pd.read_parquet(path)
+            if df.empty:
+                continue
+
+            # Capture all WGS sample IDs before filtering to carriers
+            if data_type == 'WGS':
+                wgs_sample_ids = set(c for c in df.columns if c not in metadata_cols)
+
+            # Apply best-probe filter for NBA
+            if data_type == 'NBA' and self.probe_selector.has_probe_selection():
+                df = self._filter_to_selected_probes(df)
+
+            # Melt to long format, filter to carriers, join ancestry
+            carrier_df = self._join_clinical_data(df, data_type)
+            if carrier_df.empty:
+                continue
+
+            carrier_df['_source'] = data_type
+            dfs_by_type[data_type] = carrier_df
+
+        if not dfs_by_type:
+            self.logger.warning("No carrier data available for variant report")
+            return {}
+
+        # --- Merge NBA + WGS into one table ---
+        # Sort so NBA < WGS alphabetically: when deduplicating, NBA row is kept as primary
+        all_carriers = pd.concat(dfs_by_type.values(), ignore_index=True)
+        all_carriers = all_carriers.sort_values('_source').reset_index(drop=True)
+
+        grp = all_carriers.groupby(['GP2ID', 'snp_list_id'])['_source']
+        all_carriers['Data_type'] = grp.transform(
+            lambda x: ', '.join(sorted(x.unique()))
+        )
+        # True: WGS confirms carrier; False: WGS data exists but not a carrier; NaN: no WGS data
+        if wgs_sample_ids:
+            all_carriers['validated_by_wgs'] = grp.transform(
+                lambda x: ('WGS' in x.values) and ('NBA' in x.values)
+            )
+            no_wgs = ~all_carriers['GP2ID'].isin(wgs_sample_ids)
+            all_carriers['validated_by_wgs'] = all_carriers['validated_by_wgs'].astype(object)
+            all_carriers.loc[no_wgs, 'validated_by_wgs'] = None
+        else:
+            all_carriers['validated_by_wgs'] = None
+
+        # One row per (GP2ID, snp_list_id); prefer NBA row
+        report = all_carriers.drop_duplicates(
+            subset=['GP2ID', 'snp_list_id'], keep='first'
+        ).copy()
+
+        # validated_by_wgs is not applicable for WGS-only rows (the source IS WGS)
+        report.loc[report['Data_type'] == 'WGS', 'validated_by_wgs'] = None
+
+        # --- Add SNP list metadata not already present ---
+        meta_cols = ['snp_list_id', 'hg38', 'moi', 'rsid',
+                     'pathogenicity_prediction_new', 'new_source']
+        available = [c for c in meta_cols if c in self.snp_list.columns]
+        report = report.merge(self.snp_list[available], on='snp_list_id', how='left')
+
+        # --- Derived columns ---
+        # NBA probe name: the PGEN variant_id for NBA-sourced rows
+        report['NBA_probe_name'] = report.apply(
+            lambda r: r['variant_id'] if r.get('_source') == 'NBA' else '', axis=1
+        )
+
+        # Zygosity (supports both discrete and dosage genotypes)
+        def _zygosity(g):
+            if pd.isna(g):
+                return ''
+            return 'hom' if float(g) >= 1.5 else 'het'
+
+        report['Zygosity'] = report['genotype'].apply(_zygosity)
+
+        # Compound het: ≥2 het variants in same AR gene per sample
+        report['potential_comp_het'] = False
+        if 'moi' in report.columns:
+            ar_mask = report['moi'].str.contains('AR', na=False)
+            het_mask = report['Zygosity'] == 'het'
+            ar_het_idx = report.index[ar_mask & het_mask]
+            if len(ar_het_idx) > 0:
+                counts = report.loc[ar_het_idx].groupby(
+                    ['GP2ID', 'locus']
+                )['snp_list_id'].transform('count')
+                report.loc[ar_het_idx, 'potential_comp_het'] = counts >= 2
+
+        # --- Per-variant WGS carrier concordance ---
+        # For each snp_list_id: fraction of NBA carriers (that have WGS data) confirmed by WGS
+        if wgs_sample_ids and 'WGS' in dfs_by_type:
+            wgs_carriers = dfs_by_type['WGS'].groupby('snp_list_id')['GP2ID'].apply(set)
+            nba_rows = all_carriers[all_carriers['_source'] == 'NBA'].copy()
+            nba_rows = nba_rows[nba_rows['GP2ID'].isin(wgs_sample_ids)]
+
+            def _concordance(grp):
+                nba_set = set(grp['GP2ID'])
+                if not nba_set:
+                    return float('nan')
+                wgs_set = wgs_carriers.get(grp.name, set())
+                return len(nba_set & wgs_set) / len(nba_set)
+
+            concordance_map = nba_rows.groupby('snp_list_id').apply(_concordance, include_groups=False)
+            report['wgs_carrier_concordance'] = report['snp_list_id'].map(concordance_map) if 'snp_list_id' in report.columns else None
+        else:
+            report['wgs_carrier_concordance'] = None
+
+        # --- Rename and select final columns ---
+        report = report.rename(columns={
+            'ancestry': 'Ancestry',
+            'locus': 'Gene',
+            'hg38': 'Variant_ID',
+            'snp_list_id': 'AA_change',
+            'rsid': 'rsID',
+            'moi': 'MOI',
+            'pathogenicity_prediction_new': 'Pathogenicity',
+            'new_source': 'Pathogenicity_source',
+        })
+        report['Variant_interpretation'] = report.get('Pathogenicity', '')
+
+        output_cols = [
+            'GP2ID', 'Ancestry', 'Gene', 'Variant_ID', 'AA_change', 'rsID',
+            'NBA_probe_name', 'Zygosity', 'MOI', 'Data_type', 'Pathogenicity',
+            'Pathogenicity_source', 'Variant_interpretation',
+            'potential_comp_het', 'validated_by_wgs', 'wgs_carrier_concordance',
+        ]
+        report = report[[c for c in output_cols if c in report.columns]]
+
+        # Sort by Ancestry, Gene, GP2ID for readability
+        sort_cols = [c for c in ['Ancestry', 'Gene', 'GP2ID'] if c in report.columns]
+        if sort_cols:
+            report = report.sort_values(sort_cols).reset_index(drop=True)
+
+        # --- Save ---
+        out_path = Path(output_dir) / f"{job_name}_variant_report.csv"
+        report.to_csv(out_path, index=False)
+
+        n_validated = int(report['validated_by_wgs'].sum()) if 'validated_by_wgs' in report.columns else 0
+        n_comp_het = int(report['potential_comp_het'].sum()) if 'potential_comp_het' in report.columns else 0
+        self.logger.debug(
+            f"Saved variant report: {out_path} "
+            f"({len(report):,} carrier records, "
+            f"{n_validated:,} WGS-validated, "
+            f"{n_comp_het:,} potential comp-het)"
+        )
+
+        return {'variant_report': str(out_path)}
+
     def _generate_datatype_report(
         self,
         data_path: str,
@@ -313,7 +505,7 @@ class LocusReportGenerator:
             summary=summary,
             locus_reports=locus_reports,
             clinical_data_sources={
-                "master_key": str(Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"),
+                "master_key": str(self.settings.master_key_path or Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"),
                 "extended_clinical": str(Path(self.settings.release_path) / "clinical_data" / f"r{self.settings.release}_extended_clinical_data_vwb.csv")
             }
         )
@@ -367,7 +559,7 @@ class LocusReportGenerator:
             summary=summary,
             locus_reports=locus_reports,
             clinical_data_sources={
-                "master_key": str(Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"),
+                "master_key": str(self.settings.master_key_path or Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"),
                 "extended_clinical": str(Path(self.settings.release_path) / "clinical_data" / f"r{self.settings.release}_extended_clinical_data_vwb.csv")
             }
         )
@@ -420,7 +612,8 @@ class LocusReportGenerator:
         # Identify metadata vs sample columns
         metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
-                        'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry']
+                        'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry',
+                        'maf_corrected', 'original_alt_af']
         sample_cols = [col for col in df.columns if col not in metadata_cols]
 
         variant_details = {}
@@ -492,7 +685,8 @@ class LocusReportGenerator:
         # Identify metadata vs sample columns
         metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
-                        'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry']
+                        'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry',
+                        'maf_corrected', 'original_alt_af']
 
         # Select only ID vars and sample columns (exclude other metadata)
         id_vars = [col for col in ['variant_id', 'snp_list_id'] if col in genotype_df.columns]
@@ -521,7 +715,7 @@ class LocusReportGenerator:
 
         # Join with master key to get ancestry and age data for disease duration
         # Include both ancestry labels for proper assignment based on data type
-        master_key_cols = ['GP2ID', 'nba_label', 'extended_clinical_data']
+        master_key_cols = [c for c in ['GP2ID', 'nba_label', 'extended_clinical_data'] if c in self.master_key.columns]
         if 'wgs_label' in self.master_key.columns:
             master_key_cols.append('wgs_label')
         # Include age columns if available
@@ -805,7 +999,8 @@ class LocusReportGenerator:
         # Calculate total samples and variants from full dataframe
         metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position',
                         'counted_allele', 'alt_allele', 'harmonization_action', 'snp_list_id',
-                        'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry']
+                        'pgen_a1', 'pgen_a2', 'data_type', 'source_file', 'ancestry',
+                        'maf_corrected', 'original_alt_af']
         sample_cols = [col for col in full_df.columns if col not in metadata_cols]
         total_samples = len(sample_cols)
         total_variants = len(full_df)

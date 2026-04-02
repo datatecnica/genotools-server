@@ -12,6 +12,7 @@ from typing import List, Dict, Optional, Any, Tuple
 from pathlib import Path
 import logging
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
 import time
 from datetime import datetime
 from tqdm import tqdm
@@ -427,6 +428,7 @@ class ExtractionCoordinator:
                 ncols=80,
                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
             )
+            oom_reported = False
             with pbar:
                 for future in as_completed(future_to_task):
                     file_path, data_type = future_to_task[future]
@@ -438,6 +440,29 @@ class ExtractionCoordinator:
                         else:
                             # Empty result - file processed but no matching variants
                             extraction_outcomes[data_type]['empty'].append(file_path)
+                        pbar.update(1)
+                    except BrokenProcessPool:
+                        if not oom_reported:
+                            oom_reported = True
+                            print(
+                                f"\n{'='*70}\n"
+                                f"OUT OF MEMORY ERROR: A worker process was killed by the OS.\n"
+                                f"\n"
+                                f"  Current workers : {optimal_workers}\n"
+                                f"  Likely cause    : Too many PLINK processes running in parallel,\n"
+                                f"                    each memory-mapping a large WGS PGEN file.\n"
+                                f"\n"
+                                f"  Fix             : Re-run with fewer workers, e.g.:\n"
+                                f"    --max-workers {max(1, optimal_workers // 2)}\n"
+                                f"\n"
+                                f"  All remaining tasks in this pool have been cancelled.\n"
+                                f"  Use --retry-failed with the failed_files.json to resume.\n"
+                                f"{'='*70}\n"
+                            )
+                        extraction_outcomes[data_type]['failed'].append({
+                            'file': file_path,
+                            'error': 'OOM/BrokenProcessPool'
+                        })
                         pbar.update(1)
                     except Exception as e:
                         logger.error(f"Process extraction failed for {file_path}: {e}")
@@ -790,7 +815,10 @@ class ExtractionCoordinator:
 
     def _calculate_optimal_workers(self, total_files: int, max_workers: int) -> int:
         """Calculate optimal process count based on system resources and settings."""
-        return self.settings.get_optimal_workers(total_files)
+        optimal = self.settings.get_optimal_workers(total_files)
+        if max_workers is not None:
+            optimal = min(optimal, max_workers)
+        return optimal
     
     def _extract_data_type(
         self, 
@@ -1005,6 +1033,7 @@ class ExtractionCoordinator:
         enable_probe_selection: bool = True,
         enable_locus_reports: bool = True,
         enable_coverage_profiling: bool = True,
+        enable_variant_report: bool = True,
     ) -> Dict[str, Any]:
         """
         Run complete extraction pipeline from SNP list to final output.
@@ -1142,6 +1171,20 @@ class ExtractionCoordinator:
                     logger.debug("✅ Probe selection analysis completed")
                 else:
                     logger.warning("⚠️ Probe selection analysis did not generate results")
+
+            # Run variant report before clinical-dependent steps
+            if enable_variant_report:
+                logger.debug("📋 Running variant report generation...")
+                variant_report_results = self.run_variant_report_postprocessing(
+                    output_dir=output_dir,
+                    output_name=job_id,
+                    data_types=data_types
+                )
+                if variant_report_results:
+                    results['output_files'].update(variant_report_results)
+                    logger.debug("✅ Variant report generation completed")
+                else:
+                    logger.warning("⚠️ Variant report generation did not generate results")
 
             if enable_locus_reports:
                 logger.debug("📊 Running locus report generation...")
@@ -1303,6 +1346,13 @@ class ExtractionCoordinator:
                                     retry_outcomes['successful'].append(file_path)
                                 else:
                                     retry_outcomes['empty'].append(file_path)
+                                pbar.update(1)
+                            except BrokenProcessPool:
+                                logger.error(
+                                    f"Process pool worker killed (likely OOM) during retry of {file_path}. "
+                                    f"Try reducing --max-workers (currently {optimal_workers}) to lower memory pressure."
+                                )
+                                retry_outcomes['failed'].append({'file': file_path, 'error': 'OOM/BrokenProcessPool'})
                                 pbar.update(1)
                             except Exception as e:
                                 logger.error(f"Retry failed for {file_path}: {e}")
@@ -1615,6 +1665,63 @@ class ExtractionCoordinator:
 
         except Exception as e:
             logger.error(f"Locus report generation failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def run_variant_report_postprocessing(
+        self,
+        output_dir: str,
+        output_name: str,
+        data_types: List[DataType]
+    ) -> Optional[Dict[str, str]]:
+        """
+        Generate per-sample variant report from existing parquet files.
+
+        Args:
+            output_dir: Directory containing parquet files
+            output_name: Base name for files (e.g., 'release12')
+            data_types: Data types available (NBA and WGS are used; others ignored)
+
+        Returns:
+            Dictionary with key 'variant_report' mapping to CSV path, or None if failed
+        """
+        try:
+            from .locus_report_generator import LocusReportGenerator
+
+            # Build parquet file map (variant report only uses NBA and WGS)
+            parquet_files = {}
+            for data_type in data_types:
+                if data_type.name not in ('NBA', 'WGS'):
+                    continue
+                parquet_path = os.path.join(output_dir, f"{output_name}_{data_type.name}.parquet")
+                if os.path.exists(parquet_path):
+                    parquet_files[data_type.name] = parquet_path
+                else:
+                    logger.warning(f"{data_type.name} parquet file not found: {parquet_path}")
+
+            if not parquet_files:
+                logger.warning("No NBA or WGS parquet files found for variant report generation")
+                return None
+
+            # Check for probe selection file (used to filter NBA to best probe)
+            probe_selection_path = os.path.join(output_dir, f"{output_name}_probe_selection.json")
+            if not os.path.exists(probe_selection_path):
+                probe_selection_path = None
+
+            generator = LocusReportGenerator(self.settings, probe_selection_path=probe_selection_path)
+
+            output_files = generator.generate_variant_report(
+                parquet_files=parquet_files,
+                output_dir=output_dir,
+                job_name=output_name,
+            )
+
+            logger.debug(f"Variant report generation complete: {output_files}")
+            return output_files if output_files else None
+
+        except Exception as e:
+            logger.error(f"Variant report generation failed: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None
