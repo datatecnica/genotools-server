@@ -1172,6 +1172,20 @@ class ExtractionCoordinator:
                 else:
                     logger.warning("⚠️ Probe selection analysis did not generate results")
 
+            # Run variant report before clinical-dependent steps
+            if enable_variant_report:
+                logger.debug("📋 Running variant report generation...")
+                variant_report_results = self.run_variant_report_postprocessing(
+                    output_dir=output_dir,
+                    output_name=job_id,
+                    data_types=data_types
+                )
+                if variant_report_results:
+                    results['output_files'].update(variant_report_results)
+                    logger.debug("✅ Variant report generation completed")
+                else:
+                    logger.warning("⚠️ Variant report generation did not generate results")
+
             if enable_locus_reports:
                 logger.debug("📊 Running locus report generation...")
                 locus_report_results = self.run_locus_report_postprocessing(
@@ -1199,20 +1213,6 @@ class ExtractionCoordinator:
                     logger.debug("✅ Coverage profiling completed")
                 else:
                     logger.warning("⚠️ Coverage profiling did not generate results")
-
-            # Run variant report if enabled
-            if enable_variant_report:
-                logger.debug("📋 Running variant report generation...")
-                variant_report_results = self.run_variant_report_postprocessing(
-                    output_dir=output_dir,
-                    output_name=job_id,
-                    data_types=data_types
-                )
-                if variant_report_results:
-                    results['output_files'].update(variant_report_results)
-                    logger.debug("✅ Variant report generation completed")
-                else:
-                    logger.warning("⚠️ Variant report generation did not generate results")
 
         except Exception as e:
             logger.error(f"Pipeline failed: {e}")
