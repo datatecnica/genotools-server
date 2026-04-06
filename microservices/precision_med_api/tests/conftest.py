@@ -280,3 +280,311 @@ def sample_traw_data():
         'SAMPLE_000002': [1, 0, 1],
         'SAMPLE_000003': [2, 2, 0]
     })
+
+
+# ============================================================
+# Multi-ancestry genotype DataFrames (for merge/concat tests)
+# ============================================================
+
+def _make_ancestry_genotype_df(sample_prefix: str, source_file: str,
+                                n_samples: int = 10) -> pd.DataFrame:
+    """Helper: build a 3-variant genotype DataFrame for one ancestry."""
+    samples = [f"{sample_prefix}{i:03d}" for i in range(1, n_samples + 1)]
+    base = {
+        'snp_list_id': ['chr1:100000:A:C', 'chr1:200000:T:G', 'chr2:300000:C:G'],
+        'variant_id':  ['1:100000:A:C',    '1:200000:T:G',    '2:300000:C:G'],
+        'chromosome':  ['1', '1', '2'],
+        'position':    [100000, 200000, 300000],
+        'counted_allele': ['C', 'G', 'G'],
+        'alt_allele':     ['A', 'T', 'C'],
+        'harmonization_action': ['EXACT', 'FLIP', 'SWAP'],
+        'pgen_a1': ['A', 'T', 'C'],
+        'pgen_a2': ['C', 'G', 'G'],
+        'data_type': ['NBA', 'NBA', 'NBA'],
+        'source_file': [source_file] * 3,
+        'maf_corrected': [False, False, False],
+        'original_alt_af': [0.2, 0.15, 0.1],
+    }
+    # Add deterministic genotype values for each sample
+    np.random.seed(0)
+    for j, s in enumerate(samples):
+        base[s] = [float((j + i) % 3) for i in range(3)]
+    return pd.DataFrame(base)
+
+
+@pytest.fixture
+def eur_genotype_df():
+    """3 variants × 10 invented EUR samples for multi-ancestry merge tests."""
+    return _make_ancestry_genotype_df(
+        sample_prefix='MOCK_EUR_P',
+        source_file='/fake/EUR/EUR_release11.pgen'
+    )
+
+
+@pytest.fixture
+def eas_genotype_df():
+    """Same 3 variants × 10 invented EAS samples for multi-ancestry merge tests."""
+    return _make_ancestry_genotype_df(
+        sample_prefix='MOCK_EAS_P',
+        source_file='/fake/EAS/EAS_release11.pgen'
+    )
+
+
+@pytest.fixture
+def eur_chr1_df():
+    """2 chr1 variants × 5 EUR samples — tests concat-within-ancestry."""
+    samples = [f"MOCK_EUR_P{i:03d}" for i in range(1, 6)]
+    base = {
+        'snp_list_id': ['chr1:100000:A:C', 'chr1:200000:T:G'],
+        'variant_id':  ['1:100000:A:C',    '1:200000:T:G'],
+        'chromosome':  ['1', '1'],
+        'position':    [100000, 200000],
+        'counted_allele': ['C', 'G'],
+        'alt_allele':     ['A', 'T'],
+        'harmonization_action': ['EXACT', 'FLIP'],
+        'pgen_a1': ['A', 'T'],
+        'pgen_a2': ['C', 'G'],
+        'data_type': ['IMPUTED', 'IMPUTED'],
+        'source_file': ['/fake/EUR/chr1_EUR_release11.pgen'] * 2,
+        'maf_corrected': [False, False],
+        'original_alt_af': [0.2, 0.15],
+    }
+    for j, s in enumerate(samples):
+        base[s] = [float(j % 3), float((j + 1) % 3)]
+    return pd.DataFrame(base)
+
+
+@pytest.fixture
+def eur_chr2_df():
+    """2 chr2 variants × 5 EUR samples (same samples as eur_chr1_df)."""
+    samples = [f"MOCK_EUR_P{i:03d}" for i in range(1, 6)]
+    base = {
+        'snp_list_id': ['chr2:300000:C:G', 'chr2:400000:A:T'],
+        'variant_id':  ['2:300000:C:G',    '2:400000:A:T'],
+        'chromosome':  ['2', '2'],
+        'position':    [300000, 400000],
+        'counted_allele': ['G', 'T'],
+        'alt_allele':     ['C', 'A'],
+        'harmonization_action': ['SWAP', 'AMBIGUOUS'],
+        'pgen_a1': ['C', 'A'],
+        'pgen_a2': ['G', 'T'],
+        'data_type': ['IMPUTED', 'IMPUTED'],
+        'source_file': ['/fake/EUR/chr2_EUR_release11.pgen'] * 2,
+        'maf_corrected': [False, False],
+        'original_alt_af': [0.1, 0.05],
+    }
+    for j, s in enumerate(samples):
+        base[s] = [float((j + 2) % 3), float(j % 2)]
+    return pd.DataFrame(base)
+
+
+# ============================================================
+# Sample ID normalization fixtures
+# ============================================================
+
+@pytest.fixture
+def sample_ids_to_normalize():
+    """Pairs of (input_id, expected_normalized_id) covering all normalization branches."""
+    return [
+        ("0_FAKE_SAMPLE_001",              "FAKE_SAMPLE_001"),   # 0_ prefix strip
+        ("FAKE_SAMPLE_001_FAKE_SAMPLE_001", "FAKE_SAMPLE_001"),   # WGS duplicate (4 parts)
+        ("TEST_PERSON_042",                 "TEST_PERSON_042"),   # clean passthrough
+        ("MOCK_X_001_MOCK_X_001",           "MOCK_X_001"),        # 4-part duplicate
+        ("0_TEST_PERSON_999",               "TEST_PERSON_999"),   # 0_ on longer ID
+        ("TEST_PERSON_001",                 "TEST_PERSON_001"),   # clean passthrough
+    ]
+
+
+@pytest.fixture
+def df_with_mixed_sample_ids():
+    """2-variant DataFrame whose sample columns need normalization."""
+    return pd.DataFrame({
+        'chromosome':           ['1', '2'],
+        'variant_id':           ['1:100000:A:C', '2:300000:C:G'],
+        'position':             [100000, 300000],
+        'counted_allele':       ['C', 'G'],
+        'alt_allele':           ['A', 'C'],
+        'harmonization_action': ['EXACT', 'SWAP'],
+        'snp_list_id':          ['chr1:100000:A:C', 'chr2:300000:C:G'],
+        'pgen_a1':              ['A', 'C'],
+        'pgen_a2':              ['C', 'G'],
+        'data_type':            ['NBA', 'NBA'],
+        'source_file':          ['/fake/file.pgen', '/fake/file.pgen'],
+        'maf_corrected':        [False, False],
+        'original_alt_af':      [0.1, 0.2],
+        '0_FAKE_SAMPLE_001':             [0.0, 1.0],
+        'FAKE_SAMPLE_002_FAKE_SAMPLE_002': [1.0, 2.0],
+        'TEST_PERSON_042':               [2.0, 0.0],
+    })
+
+
+# ============================================================
+# Clinical data fixtures (fully invented IDs)
+# ============================================================
+
+@pytest.fixture
+def sample_master_key():
+    """20 rows of fake clinical metadata for testing locus reports.
+
+    GP2IDs are completely invented. Age values chosen so that
+    disease durations (age_at_sample - age_of_onset) are exactly
+    2, 4, 6, 8, 10 years for EUR P001-P005 to allow exact assertions.
+    """
+    eur_ids = [f"MOCK_EUR_P{i:03d}" for i in range(1, 11)]
+    eas_ids = [f"MOCK_EAS_P{i:03d}" for i in range(1, 11)]
+
+    # EUR: P001-P005 have age data; P006-P010 do not
+    eur_age_collection = [62.0, 64.0, 66.0, 68.0, 70.0] + [np.nan] * 5
+    eur_age_onset      = [60.0, 60.0, 60.0, 60.0, 60.0] + [np.nan] * 5
+    eur_ext_clinical   = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
+
+    eas_age_collection = [np.nan] * 10
+    eas_age_onset      = [np.nan] * 10
+    eas_ext_clinical   = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
+
+    return pd.DataFrame({
+        'GP2ID':                    eur_ids + eas_ids,
+        'nba_label':                ['EUR'] * 10 + ['EAS'] * 10,
+        'wgs_label':                ['EUR'] * 10 + ['EAS'] * 10,
+        'extended_clinical_data':   eur_ext_clinical + eas_ext_clinical,
+        'age_at_sample_collection': eur_age_collection + eas_age_collection,
+        'age_of_onset':             eur_age_onset + eas_age_onset,
+    })
+
+
+@pytest.fixture
+def sample_extended_clinical():
+    """20 rows of fake clinical phenotype data (baseline visits).
+
+    Values chosen so exact assertions pass for EUR carriers:
+      H&Y < 2  : P001, P002, P003         (3 carriers)
+      H&Y < 3  : P001, P002, P003, P004, P005 (5 carriers)
+      MoCA ≥ 20: P002, P003, P004, P005   (4 carriers)
+      MoCA ≥ 24: P004, P005               (2 carriers)
+    """
+    eur_ids = [f"MOCK_EUR_P{i:03d}" for i in range(1, 11)]
+    eas_ids = [f"MOCK_EAS_P{i:03d}" for i in range(1, 11)]
+
+    eur_hy    = [1.0, 1.5, 1.9, 2.0, 2.5, np.nan, np.nan, np.nan, np.nan, np.nan]
+    eur_moca  = [18.0, 20.0, 22.0, 24.0, 26.0, np.nan, np.nan, np.nan, np.nan, np.nan]
+    eur_dat   = [2.1, np.nan, 1.8, np.nan, 2.3, np.nan, np.nan, np.nan, np.nan, np.nan]
+
+    eas_hy   = [np.nan] * 10
+    eas_moca = [np.nan] * 10
+    eas_dat  = [np.nan] * 10
+
+    return pd.DataFrame({
+        'GP2ID':                 eur_ids + eas_ids,
+        'visit_month':           [0] * 20,
+        'Phenotype':             ['PD'] * 20,
+        'hoehn_and_yahr_stage':  eur_hy + eas_hy,
+        'moca_total_score':      eur_moca + eas_moca,
+        'dat_sbr_caudate_mean':  eur_dat + eas_dat,
+    })
+
+
+@pytest.fixture
+def snp_list_with_locus():
+    """SNP list with locus annotations for locus report testing."""
+    return pd.DataFrame({
+        'snp_list_id': [
+            'chr1:100000:A:C',
+            'chr1:200000:T:G',
+            'chr2:300000:C:G',
+            'chr2:400000:A:T',
+            'chr3:500000:G:A',
+        ],
+        'locus': ['GENE1', 'GENE1', 'GENE2', 'GENE2', 'GENE3'],
+        'hg38': [
+            'chr1:100000:A:C',
+            'chr1:200000:T:G',
+            'chr2:300000:C:G',
+            'chr2:400000:A:T',
+            'chr3:500000:G:A',
+        ],
+    })
+
+
+# ============================================================
+# MAF correction test data
+# ============================================================
+
+@pytest.fixture
+def high_af_genotype_df():
+    """2-variant DataFrame for MAF correction tests.
+
+    Variant 1: genotypes [2,2,2,2,2,2,2,1,0,0] → AF = 15/20 = 0.75 → SHOULD be corrected.
+    Variant 2: genotypes [1,1,1,0,0,0,0,0,0,0] → AF = 3/20  = 0.15 → should NOT be corrected.
+    """
+    samples = [f"MOCK_S{i:03d}" for i in range(1, 11)]
+    row1_gts = [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 0.0, 0.0]
+    row2_gts = [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    base = {
+        'chromosome':           ['1', '2'],
+        'variant_id':           ['1:100000:A:C', '2:300000:C:G'],
+        'position':             [100000, 300000],
+        'counted_allele':       ['C', 'G'],
+        'alt_allele':           ['A', 'C'],
+        'harmonization_action': ['EXACT', 'SWAP'],
+        'snp_list_id':          ['chr1:100000:A:C', 'chr2:300000:C:G'],
+        'pgen_a1':              ['A', 'C'],
+        'pgen_a2':              ['C', 'G'],
+        'data_type':            ['NBA', 'NBA'],
+        'source_file':          ['/fake/file.pgen', '/fake/file.pgen'],
+    }
+    for i, s in enumerate(samples):
+        base[s] = [row1_gts[i], row2_gts[i]]
+    return pd.DataFrame(base)
+
+
+# ============================================================
+# PLINK file fixtures (tmp_path-based, no real sample IDs)
+# ============================================================
+
+@pytest.fixture
+def traw_tmp_file(tmp_path, sample_traw_data):
+    """Write sample_traw_data to a tmp TRAW file; return its path."""
+    traw_path = tmp_path / "test.traw"
+    sample_traw_data.to_csv(str(traw_path), sep='\t', index=False, na_rep='NA')
+    return str(traw_path)
+
+
+@pytest.fixture
+def psam_tmp_file(tmp_path):
+    """Write a fake PSAM file mapping FAKEFAM001_TESTIND00N → TESTIND00N."""
+    lines = ["#FID\tIID\tSEX"]
+    for i in range(1, 4):
+        lines.append(f"FAKEFAM001\tTESTIND00{i}\t1")
+    psam_path = tmp_path / "test.psam"
+    psam_path.write_text("\n".join(lines) + "\n")
+    return str(psam_path)
+
+
+# ============================================================
+# Multi-probe fixture for probe selection tests
+# ============================================================
+
+@pytest.fixture
+def multi_probe_genotype_df():
+    """4-row DataFrame with 2 probes for one mutation and 2 single-probe mutations."""
+    samples = ['MOCK_S001', 'MOCK_S002', 'MOCK_S003']
+    return pd.DataFrame({
+        'snp_list_id': [
+            'chr1:100000:A:C',   # probe 1 of 2
+            'chr1:100000:A:C',   # probe 2 of 2 (same snp_list_id)
+            'chr2:300000:C:G',   # single probe
+            'chr3:500000:G:A',   # single probe
+        ],
+        'variant_id': [
+            '1:100000:A:C',
+            '1:100000:A:C_v2',
+            '2:300000:C:G',
+            '3:500000:G:A',
+        ],
+        'chromosome': ['1', '1', '2', '3'],
+        'position':   [100000, 100000, 300000, 500000],
+        'MOCK_S001':  [1.0, 2.0, 0.0, 1.0],
+        'MOCK_S002':  [0.0, 0.0, 1.0, 2.0],
+        'MOCK_S003':  [2.0, 1.0, 2.0, 0.0],
+    })
