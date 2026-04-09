@@ -494,7 +494,7 @@ def snp_list_with_locus():
             'chr2:400000:A:T',
             'chr3:500000:G:A',
         ],
-        'locus': ['GENE1', 'GENE1', 'GENE2', 'GENE2', 'GENE3'],
+        'gene': ['GENE1', 'GENE1', 'GENE2', 'GENE2', 'GENE3'],
         'hg38': [
             'chr1:100000:A:C',
             'chr1:200000:T:G',

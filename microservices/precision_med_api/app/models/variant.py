@@ -14,9 +14,10 @@ class Variant(BaseModel):
     """Model for input genomic variants from SNP lists (pre-extraction)"""
     
     # Variant annotation (from SNP list)
-    snp_name: Optional[str] = Field(None, description="SNP name (e.g., G2019S)")
+    variant_name: Optional[str] = Field(None, description="Unique SNP identifier (e.g., LRRK2_Gly2019Ser)")
+    aa_change: Optional[str] = Field(None, description="Amino acid change (e.g., Gly2019Ser)")
     snp_name_alt: Optional[str] = Field(None, description="Alternative SNP name (e.g., p.Gly2019Ser)")
-    locus: str = Field(..., description="Gene locus/symbol")
+    gene: str = Field(..., description="Gene locus/symbol")
     rsid: Optional[str] = Field(None, description="dbSNP RS ID")
     
     # Genome coordinates
@@ -71,27 +72,6 @@ class Variant(BaseModel):
         """Generate variant ID from HG38 coordinates"""
         return self.hg38
     
-    @property
-    def gene_symbol(self) -> str:
-        """Return gene symbol"""
-        return self.locus
-    
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={
-            "example": {
-                "snp_name": "G2019S",
-                "snp_name_alt": "p.Gly2019Ser",
-                "locus": "LRRK2",
-                "rsid": "rs34637584",
-                "hg38": "12:40340400:G:A",
-                "hg19": "12:40734202:G:A",
-                "ancestry": "multi",
-                "precision_medicine": "yes",
-                "submitter_email": "lara.lange@nih.gov"
-            }
-        }
-    )
 
 
 class ProcessedVariant(BaseModel):
@@ -99,9 +79,10 @@ class ProcessedVariant(BaseModel):
     
     # Variant identification
     id: str = Field(..., description="Variant ID in format chr:pos:ref:alt")
-    snp_name: Optional[str] = Field(None, description="SNP name (e.g., G2019S)")
+    variant_name: Optional[str] = Field(None, description="Unique SNP identifier (e.g., LRRK2_Gly2019Ser)")
+    aa_change: Optional[str] = Field(None, description="Amino acid change (e.g., Gly2019Ser)")
     snp_name_alt: Optional[str] = Field(None, description="Alternative SNP name (e.g., p.Gly2019Ser)")
-    locus: str = Field(..., description="Gene locus/symbol")
+    gene: str = Field(..., description="Gene locus/symbol")
     rsid: Optional[str] = Field(None, description="dbSNP RS ID")
     
     # Genomic coordinates
@@ -148,35 +129,6 @@ class ProcessedVariant(BaseModel):
         """Get variant ID"""
         return self.id
     
-    @property
-    def gene_symbol(self) -> str:
-        """Get gene symbol"""
-        return self.locus
-    
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={
-            "example": {
-                "id": "chr12:40340400:G:A",
-                "snp_name": "G2019S",
-                "snp_name_alt": "p.Gly2019Ser",
-                "locus": "LRRK2",
-                "rsid": "rs34637584",
-                "hg38": "12:40340400:G:A",
-                "hg19": "12:40734202:G:A",
-                "chrom": 12,
-                "pos": 40340400,
-                "a1": "G",
-                "a2": "A",
-                "ancestry": "multi",
-                "precision_medicine": "yes",
-                "submitter_email": "lara.lange@nih.gov",
-                "ALT_FREQS": 0.023191,
-                "OBS_CT": 41956,
-                "F_MISS": 0.002757
-            }
-        }
-    )
 
 
 class VariantList(BaseModel):
@@ -207,9 +159,9 @@ class VariantList(BaseModel):
     def variants_by_gene(self) -> Dict[str, List[Variant]]:
         result = {}
         for variant in self.variants:
-            if variant.locus not in result:
-                result[variant.locus] = []
-            result[variant.locus].append(variant)
+            if variant.gene not in result:
+                result[variant.gene] = []
+            result[variant.gene].append(variant)
         return result
     
     @property
@@ -224,7 +176,7 @@ class VariantList(BaseModel):
         return [v for v in self.variants if v.chromosome == chromosome]
     
     def get_variants_for_gene(self, gene: str) -> List[Variant]:
-        return [v for v in self.variants if v.locus == gene]
+        return [v for v in self.variants if v.gene == gene]
     
     model_config = ConfigDict(
         json_schema_extra={

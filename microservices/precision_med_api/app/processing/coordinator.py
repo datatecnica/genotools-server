@@ -592,7 +592,7 @@ class ExtractionCoordinator:
         ]
         
         # Optional metadata that might be added later
-        OPTIONAL_METADATA = ['rsid', 'locus', 'snp_name']
+        OPTIONAL_METADATA = ['rsid', 'gene', 'variant_name', 'aa_change']
         
         # Separate metadata from sample columns
         metadata_present = [col for col in METADATA_COLUMNS if col in df.columns]
@@ -1076,7 +1076,7 @@ class ExtractionCoordinator:
             # Step 1: Load and validate SNP list
             logger.info("Step 1: Loading SNP list")
             snp_list = self.load_snp_list(snp_list_path)
-            snp_list_ids = snp_list['snp_name'].tolist() if 'snp_name' in snp_list.columns else snp_list.index.tolist()
+            snp_list_ids = snp_list['variant_name'].tolist() if 'variant_name' in snp_list.columns else snp_list.index.tolist()
             
             # Step 2: Create extraction plan
             logger.info("Step 2: Creating extraction plan")
@@ -1296,7 +1296,7 @@ class ExtractionCoordinator:
             # Load SNP list
             logger.debug("Loading SNP list...")
             snp_list = self.load_snp_list(snp_list_path)
-            snp_list_ids = snp_list['snp_name'].tolist() if 'snp_name' in snp_list.columns else snp_list.index.tolist()
+            snp_list_ids = snp_list['variant_name'].tolist() if 'variant_name' in snp_list.columns else snp_list.index.tolist()
 
             total_retried = 0
             total_succeeded = 0

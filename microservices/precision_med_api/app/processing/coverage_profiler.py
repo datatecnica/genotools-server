@@ -46,7 +46,7 @@ class CoverageResult:
 @dataclass
 class LocusCoverage:
     """Coverage statistics for a single locus"""
-    locus: str
+    gene: str
     chromosome: str
     total_variants: int
     wgs_exact: int
@@ -117,7 +117,7 @@ def load_and_normalize_snp_list(snp_list_path: str) -> pd.DataFrame:
     # Create position key for position-only matching
     snp_list['pos_key'] = snp_list['chr'] + ':' + snp_list['pos']
 
-    logger.debug(f"  Loaded {len(snp_list)} variants across {snp_list['locus'].nunique()} loci")
+    logger.debug(f"  Loaded {len(snp_list)} variants across {snp_list['gene'].nunique()} genes")
     return snp_list
 
 
@@ -325,8 +325,8 @@ def aggregate_by_locus(
     # Get available data types from results
     available_types = set(coverage_results.keys())
 
-    for locus in sorted(snp_list['locus'].unique()):
-        locus_variants = snp_list[snp_list['locus'] == locus]
+    for gene in sorted(snp_list['gene'].unique()):
+        locus_variants = snp_list[snp_list['gene'] == gene]
         locus_variant_ids = set(locus_variants['variant_id'])
         locus_chr = locus_variants['chr'].iloc[0]
 
@@ -337,7 +337,7 @@ def aggregate_by_locus(
             return len(locus_variant_ids & matches)
 
         stats = LocusCoverage(
-            locus=locus,
+            gene=gene,
             chromosome=locus_chr,
             total_variants=len(locus_variant_ids),
             wgs_exact=get_count('WGS', 'exact'),
@@ -359,7 +359,8 @@ def create_variant_coverage_df(
     coverage_results: Dict[str, CoverageResult]
 ) -> pd.DataFrame:
     """Create per-variant coverage DataFrame"""
-    df = snp_list[['variant_id', 'snp_name', 'locus', 'chr', 'pos', 'rsid']].copy()
+    available = [c for c in ['variant_id', 'variant_name', 'aa_change', 'gene', 'chr', 'pos', 'rsid'] if c in snp_list.columns]
+    df = snp_list[available].copy()
 
     for data_type, result in coverage_results.items():
         df[f'{data_type}_exact'] = df['variant_id'].isin(result.exact_matches)
@@ -527,7 +528,7 @@ def print_locus_report(locus_stats: List[LocusCoverage]):
     sorted_stats = sorted(locus_stats, key=lambda x: x.total_variants, reverse=True)
 
     for stats in sorted_stats:
-        print(f"\n{stats.locus} ({stats.chromosome}, {stats.total_variants} variants)")
+        print(f"\n{stats.gene} ({stats.chromosome}, {stats.total_variants} variants)")
 
         def fmt_pct(n, total):
             pct = (n / total * 100) if total > 0 else 0

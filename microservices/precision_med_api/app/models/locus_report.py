@@ -63,7 +63,7 @@ class ClinicalMetrics(BaseModel):
 class LocusReport(BaseModel):
     """Complete clinical phenotype report for one gene/locus."""
 
-    locus: str = Field(..., description="Gene name (e.g., LRRK2, GBA1, PRKN)")
+    gene: str = Field(..., description="Gene name (e.g., LRRK2, GBA1, PRKN)")
 
     # Metrics by ancestry
     by_ancestry: List[ClinicalMetrics] = Field(..., description="Metrics stratified by ancestry")
@@ -130,7 +130,7 @@ class LocusReportCollection(BaseModel):
     @property
     def loci_analyzed(self) -> List[str]:
         """List of loci included in this report collection."""
-        return [report.locus for report in self.locus_reports]
+        return [report.gene for report in self.locus_reports]
 
     @computed_field
     @property
@@ -143,7 +143,7 @@ class LocusReportCollection(BaseModel):
         )[:10]
         return [
             {
-                "locus": report.locus,
+                "gene": report.gene,
                 "total_carriers": report.total_carriers_all_ancestries,
                 "ancestries": len(report.ancestries_represented)
             }

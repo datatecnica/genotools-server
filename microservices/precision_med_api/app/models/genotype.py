@@ -87,7 +87,8 @@ class CarrierStatus(BaseModel):
     is_carrier: bool = Field(..., description="Whether sample is a carrier")
     carrier_type: Optional[str] = Field(None, description="Type of carrier (heterozygous/homozygous)")
     gene: Optional[str] = Field(None, description="Gene symbol")
-    snp_name: Optional[str] = Field(None, description="SNP name")
+    variant_name: Optional[str] = Field(None, description="Unique SNP identifier")
+    aa_change: Optional[str] = Field(None, description="Amino acid change")
     
     model_config = ConfigDict(
         json_schema_extra={
@@ -98,7 +99,7 @@ class CarrierStatus(BaseModel):
                 "is_carrier": True,
                 "carrier_type": "heterozygous",
                 "gene": "LRRK2",
-                "snp_name": "G2019S"
+                "variant_name": "G2019S"
             }
         }
     )

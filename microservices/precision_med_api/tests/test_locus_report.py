@@ -148,8 +148,8 @@ class TestJoinClinicalData:
     def test_join_adds_locus_column(self, locus_gen):
         df = _make_genotype_wide(['MOCK_EUR_P001'], snp_list_id='chr1:100000:A:C')
         result = locus_gen._join_clinical_data(df, data_type='NBA')
-        assert 'locus' in result.columns
-        assert result['locus'].iloc[0] == 'GENE1'
+        assert 'gene' in result.columns
+        assert result['gene'].iloc[0] == 'GENE1'
 
     def test_join_nba_uses_nba_label_for_ancestry(self, locus_gen):
         df = _make_genotype_wide(['MOCK_EUR_P001'])
@@ -199,7 +199,7 @@ class TestJoinClinicalData:
         df = _make_genotype_wide(['GHOST_ID_999'])
         result = locus_gen._join_clinical_data(df, data_type='NBA')
         assert len(result) == 1
-        assert pd.isna(result.iloc[0].get('locus') or None) or True  # may or may not have locus
+        assert pd.isna(result.iloc[0].get('gene') or None) or True  # may or may not have gene
 
 
 # ---------------------------------------------------------------------------
@@ -216,7 +216,7 @@ def _make_carrier_df(gp2ids, extended_clinical, hy_stages, moca_scores,
         'variant_id':             ['1:100000:A:C'] * n,
         'snp_list_id':            ['chr1:100000:A:C'] * n,
         'genotype':               [1.0] * n,
-        'locus':                  ['GENE1'] * n,
+        'gene':                   ['GENE1'] * n,
         'ancestry':               ['EUR'] * n,
         'extended_clinical_data': extended_clinical,
         'hoehn_and_yahr_stage':   hy_stages,

@@ -138,11 +138,11 @@ class LocusReportGenerator:
         self.logger.debug(f"Loaded {len(df):,} variants from SNP list")
 
         # Select relevant columns — include extra metadata for variant report
-        base_cols = ['snp_name', 'locus', 'hg38']
-        extra_cols = ['snp_name_alt', 'moi', 'rsid', 'pathogenicity_prediction_new', 'new_source']
+        base_cols = ['variant_name', 'gene', 'hg38']
+        extra_cols = ['aa_change', 'snp_name_alt', 'moi', 'rsid', 'pathogenicity', 'pathogenicity_source', 'variant_interpretation']
         keep_cols = base_cols + [c for c in extra_cols if c in df.columns]
         df = df[keep_cols].copy()
-        df = df.rename(columns={'snp_name': 'snp_list_id'})
+        df = df.rename(columns={'variant_name': 'snp_list_id'})
 
         return df
 
@@ -369,9 +369,9 @@ class LocusReportGenerator:
         # validated_by_wgs is not applicable for WGS-only rows (the source IS WGS)
         report.loc[report['Data_type'] == 'WGS', 'validated_by_wgs'] = None
 
-        # --- Add SNP list metadata not already present ---
-        meta_cols = ['snp_list_id', 'hg38', 'moi', 'rsid',
-                     'pathogenicity_prediction_new', 'new_source']
+        # --- Add SNP list metadata ---
+        meta_cols = ['snp_list_id', 'hg38', 'aa_change', 'moi', 'rsid',
+                     'pathogenicity', 'pathogenicity_source', 'variant_interpretation']
         available = [c for c in meta_cols if c in self.snp_list.columns]
         report = report.merge(self.snp_list[available], on='snp_list_id', how='left')
 
@@ -389,17 +389,21 @@ class LocusReportGenerator:
 
         report['Zygosity'] = report['genotype'].apply(_zygosity)
 
-        # Compound het: ≥2 het variants in same AR gene per sample
-        report['potential_comp_het'] = False
+        # Biallelic: hom in AR gene, or ≥2 het variants in same AR gene per sample
+        report['potential_biallelic'] = False
         if 'moi' in report.columns:
             ar_mask = report['moi'].str.contains('AR', na=False)
+            hom_mask = report['Zygosity'] == 'hom'
             het_mask = report['Zygosity'] == 'het'
+            # Homozygous AR variants are biallelic by definition
+            report.loc[report.index[ar_mask & hom_mask], 'potential_biallelic'] = True
+            # Compound het: ≥2 het variants in same AR gene per sample
             ar_het_idx = report.index[ar_mask & het_mask]
             if len(ar_het_idx) > 0:
                 counts = report.loc[ar_het_idx].groupby(
-                    ['GP2ID', 'locus']
+                    ['GP2ID', 'gene']
                 )['snp_list_id'].transform('count')
-                report.loc[ar_het_idx, 'potential_comp_het'] = counts >= 2
+                report.loc[ar_het_idx, 'potential_biallelic'] = counts >= 2
 
         # --- Per-variant WGS carrier concordance ---
         # For each snp_list_id: fraction of NBA carriers (that have WGS data) confirmed by WGS
@@ -423,21 +427,22 @@ class LocusReportGenerator:
         # --- Rename and select final columns ---
         report = report.rename(columns={
             'ancestry': 'Ancestry',
-            'locus': 'Gene',
+            'gene': 'Gene',
             'hg38': 'Variant_ID',
-            'snp_list_id': 'AA_change',
+            'snp_list_id': 'Variant_Name',
+            'aa_change': 'AA_change',
             'rsid': 'rsID',
             'moi': 'MOI',
-            'pathogenicity_prediction_new': 'Pathogenicity',
-            'new_source': 'Pathogenicity_source',
+            'pathogenicity': 'Pathogenicity',
+            'pathogenicity_source': 'Pathogenicity_source',
+            'variant_interpretation': 'Variant_interpretation',
         })
-        report['Variant_interpretation'] = report.get('Pathogenicity', '')
 
         output_cols = [
-            'GP2ID', 'Ancestry', 'Gene', 'Variant_ID', 'AA_change', 'rsID',
+            'GP2ID', 'Ancestry', 'Gene', 'Variant_ID', 'Variant_Name', 'AA_change', 'rsID',
             'NBA_probe_name', 'Zygosity', 'MOI', 'Data_type', 'Pathogenicity',
             'Pathogenicity_source', 'Variant_interpretation',
-            'potential_comp_het', 'validated_by_wgs', 'wgs_carrier_concordance',
+            'potential_biallelic', 'validated_by_wgs', 'wgs_carrier_concordance',
         ]
         report = report[[c for c in output_cols if c in report.columns]]
 
@@ -451,12 +456,12 @@ class LocusReportGenerator:
         report.to_csv(out_path, index=False)
 
         n_validated = int(report['validated_by_wgs'].sum()) if 'validated_by_wgs' in report.columns else 0
-        n_comp_het = int(report['potential_comp_het'].sum()) if 'potential_comp_het' in report.columns else 0
+        n_biallelic = int(report['potential_biallelic'].sum()) if 'potential_biallelic' in report.columns else 0
         self.logger.debug(
             f"Saved variant report: {out_path} "
             f"({len(report):,} carrier records, "
             f"{n_validated:,} WGS-validated, "
-            f"{n_comp_het:,} potential comp-het)"
+            f"{n_biallelic:,} potential biallelic)"
         )
 
         return {'variant_report': str(out_path)}
@@ -706,9 +711,9 @@ class LocusReportGenerator:
         carriers = genotype_long[genotype_long['genotype'] > 0].copy()
         self.logger.debug(f"Identified {len(carriers):,} carrier genotypes")
 
-        # Join with SNP list to get locus
+        # Join with SNP list to get gene
         carriers = carriers.merge(
-            self.snp_list[['snp_list_id', 'locus']],
+            self.snp_list[['snp_list_id', 'gene']],
             on='snp_list_id',
             how='left'
         )
@@ -803,9 +808,9 @@ class LocusReportGenerator:
 
         locus_reports = []
 
-        # Group by locus
-        for locus, locus_df in clinical_df.groupby('locus'):
-            if pd.isna(locus):
+        # Group by gene
+        for gene, locus_df in clinical_df.groupby('gene'):
+            if pd.isna(gene):
                 continue
 
             # Get variant info
@@ -826,7 +831,7 @@ class LocusReportGenerator:
 
             # Create locus report
             report = LocusReport(
-                locus=str(locus),
+                gene=str(gene),
                 by_ancestry=ancestry_metrics,
                 total_metrics=total_metrics,
                 n_variants=n_variants,
@@ -837,7 +842,7 @@ class LocusReportGenerator:
 
         self.logger.debug(f"Generated reports for {len(locus_reports)} loci")
 
-        return sorted(locus_reports, key=lambda x: x.locus)
+        return sorted(locus_reports, key=lambda x: x.gene)
 
     def _calculate_locus_metrics_with_variants(
         self,
@@ -857,16 +862,16 @@ class LocusReportGenerator:
 
         locus_reports = []
 
-        # Group by locus
-        for locus, locus_df in clinical_df.groupby('locus'):
-            if pd.isna(locus):
+        # Group by gene
+        for gene, locus_df in clinical_df.groupby('gene'):
+            if pd.isna(gene):
                 continue
 
             # Get variant info
             variant_ids = locus_df['variant_id'].unique().tolist()
             n_variants = len(variant_ids)
 
-            # Get variant details for this locus
+            # Get variant details for this gene
             variant_details_list = [variant_details_map[vid] for vid in variant_ids if vid in variant_details_map]
 
             # Calculate metrics by ancestry
@@ -883,7 +888,7 @@ class LocusReportGenerator:
 
             # Create locus report with variant details
             report = LocusReport(
-                locus=str(locus),
+                gene=str(gene),
                 by_ancestry=ancestry_metrics,
                 total_metrics=total_metrics,
                 variant_details=variant_details_list,
@@ -895,7 +900,7 @@ class LocusReportGenerator:
 
         self.logger.debug(f"Generated reports for {len(locus_reports)} loci with variant details")
 
-        return sorted(locus_reports, key=lambda x: x.locus)
+        return sorted(locus_reports, key=lambda x: x.gene)
 
     def _calculate_ancestry_metrics(self, df: pd.DataFrame, ancestry: str) -> ClinicalMetrics:
         """Calculate clinical metrics for one ancestry group."""
@@ -1023,7 +1028,7 @@ class LocusReportGenerator:
             # Add rows for each ancestry
             for metrics in report.by_ancestry:
                 row = {
-                    'locus': report.locus,
+                    'gene': report.gene,
                     'data_type': collection.data_type,
                     'ancestry': metrics.ancestry,
                     'total_carriers': metrics.total_carriers,
@@ -1045,7 +1050,7 @@ class LocusReportGenerator:
             # Add total row
             total = report.total_metrics
             row = {
-                'locus': report.locus,
+                'gene': report.gene,
                 'data_type': collection.data_type,
                 'ancestry': total.ancestry,
                 'total_carriers': total.total_carriers,
