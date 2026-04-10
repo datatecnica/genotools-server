@@ -43,6 +43,7 @@ def construct_command(params: GenoToolsParams) -> str:
         "--callrate": params.callrate,
         "--related_cutoff": params.related_cutoff,
         "--duplicated_cutoff": params.duplicated_cutoff,
+        "--hwe": params.hwe,
         "--maf": params.maf,
         "--ref_panel": params.ref_panel,
         "--ref_labels": params.ref_labels,

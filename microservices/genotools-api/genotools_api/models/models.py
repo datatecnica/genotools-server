@@ -21,6 +21,7 @@ class GenoToolsParams(BaseModel):
     het: Optional[bool] = None
     all_sample: Optional[bool] = None
     all_variant: Optional[bool] = None
+    hwe: Optional[float] = None
     maf: Optional[float] = None
     ancestry: Optional[bool] = None
     ref_panel: Optional[str] = None
