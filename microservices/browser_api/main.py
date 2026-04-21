@@ -39,7 +39,8 @@ async def prep_browser(
             folders = request.out_dir.strip(os.sep).split(os.sep)
             mount_folder = os.sep.join(folders[-4:])
             gcs_path = f"{mount_folder}/{filename}"
-            final_gcs_paths.append(f"gs://{gcs_path}")
+            # final_gcs_paths.append(f"gs://{gcs_path}")
+            final_gcs_paths.append(f"{gcs_path}") #now local
 
         return {
             "status": "success",

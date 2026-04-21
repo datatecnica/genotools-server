@@ -51,22 +51,22 @@ class ProbeSelector:
         Returns:
             Tuple of (probe_analysis_by_mutation, summary_statistics)
         """
-        logger.info("Loading NBA and WGS data for probe analysis")
+        logger.debug("Loading NBA and WGS data for probe analysis")
 
         # Load data
         nba_df = pd.read_parquet(nba_parquet_path)
         wgs_df = pd.read_parquet(wgs_parquet_path)
 
-        logger.info(f"Loaded NBA data: {nba_df.shape[0]} variants, {nba_df.shape[1]-15} samples")
-        logger.info(f"Loaded WGS data: {wgs_df.shape[0]} variants, {wgs_df.shape[1]-15} samples")
+        logger.debug(f"Loaded NBA data: {nba_df.shape[0]} variants, {nba_df.shape[1]-15} samples")
+        logger.debug(f"Loaded WGS data: {wgs_df.shape[0]} variants, {wgs_df.shape[1]-15} samples")
 
         # Find mutations with multiple NBA probes
         mutations_with_multiple_probes = self._identify_multiple_probe_mutations(nba_df)
-        logger.info(f"Found {len(mutations_with_multiple_probes)} mutations with multiple NBA probes")
+        logger.debug(f"Found {len(mutations_with_multiple_probes)} mutations with multiple NBA probes")
 
         # Get shared samples between NBA and WGS
         shared_samples = self._get_shared_samples(nba_df, wgs_df)
-        logger.info(f"Found {len(shared_samples)} shared samples between NBA and WGS")
+        logger.debug(f"Found {len(shared_samples)} shared samples between NBA and WGS")
 
         if len(shared_samples) == 0:
             raise ValueError("No shared samples found between NBA and WGS data")
@@ -76,12 +76,12 @@ class ProbeSelector:
         total_probe_comparisons = 0
 
         for mutation, nba_variants in mutations_with_multiple_probes.items():
-            logger.info(f"Analyzing {len(nba_variants)} probes for mutation: {mutation}")
+            logger.debug(f"Analyzing {len(nba_variants)} probes for mutation: {mutation}")
 
             # Find corresponding WGS variant
             wgs_variant = self._find_matching_wgs_variant(mutation, wgs_df)
             if wgs_variant is None:
-                logger.warning(f"No matching WGS variant found for mutation: {mutation}")
+                logger.debug(f"No matching WGS variant found for mutation: {mutation}")
                 continue
 
             # Analyze each NBA probe for this mutation
@@ -103,7 +103,7 @@ class ProbeSelector:
             samples_compared=len(shared_samples)
         )
 
-        logger.info(f"Probe analysis complete: {summary.total_mutations_analyzed} mutations analyzed")
+        logger.debug(f"Probe analysis complete: {summary.total_mutations_analyzed} mutations analyzed")
         return probe_analysis_results, summary
 
     def _identify_multiple_probe_mutations(self, nba_df: pd.DataFrame) -> Dict[str, List[str]]:

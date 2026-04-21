@@ -10,6 +10,7 @@ from utils.hold_data import (
 
 from utils.ancestry_utils import (
     render_tab_pca,
+    render_pca_select,
     render_tab_admix,
     render_tab_pie,
     render_tab_pred_stats
@@ -25,8 +26,8 @@ def main():
     config_page('Ancestry')
     release_select()
 
-    gp2_data_bucket = config.FRONTEND_BUCKET_NAME+"/" #get_gcloud_bucket('gt_app_utils') # used to be gp2tier2
-    plot_folder = f"qc_metrics/release{st.session_state['release_choice']}"
+    gp2_data_bucket = get_gcloud_bucket('genotools-server') # used to be gp2tier2
+    plot_folder = f"cohort_browser/nba/release{st.session_state['release_choice']}"
 
     tab_pca, tab_pred_stats, tab_pie, tab_admix, tab_methods = st.tabs([
         "Ancestry Prediction",
@@ -38,6 +39,7 @@ def main():
 
     with tab_pca:
         render_tab_pca(plot_folder, gp2_data_bucket)
+        render_pca_select(plot_folder, gp2_data_bucket)
 
     with tab_pred_stats:
         render_tab_pred_stats(plot_folder, gp2_data_bucket)

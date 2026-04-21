@@ -169,14 +169,18 @@ class IDAT_BED_PED_Processor:
             self.logger.info(f"There is {missing_cnt} missing ped file for {cohort}.")
             missing_stats[cohort] = missing_cnt
 
+            #Get updated key file            
+            # key = key[~key['IID'].isin(missing_peds)]
+            key = df[~df['IID'].isin(missing_peds)]
 
             if len(missing_peds)>0:
-                #Get updated key file            
-                key = key[~key['IID'].isin(missing_peds)]
+                # #Get updated key file            
+                # key = key[~key['IID'].isin(missing_peds)]
                 with open(f'{missing_peds_dir}/missing_peds_{cohort}.txt', 'w') as f:
                     for m_ped in missing_peds:
                         f.write(f'{m_ped}\n')
                 f.close()
+                
             if missing_stats:
                 self.logger.info(f"For Cohort: {cohort}, we have {all_samples} samples and {barcode_list} barcodes")
                 self.logger.info(f"For Cohort: {cohort}, we have missing peds: {missing_peds} and their Stats for missing/failed IDATs: {missing_stats}")
@@ -263,15 +267,19 @@ class IDAT_BED_PED_Processor:
             f.close()            
             self.logger.info(f"There is {missing_cnt} missing bed file for {cohort}.")
             missing_stats[cohort] = missing_cnt
-
-
-            with open(f'{missing_idat_dir}/missing_beds_{cohort}.txt', 'w') as f:
-                for m_bed in missing_beds:
-                    f.write(f'{m_bed}\n')
-            f.close()
+            #Get updated key file
+            df = df[~df['IID'].isin(missing_beds)]
+            # also log remaining samples
+            self.logger.info(f"Key file df after removing {missing_cnt} missing bed file for {cohort}: {df.shape[0]} and {df.shape} size.")
+            self.logger.info(f"Also I have following folder: self.config.clinical_key_dir to save data {self.config.clinical_key_dir}")
+            if len(missing_beds)>0:
+                with open(f'{missing_idat_dir}/missing_beds_{cohort}.txt', 'w') as f:
+                    for m_bed in missing_beds:
+                        f.write(f'{m_bed}\n')
+                f.close()
             if missing_stats:
                 self.logger.info(f"For Cohort {cohort}, {all_samples} samples and {barcode_list} barcodes")
-                self.logger.info(f"Missing beds: {missing_beds} and their Stats for missing/failed IDATs: {missing_stats}")
+                self.logger.info(f"Missing beds: {missing_beds} and their Stats for missing/failed BEDS: {missing_stats}")
             #Get original key file
             # key = pd.read_csv(self.config.key_path, sep = '\t', low_memory = False)
             self.logger.info(f"Loaded original key file: {self.config.key_path}.")

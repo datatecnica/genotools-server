@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: idat-ped-{{ params.name }}
+  name: {{ params.name }}
   namespace: {{ params.k8s_namespace }} #kns-gtserver # \{\{ .Values.test_namespace \}\}     
   labels:
     jobgroup: idat-ped
@@ -42,17 +42,7 @@ spec:
             # apt-get update && apt-get install -y google-cloud-sdk            
             mkdir -p /tmp
             gsutil -q -m cp -r {{ params.exec_folder_path }} /tmp
-            #gsutil -m cp -r {{ params.exec_folder_path }}/iaap-cli/iaap-cli /tmp/exec/iaap-cli
-            #chmod +x /tmp/exec/plink_modules/plink2_module.sh
-            # cat /tmp/exec/plink_modules/plink2_module.sh
-            #/tmp/exec/plink_modules/plink2_module.sh
-            #echo plink directory contents
-            #ls -l /home/levineks/bin/plink2/
-            #ls -l /etc/modulefiles/plink2/
-            #echo iaap-cli.runtimeconfig.json contents...
-            #cat /tmp/exec/iaap-cli/iaap-cli.runtimeconfig.json
-            gsutil -m cp {{ params.batch_folder_path }}/{{ params.script | replace("\n", "") }} /tmp/script.sh 
-            
+            gsutil -m cp {{ params.batch_folder_path }}/{{ params.script | replace("\n", "") }} /tmp/script.sh             
             chmod +x /tmp/script.sh # Make the file executable
             echo "Script contents... " 
             cat /tmp/script.sh
@@ -73,6 +63,9 @@ spec:
         - name: gcs-volume
           mountPath: /app/input #\{\{ .Values.microservices.idatPedBedPreAPI.mountPath \}\}
           readOnly: false
+        - name: gcs-volume-idats
+          mountPath: /app/input/idats #\{\{ .Values.microservices.idatPedBedPreAPI.mountPath \}\}
+          readOnly: true
       volumes:
       - name: tmp-volume
         emptyDir: {}
@@ -81,9 +74,13 @@ spec:
         persistentVolumeClaim:
           claimName: {{ params.pv_claim }} #gtserver-pvc #\{\{ .Values.testPVOLUMECLAIM \}\}  
           readOnly: false
+      - name: gcs-volume-idats
+        persistentVolumeClaim:
+          claimName: {{ params.pv_claim_idats }} #gtserver-pvc-idats #\{\{ .Values.testPVOLUMECLAIMIDATS \}\}  
+          readOnly: true
       # Ensure pods are scheduled on nodes with the specified GCP VM type
       nodeSelector:
         cloud.google.com/gke-nodepool: {{ params.gke_nodepools }} #workflow-idat-ped-bed-nodepool #\{\{ .Values.nodePools.idatPedBedAPINodePool \}\} 
-  activeDeadlineSeconds: 3600 # Terminate if running for more than 2 hours
+  activeDeadlineSeconds: 10800 # Terminate if running for more than 3 hours
   ttlSecondsAfterFinished: 30 # Clean up 1 hour after completion        
-  backoffLimit: 2
+  backoffLimit: 0

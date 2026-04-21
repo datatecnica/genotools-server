@@ -45,23 +45,39 @@ class LocusReportGenerator:
         self.probe_selector = ProbeSelectionLoader(probe_selection_path)
         if self.probe_selector.has_probe_selection():
             stats = self.probe_selector.get_statistics()
-            self.logger.info(
+            self.logger.debug(
                 f"Probe selection enabled: {stats['mutations_with_selection']} mutations, "
                 f"{stats['probes_excluded']} inferior probes will be filtered"
             )
         else:
-            self.logger.info("Probe selection disabled or not available")
+            self.logger.debug("Probe selection disabled or not available")
 
     def _load_master_key(self) -> pd.DataFrame:
         """Load master key file with ancestry labels."""
         key_path = Path(self.settings.release_path) / "clinical_data" / f"master_key_release{self.settings.release}_final_vwb.csv"
-        self.logger.info(f"Loading master key from: {key_path}")
+        self.logger.debug(f"Loading master key from: {key_path}")
 
         df = pd.read_csv(key_path)
-        self.logger.info(f"Loaded {len(df):,} samples from master key")
+        self.logger.debug(f"Loaded {len(df):,} samples from master key")
 
-        # Select relevant columns
-        df = df[['GP2ID', 'nba_label', 'nba', 'wgs', 'extended_clinical_data']].copy()
+        # Select relevant columns (including age data for disease duration calculation)
+        cols_to_keep = ['GP2ID', 'nba_label', 'nba', 'wgs', 'extended_clinical_data']
+
+        # Add wgs_label for WGS ancestry assignment
+        if 'wgs_label' in df.columns:
+            cols_to_keep.append('wgs_label')
+
+        # Add clinical_exome flag for EXOMES ancestry assignment
+        if 'clinical_exome' in df.columns:
+            cols_to_keep.append('clinical_exome')
+
+        # Add age columns if available (for disease duration calculation)
+        if 'age_at_sample_collection' in df.columns:
+            cols_to_keep.append('age_at_sample_collection')
+        if 'age_of_onset' in df.columns:
+            cols_to_keep.append('age_of_onset')
+
+        df = df[cols_to_keep].copy()
         return df
 
     def _load_extended_clinical(self) -> pd.DataFrame:
@@ -83,22 +99,20 @@ class LocusReportGenerator:
             raise FileNotFoundError(f"No extended clinical file found matching pattern: {pattern}")
 
         clin_path = Path(matches[0])  # Use first match
-        self.logger.info(f"Loading extended clinical from: {clin_path}")
+        self.logger.debug(f"Loading extended clinical from: {clin_path}")
 
         df = pd.read_csv(clin_path, low_memory=False)
-        self.logger.info(f"Loaded {len(df):,} clinical records")
+        self.logger.debug(f"Loaded {len(df):,} clinical records")
 
         # Filter to baseline visits only (visit_month == 0)
         baseline_df = df[df['visit_month'] == 0].copy()
-        self.logger.info(f"Filtered to {len(baseline_df):,} baseline visits")
+        self.logger.debug(f"Filtered to {len(baseline_df):,} baseline visits")
 
-        # Select and rename relevant columns
+        # Select relevant columns (age data comes from master key, not here)
         clinical_cols = [
             'GP2ID',
             'Phenotype',
             'visit_month',
-            'age_at_baseline',
-            'age_at_onset',
             'moca_total_score',
             'hoehn_and_yahr_stage',
             'dat_sbr_caudate_mean'
@@ -113,10 +127,10 @@ class LocusReportGenerator:
     def _load_snp_list(self) -> pd.DataFrame:
         """Load SNP list with locus annotations."""
         snp_path = Path(self.settings.snp_list_path)
-        self.logger.info(f"Loading SNP list from: {snp_path}")
+        self.logger.debug(f"Loading SNP list from: {snp_path}")
 
         df = pd.read_csv(snp_path)
-        self.logger.info(f"Loaded {len(df):,} variants from SNP list")
+        self.logger.debug(f"Loaded {len(df):,} variants from SNP list")
 
         # Select relevant columns
         df = df[['snp_name', 'locus', 'hg38']].copy()
@@ -141,7 +155,7 @@ class LocusReportGenerator:
             return df
 
         initial_count = len(df)
-        self.logger.info(f"Applying probe selection filter: {initial_count} variants before filtering")
+        self.logger.debug(f"Applying probe selection filter: {initial_count} variants before filtering")
 
         # Group by snp_list_id to identify single vs multiple probe mutations
         snp_counts = df.groupby('snp_list_id').size()
@@ -180,12 +194,12 @@ class LocusReportGenerator:
 
         # Log summary
         if mutations_without_selection:
-            self.logger.info(
+            self.logger.debug(
                 f"Note: {len(mutations_without_selection)} multi-probe mutations not in probe selection "
                 f"(no WGS comparison available), kept all probes for these mutations"
             )
 
-        self.logger.info(
+        self.logger.debug(
             f"Probe selection filtering complete: {final_count} variants kept, "
             f"{removed_count} inferior probes removed"
         )
@@ -223,7 +237,7 @@ class LocusReportGenerator:
                 self.logger.warning(f"Skipping {data_type} - data not available")
                 continue
 
-            self.logger.info(f"\n=== Generating {data_type} Locus Reports ===")
+            self.logger.debug(f"\n=== Generating {data_type} Locus Reports ===")
 
             # Generate report for this data type
             collection = self._generate_datatype_report(
@@ -240,18 +254,18 @@ class LocusReportGenerator:
             with open(json_path, 'w') as f:
                 f.write(collection.model_dump_json(indent=2))
             output_files[f"locus_reports_{data_type}_json"] = str(json_path)
-            self.logger.info(f"Saved JSON report: {json_path}")
+            self.logger.debug(f"Saved JSON report: {json_path}")
 
             # Save CSV (flattened table)
             csv_df = self._flatten_to_csv(collection)
             csv_df.to_csv(csv_path, index=False)
             output_files[f"locus_reports_{data_type}_csv"] = str(csv_path)
-            self.logger.info(f"Saved CSV report: {csv_path}")
+            self.logger.debug(f"Saved CSV report: {csv_path}")
 
             # Log summary
-            self.logger.info(f"Generated reports for {len(collection.locus_reports)} loci")
-            self.logger.info(f"Total carriers identified: {collection.summary.total_carriers_identified:,}")
-            self.logger.info(f"Total variants: {collection.summary.total_variants:,}")
+            self.logger.debug(f"Generated reports for {len(collection.locus_reports)} loci")
+            self.logger.debug(f"Total carriers identified: {collection.summary.total_carriers_identified:,}")
+            self.logger.debug(f"Total variants: {collection.summary.total_variants:,}")
 
         return output_files
 
@@ -272,7 +286,7 @@ class LocusReportGenerator:
             LocusReportCollection with all locus reports for this data type
         """
         # Load genotype data
-        self.logger.info(f"Loading {data_type} data from: {data_path}")
+        self.logger.debug(f"Loading {data_type} data from: {data_path}")
         df = pd.read_parquet(data_path)
 
         # Apply probe selection filtering (NBA only)
@@ -283,7 +297,7 @@ class LocusReportGenerator:
         variant_details_by_variant = self._calculate_variant_carrier_counts(df)
 
         # Join with clinical data (melts to long format)
-        clinical_df = self._join_clinical_data(df)
+        clinical_df = self._join_clinical_data(df, data_type=data_type)
 
         # Group by locus and generate reports
         locus_reports = self._calculate_locus_metrics_with_variants(clinical_df, variant_details_by_variant)
@@ -327,17 +341,17 @@ class LocusReportGenerator:
             LocusReportCollection with all locus reports
         """
         # Load genotype data
-        self.logger.info(f"Loading {ref_type} data from: {ref_path}")
+        self.logger.debug(f"Loading {ref_type} data from: {ref_path}")
         ref_df = pd.read_parquet(ref_path)
 
-        self.logger.info(f"Loading {compare_type} data from: {compare_path}")
+        self.logger.debug(f"Loading {compare_type} data from: {compare_path}")
         compare_df = pd.read_parquet(compare_path)
 
         # Merge genotype datasets
         merged_genotypes = self._merge_genotype_data(ref_df, compare_df, ref_type, compare_type)
 
-        # Join with clinical data
-        clinical_df = self._join_clinical_data(merged_genotypes)
+        # Join with clinical data (use ref_type for ancestry since this is a comparison against WGS)
+        clinical_df = self._join_clinical_data(merged_genotypes, data_type=ref_type)
 
         # Group by locus and generate reports
         locus_reports = self._calculate_locus_metrics(clinical_df)
@@ -368,7 +382,7 @@ class LocusReportGenerator:
         compare_type: str
     ) -> pd.DataFrame:
         """Merge reference and comparison genotype data."""
-        self.logger.info(f"Merging {ref_type} and {compare_type} genotype data")
+        self.logger.debug(f"Merging {ref_type} and {compare_type} genotype data")
 
         # Get metadata columns and sample columns
         metadata_cols = ['variant_id', 'snp_list_id', 'chromosome', 'position', 'ancestry', 'data_type']
@@ -381,7 +395,7 @@ class LocusReportGenerator:
 
         # Find common samples (intersection)
         common_samples = sorted(set(ref_sample_cols) & set(compare_sample_cols))
-        self.logger.info(f"Found {len(common_samples):,} common samples between {ref_type} and {compare_type}")
+        self.logger.debug(f"Found {len(common_samples):,} common samples between {ref_type} and {compare_type}")
 
         # Combine metadata with common samples
         # Use reference (WGS) variant_id and snp_list_id as primary keys
@@ -401,7 +415,7 @@ class LocusReportGenerator:
         """
         from app.models.locus_report import VariantDetail
 
-        self.logger.info("Calculating per-variant carrier counts")
+        self.logger.debug("Calculating per-variant carrier counts")
 
         # Identify metadata vs sample columns
         metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
@@ -434,10 +448,16 @@ class LocusReportGenerator:
             # Get genotypes and convert to numeric
             genotypes = pd.to_numeric(row[sample_cols], errors='coerce')
 
-            # Count carriers
-            carrier_count = (genotypes > 0).sum()
-            het_count = (genotypes == 1).sum()
-            hom_count = (genotypes == 2).sum()
+            # Count carriers using configurable thresholds
+            # For discrete genotypes (0,1,2): defaults work correctly
+            # For imputed dosages (0.0-2.0): thresholds categorize appropriately
+            het_min = self.settings.dosage_het_min
+            het_max = self.settings.dosage_het_max
+            hom_min = self.settings.dosage_hom_min
+
+            het_count = ((genotypes >= het_min) & (genotypes < het_max)).sum()
+            hom_count = (genotypes >= hom_min).sum()
+            carrier_count = het_count + hom_count
 
             variant_details[variant_id] = VariantDetail(
                 variant_id=variant_id,
@@ -451,12 +471,23 @@ class LocusReportGenerator:
                 homozygous_count=int(hom_count)
             )
 
-        self.logger.info(f"Calculated carrier counts for {len(variant_details)} variants")
+        self.logger.debug(f"Calculated carrier counts for {len(variant_details)} variants")
         return variant_details
 
-    def _join_clinical_data(self, genotype_df: pd.DataFrame) -> pd.DataFrame:
-        """Join genotype data with clinical data."""
-        self.logger.info("Joining genotype data with clinical data")
+    def _join_clinical_data(self, genotype_df: pd.DataFrame, data_type: str = "NBA") -> pd.DataFrame:
+        """Join genotype data with clinical data.
+
+        Args:
+            genotype_df: Genotype dataframe with samples as columns
+            data_type: Data type for ancestry label selection:
+                - "WGS": use wgs_label
+                - "NBA", "IMPUTED": use nba_label
+                - "EXOMES": use nba_label first, fall back to wgs_label, else "Unknown"
+
+        Returns:
+            DataFrame with carriers joined to clinical data
+        """
+        self.logger.debug(f"Joining genotype data with clinical data (data_type={data_type})")
 
         # Identify metadata vs sample columns
         metadata_cols = ['chromosome', 'variant_id', '(C)M', 'position', 'COUNTED', 'ALT',
@@ -479,7 +510,7 @@ class LocusReportGenerator:
 
         # Filter to carriers only (genotype > 0)
         carriers = genotype_long[genotype_long['genotype'] > 0].copy()
-        self.logger.info(f"Identified {len(carriers):,} carrier genotypes")
+        self.logger.debug(f"Identified {len(carriers):,} carrier genotypes")
 
         # Join with SNP list to get locus
         carriers = carriers.merge(
@@ -488,15 +519,25 @@ class LocusReportGenerator:
             how='left'
         )
 
-        # Join with master key to get ancestry
+        # Join with master key to get ancestry and age data for disease duration
+        # Include both ancestry labels for proper assignment based on data type
+        master_key_cols = ['GP2ID', 'nba_label', 'extended_clinical_data']
+        if 'wgs_label' in self.master_key.columns:
+            master_key_cols.append('wgs_label')
+        # Include age columns if available
+        if 'age_at_sample_collection' in self.master_key.columns:
+            master_key_cols.append('age_at_sample_collection')
+        if 'age_of_onset' in self.master_key.columns:
+            master_key_cols.append('age_of_onset')
+
         carriers = carriers.merge(
-            self.master_key[['GP2ID', 'nba_label', 'extended_clinical_data']],
+            self.master_key[master_key_cols],
             on='GP2ID',
             how='left'
         )
 
-        # Rename ancestry column
-        carriers = carriers.rename(columns={'nba_label': 'ancestry'})
+        # Assign ancestry based on data type
+        carriers = self._assign_ancestry_by_datatype(carriers, data_type)
 
         # Join with extended clinical data
         carriers = carriers.merge(
@@ -505,13 +546,66 @@ class LocusReportGenerator:
             how='left'
         )
 
-        self.logger.info(f"Joined clinical data for {len(carriers):,} carrier records")
+        self.logger.debug(f"Joined clinical data for {len(carriers):,} carrier records")
 
         return carriers
 
+    def _assign_ancestry_by_datatype(self, df: pd.DataFrame, data_type: str) -> pd.DataFrame:
+        """Assign ancestry column based on data type.
+
+        Args:
+            df: DataFrame with nba_label and optionally wgs_label columns
+            data_type: Data type determining which ancestry label to use
+
+        Returns:
+            DataFrame with 'ancestry' column assigned appropriately
+        """
+        if data_type == "WGS":
+            # WGS data uses wgs_label
+            if 'wgs_label' in df.columns:
+                df['ancestry'] = df['wgs_label']
+                missing_count = df['ancestry'].isna().sum()
+                if missing_count > 0:
+                    self.logger.warning(f"WGS: {missing_count} samples have no wgs_label")
+            else:
+                self.logger.warning("wgs_label not in master key, falling back to nba_label for WGS")
+                df['ancestry'] = df['nba_label']
+
+        elif data_type in ("NBA", "IMPUTED"):
+            # NBA and IMPUTED data use nba_label
+            df['ancestry'] = df['nba_label']
+            missing_count = df['ancestry'].isna().sum()
+            if missing_count > 0:
+                self.logger.warning(f"{data_type}: {missing_count} samples have no nba_label")
+
+        elif data_type == "EXOMES":
+            # EXOMES: prefer nba_label, fall back to wgs_label, else "Unknown"
+            if 'wgs_label' in df.columns:
+                df['ancestry'] = df['nba_label'].fillna(df['wgs_label'])
+            else:
+                df['ancestry'] = df['nba_label']
+            # Fill remaining NaN with "Unknown"
+            unknown_count = df['ancestry'].isna().sum()
+            if unknown_count > 0:
+                df['ancestry'] = df['ancestry'].fillna('Unknown')
+                self.logger.debug(f"EXOMES: {unknown_count} samples assigned 'Unknown' ancestry")
+
+        else:
+            # Default fallback to nba_label
+            self.logger.warning(f"Unknown data_type '{data_type}', defaulting to nba_label")
+            df['ancestry'] = df['nba_label']
+
+        # Clean up temporary columns
+        if 'nba_label' in df.columns:
+            df = df.drop(columns=['nba_label'])
+        if 'wgs_label' in df.columns:
+            df = df.drop(columns=['wgs_label'])
+
+        return df
+
     def _calculate_locus_metrics(self, clinical_df: pd.DataFrame) -> List[LocusReport]:
         """Calculate clinical metrics grouped by locus."""
-        self.logger.info("Calculating per-locus metrics")
+        self.logger.debug("Calculating per-locus metrics")
 
         locus_reports = []
 
@@ -547,7 +641,7 @@ class LocusReportGenerator:
 
             locus_reports.append(report)
 
-        self.logger.info(f"Generated reports for {len(locus_reports)} loci")
+        self.logger.debug(f"Generated reports for {len(locus_reports)} loci")
 
         return sorted(locus_reports, key=lambda x: x.locus)
 
@@ -565,7 +659,7 @@ class LocusReportGenerator:
         Returns:
             List of LocusReport objects with variant details
         """
-        self.logger.info("Calculating per-locus metrics with variant details")
+        self.logger.debug("Calculating per-locus metrics with variant details")
 
         locus_reports = []
 
@@ -605,7 +699,7 @@ class LocusReportGenerator:
 
             locus_reports.append(report)
 
-        self.logger.info(f"Generated reports for {len(locus_reports)} loci with variant details")
+        self.logger.debug(f"Generated reports for {len(locus_reports)} loci with variant details")
 
         return sorted(locus_reports, key=lambda x: x.locus)
 
@@ -640,15 +734,17 @@ class LocusReportGenerator:
         # DAT caudate metrics
         dat_caudate_available = unique_carriers['dat_sbr_caudate_mean'].notna().sum() if 'dat_sbr_caudate_mean' in unique_carriers.columns else 0
 
-        # Disease duration metrics
+        # Disease duration metrics (using age_at_sample_collection - age_of_onset from master key)
         disease_duration_lte_3 = 0
         disease_duration_lte_5 = 0
         disease_duration_lte_7 = 0
-        if 'age_at_baseline' in unique_carriers.columns and 'age_at_onset' in unique_carriers.columns:
-            duration = pd.to_numeric(unique_carriers['age_at_baseline'], errors='coerce') - pd.to_numeric(unique_carriers['age_at_onset'], errors='coerce')
-            disease_duration_lte_3 = (duration <= 3).sum()
-            disease_duration_lte_5 = (duration <= 5).sum()
-            disease_duration_lte_7 = (duration <= 7).sum()
+        if 'age_at_sample_collection' in unique_carriers.columns and 'age_of_onset' in unique_carriers.columns:
+            duration = pd.to_numeric(unique_carriers['age_at_sample_collection'], errors='coerce') - pd.to_numeric(unique_carriers['age_of_onset'], errors='coerce')
+            # Only count valid durations (non-negative)
+            valid_duration = duration[duration >= 0]
+            disease_duration_lte_3 = (valid_duration <= 3).sum()
+            disease_duration_lte_5 = (valid_duration <= 5).sum()
+            disease_duration_lte_7 = (valid_duration <= 7).sum()
 
         return ClinicalMetrics(
             ancestry=ancestry,

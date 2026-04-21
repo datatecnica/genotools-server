@@ -63,7 +63,7 @@ class ProbeRecommendationEngine:
         Returns:
             Tuple of (mutation_analyses, methodology_comparison)
         """
-        logger.info(f"Generating probe recommendations using {self.strategy} strategy")
+        logger.debug(f"Generating probe recommendations using {self.strategy} strategy")
 
         mutation_analyses = []
         diagnostic_choices = []
@@ -106,8 +106,8 @@ class ProbeRecommendationEngine:
             mutation_analyses, diagnostic_choices, concordance_choices
         )
 
-        logger.info(f"Generated recommendations for {len(mutation_analyses)} mutations")
-        logger.info(f"Method agreement rate: {methodology_comparison.agreement_rate:.3f}")
+        logger.debug(f"Generated recommendations for {len(mutation_analyses)} mutations")
+        logger.debug(f"Method agreement rate: {methodology_comparison.agreement_rate:.3f}")
 
         return mutation_analyses, methodology_comparison
 

@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: mergs-beds-{{ params.name }}
+  name: {{ params.name }}
   namespace: {{ params.k8s_namespace }} #kns-gtserver # \{\{ .Values.test_namespace \}\}     
   labels:
     jobgroup: mergs-beds
@@ -59,6 +59,9 @@ spec:
         - name: gcs-volume
           mountPath: /app/input #\{\{ .Values.microservices.idatPedBedPreAPI.mountPath \}\}
           readOnly: false
+        - name: gcs-volume-idats
+          mountPath: /app/input/idats #\{\{ .Values.microservices.idatPedBedPreAPI.mountPath \}\}
+          readOnly: true
       volumes:
       - name: tmp-volume
         emptyDir: {}
@@ -67,9 +70,13 @@ spec:
         persistentVolumeClaim:
           claimName: {{ params.pv_claim }} #gtserver-pvc #\{\{ .Values.testPVOLUMECLAIM \}\}  
           readOnly: false
+      - name: gcs-volume-idats
+        persistentVolumeClaim:
+          claimName: {{ params.pv_claim_idats }} #gtserver-pvc-idats #\{\{ .Values.testPVOLUMECLAIMIDATS \}\}  
+          readOnly: true
       # Ensure pods are scheduled on nodes with the specified GCP VM type
       nodeSelector:
         cloud.google.com/gke-nodepool: {{ params.gke_nodepools }} #workflow-idat-ped-bed-nodepool #\{\{ .Values.nodePools.idatPedBedAPINodePool \}\} 
-  activeDeadlineSeconds: 3600 # Terminate if running for more than 2 hours
+  activeDeadlineSeconds: 10800 # Terminate if running for more than 3 hours
   ttlSecondsAfterFinished: 30 # Clean up 1 hour after completion        
-  backoffLimit: 2
+  backoffLimit: 0

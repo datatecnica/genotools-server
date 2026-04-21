@@ -38,6 +38,7 @@ class ProcessorConfig:
     service_account_name: str
     k8s_namespace: str
     pv_claim: str
+    pv_claim_idats: str    
     gke_nodepools: str
     #user_email: str
 
@@ -79,11 +80,15 @@ class ProcessorConfig:
         self.codes_per_job = self.codes_per_job
         #beds-merge
         self.clinical_key_dir = Path(self.clinical_key_dir)
+        #also create folder if it doesn't exist
+        self.clinical_key_dir.mkdir(parents=True, exist_ok=True)        
+
 
         #k8s server related
         self.service_account_name = self.service_account_name
         self.k8s_namespace = self.k8s_namespace
         self.pv_claim = self.pv_claim
+        self.pv_claim_idats = self.pv_claim_idats
         self.gke_nodepools = self.gke_nodepools
         # self.user_email = self.user_email
 

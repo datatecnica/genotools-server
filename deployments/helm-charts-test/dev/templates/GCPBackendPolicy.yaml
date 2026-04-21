@@ -1,0 +1,73 @@
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+ name: {{ .Values.appservices.gp2browserApp.iapPolicyBackend }} 
+ namespace: {{ .Values.namespace }}
+spec:
+ default:
+   iap:
+     enabled: true
+     #oauthclientCredentials:
+      #secret: {{ .Values.gcpSecretManager.iapRelated.apps.kubernetesSecretName }}
+     oauth2ClientSecret: 
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.gcpSecretManager.iapRelated.apps.kubernetesSecretName }}
+          value: {{ .Values.appservices.gp2browserApp.iapValues.ClientSecret }}
+     oauth2ClientId:
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.gcpSecretManager.iapRelated.apps.kubernetesSecretName }}
+          value: {{ .Values.appservices.gp2browserApp.iapValues.ClientSecret }}
+ targetRef:
+   group: ""
+   kind: Service
+   name: {{ .Values.appservices.gp2browserApp.svcName }}
+---
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+ name: {{ .Values.appservices.genotrackerApp.iapPolicyBackend }} 
+ namespace: {{ .Values.namespace }}
+spec:
+ default:
+   iap:
+     enabled: true
+     oauth2ClientSecret: 
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.gcpSecretManager.iapRelated.apps.kubernetesSecretName }}
+          value: {{ .Values.appservices.genotrackerApp.iapValues.ClientSecret }}
+     oauth2ClientId:
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.gcpSecretManager.iapRelated.apps.kubernetesSecretName }}
+          value: {{ .Values.appservices.genotrackerApp.iapValues.ClientSecret }}
+ targetRef:
+   group: ""
+   kind: Service
+   name: {{ .Values.appservices.genotrackerApp.svcName }}
+---
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+ name: {{ .Values.appservices.precisionMedApp.iapPolicyBackend }} 
+ namespace: {{ .Values.namespace }}
+spec:
+ default:
+   iap:
+     enabled: true
+     oauth2ClientSecret: 
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.gcpSecretManager.iapRelated.apps.kubernetesSecretName }}
+          value: {{ .Values.appservices.precisionMedApp.iapValues.ClientSecret }}
+     oauth2ClientId:
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.gcpSecretManager.iapRelated.apps.kubernetesSecretName }}
+          value: {{ .Values.appservices.precisionMedApp.iapValues.ClientSecret }}
+ targetRef:
+   group: ""
+   kind: Service
+   name: {{ .Values.appservices.precisionMedApp.svcName }}

@@ -6,6 +6,7 @@ from manage.login import user_login
 # from watchdog.observers import Observer
 import requests
 import json
+import time
 
 
 st.set_page_config(page_title='GKE Manager', layout='wide')
@@ -29,7 +30,7 @@ st.markdown(
 # Title of the app
 st.title(":green[GKE Job Scheduler and Log Stream Manager]")
 
-control_list = ['Zih-Hua.Fang@dzne.de', 'dan@datatecnica.com','mike@datatecnica.com','syed@datatecnica.com','kristin@datatecnica.com']
+control_list = ['Zih-Hua.Fang@dzne.de', 'dan@datatecnica.com','mike@datatecnica.com','syed@datatecnica.com','kristin@datatecnica.com', 'jared@datatecnica.com', 'zih-hua@datatecnica.com']
 cw = os.getcwd()
 
 user_login()
@@ -41,7 +42,7 @@ if st.session_state["authentication_status"] and st.session_state["user_email"] 
     dep_files_genotools_api = files.get_deployment_files('deployments/api')
     #get bash and yaml files
     bash_files_wf = files.get_bash_files('scripts/workflow')
-    dep_files_wf = files.get_deployment_files('deployments/workflow')
+    dep_files_wf = files.get_deployment_files('deployments/workflow2/final')
 
 
     card_removebg = "static/card-removebg.png" #"static/card-removebg.png"
@@ -90,25 +91,19 @@ if st.session_state["authentication_status"] and st.session_state["user_email"] 
             list_cluster = st.button(":blue[**List Cluster/Node Pool**]")
 
             select_dep_script = st.selectbox(
-            ":green[**Select Deployment Script To Run**]",
+            ":green[**Select Workflow Yaml To Run**]",
             [" "]+dep_files_wf,
             )
-            run_dep_script = st.button(":blue[**Install Helm Chart**]")
+            run_dep_script = st.button(":blue[**Submit Batch Jobs**]")
             check_deployment = st.button(":red[**Workflow Status**]")  
             delete_deployment = st.button(":red[**Delete Workflow**]")  
             call_workflow = st.checkbox(":red[**Setup Workflow Config**]", value=False)
         if run_bash_script and select_bash_script:
-            # st.session_state.processing = True  # Start processing
             infrastructure_deploy.configure_infrastructure(cw+"/scripts/workflow/"+select_bash_script)
-            # st.session_state.processing = False  # End processing
         if list_cluster:
-            # st.session_state.processing = True  # Start processing
             gcp_helpers.check_cluster()
-            # st.session_state.processing = False  # End processing
         if run_dep_script and select_dep_script is not None:
-            # st.session_state.processing = True  # Start processing
-            gcp_helpers.get_gcp_cluster_credentials()
-            deployments.argo_workflow_deployment_yaml(cw+"/deployments/workflow/"+select_dep_script, cw+"/deployments/workflow/helm/dep")
+            deployments.argo_workflow_deployment_yaml(cw+"/deployments/workflow2/final/"+select_dep_script, cw+"/deployments/workflow2/helm/dep")
 
         if check_deployment:
             if not st.session_state['cred']:
@@ -138,34 +133,49 @@ if st.session_state["authentication_status"] and st.session_state["user_email"] 
             with form:
                 expander2 =  st.expander(":blue[**Please adjust your workflow parameters below and :red[**Press Save Workflow**]**]") 
                 expander2.markdown("""
-                # Important
-                1. GCS bucket: Bucket is mounted in /aa/input/ folder in the container file system.
-                2. Make sure that all paths in the gcs bucket are properly provided in the below variables.
-                3. EXAMPLE: In the below variables, /app/input/new_test_data/pipe-line-results
-                    corresponds to new_test_data/pipe-line-results folder in the GCS bucket. THIS PATH MUST BE A VALID FOLDER IN THE GCS BUCKET.
-                4. logs, batch_files, ped_bed, clinical folders and folders (inside thses for each step) are automatically created by the workflow.
-                5. User must ensure that the input files (idats, fam, key_file etc.) are already present in the GCS bucket before starting the workflow.
-                6. User provided folder are below:
-                    a. /app/input/new_test_data/idats  --> Input IDAT files folder
-                    b. /app/input/new_test_data/syed_test_idats_n313.txt  --> Key file path
-                    c. /app/input/new_test_data/exec  --> Execution folder path in GCS bucket where iaap-cli and plink executables are present.
-                    exec folder contains:
-                      i. NeuroBooster_20042459_A2.bpm
-                      ii. recluster_09272022.egt
-                     iii. iaap-cli/ (folder with iaap-cli executable and all dependencies)
-                     iv. plink_modules// (folder with plink installer files plink2_module.sh and plink_module.sh)
-                     PLEASE DO NOT CHANGE PATHS IN plink2_module.sh and plink_module.sh FILES AS THESE ARE BEING REFERRED IN VARIOUS STEPS OF THE WORKFLOW.""")
-                config_data = yaml_helpers.load_config('deployments/workflow/idat-ped-bed-merge-values.yaml')
+                ### Bucket Setup and Folder Structure
+                - For Current setup two GCS buckets are mounted at /app/input/ in the container file system.
+                    - IDATS Bucket: gp2_idats
+                    - gtserver-eu-west4-gp2-release-terra bucket: Following folder tree inside this bucket is accessible to the workflow:
+                        - Workflows
+                            - idat_ped_bed_merge
+                                - exec (Fixed - contains all executebales required by the workflow). It contains following files and folders:
+                                    - NeuroBooster_20042459_A2.bpm
+                                    - recluster_09272022.egt
+                                    - iaap-cli/ (folder with iaap-cli executable and all dependencies)
+                                    - plink_modules// (folder with plink installer files plink2_module.sh and plink_module.sh)
+                                    - __:red[PLEASE DO NOT CHANGE PATHS IN plink2_module.sh and plink_module.sh FILES AS THESE ARE BEING REFERRED IN VARIOUS STEPS OF THE WORKFLOW].__
+                                - keys (contains key files required by the workflow) __User should provide appropriate key file to be used by the workflow__.
+                                - merged_by_cohort_archive __(contains already processed fam files, worflow will not process these samples)__.
+                                - outputs __(user provided folder_name will be created inside this folder and workflow will write all outputs to this folder)__.
+                ### User Inputs
+                - User Email: Please enter email to which you want to receive notifications for workflow completion and failure. Make sure that you have access to this email as workflow status notifications will be sent to this email.
+                - Key File Name: This file must be present in the keys folder mentioned above.
+                - Output Folder Name: Folder name where workflow will write all outputs. This folder will be created inside the "outputs" folder mentioned above. Please make sure that the name of the output folder is unique as workflow will overwrite if a folder with the same name already exists in the "outputs" directory.
+                - Study Names List: Please provide comma separated list of study names __(without quotes)__.""")
+                config_data = yaml_helpers.load_config('deployments/workflow2/idat-ped-bed-merge-values.yaml')
                 yaml_helpers.edit_yaml_config(config_data)
-                #update_settings = st.checkbox(":red[**Update Settings**]") #, value=st.session_state.job_submitted)
-            submit = form.form_submit_button(":red[**Save Workflow**]")   
-            if submit: # and update_settings: 
-                yaml_helpers.save_config('deployments/workflow/idat-ped-bed-merge-values.yaml', config_data)
-                st.rerun()
+            submit_wf = form.form_submit_button(":red[**Save Workflow**]")    
+            if submit_wf: # and update_settings: 
+                studies_list = [s.strip().upper() for s in config_data['study_id'].split(",")]
+                study_list = []
+                for idx, study in enumerate(studies_list):
+                    study_id_dict = {}
+                    study_id_dict["key"] = f"id{idx+1}"
+                    study_id_dict["value"] = study
+                    study_list.append(study_id_dict)
+                if study_list:
+                    config_data['study_id'] = config_data['study_id'].upper()
+                    yaml_helpers.save_config('deployments/workflow2/idat-ped-bed-merge-values.yaml', config_data)
+                    yaml_helpers.write_indented_yaml({"study_id": study_list},'deployments/workflow2/studies.yaml')
+                    # time.sleep(10)
+                    yaml_helpers.merge_yaml_files('deployments/workflow2/final/final_wf.yaml','deployments/workflow2/idat-ped-bed-merge-values.yaml','deployments/workflow2/studies.yaml')
 
+                    
+                    st.rerun()
 
     elif st.session_state.active_tab == "GenotoolsAPI":
-        st.header("# GKE Manager and GenotoolsAPI Deployment")
+        st.header("GKE Manager and GenotoolsAPI Deployment")
         with st.sidebar:
             select_bash_script = st.selectbox(
             ":green[**Select Bash Script To Run**]",
@@ -192,7 +202,7 @@ if st.session_state["authentication_status"] and st.session_state["user_email"] 
 
         if run_bash_script and select_bash_script:
             # st.session_state.processing = True  # Start processing
-            infrastructure_deploy.configure_infrastructure(cw+"/scripts/"+select_bash_script)
+            infrastructure_deploy.configure_infrastructure(cw+"/scripts/api/"+select_bash_script)
             # st.session_state.processing = False  # End processing
         if list_cluster:
             # st.session_state.processing = True  # Start processing
@@ -294,3 +304,6 @@ if st.session_state["authentication_status"] and st.session_state["user_email"] 
     elif st.session_state.active_tab == "Help":
         st.header("Help and Documentation")
         st.markdown("**For any issues or questions, please contact the support team at [syed@datatecnica.com]**")
+# else:
+#     if st.session_state["user_email"] not in control_list:  
+#         st.warning('**You do not have access to this app. Please contact support for access.**')  

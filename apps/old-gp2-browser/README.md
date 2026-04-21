@@ -1,3 +1,4 @@
 # GP2 Cohort Browser from GenoTools Output
+gcloud builds submit --tag us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/apps/gp2-browser/gp2-browser .
 
-### Cohort browser streamlit app for data releases from the Global Parkinson's Genetics Program (https://gp2-cohort-browser-dot-gp2-release-terra.uc.r.appspot.com/).
+testing: gcloud builds submit --tag us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/apps/gp2-browser-app .

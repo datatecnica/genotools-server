@@ -127,12 +127,20 @@ class VariantExtractor:
         
         return None
     
-    def _read_traw_file(self, traw_path: str) -> pd.DataFrame:
-        """Read PLINK TRAW format file."""
+    def _read_traw_file(self, traw_path: str, psam_path: str = None) -> pd.DataFrame:
+        """Read PLINK TRAW format file.
+
+        Args:
+            traw_path: Path to TRAW file
+            psam_path: Optional path to PSAM file for FID_IID -> IID mapping
+
+        Returns:
+            DataFrame with genotypes, sample IDs normalized to IID only
+        """
         try:
             # TRAW format: CHR SNP (C)M POS COUNTED ALT [sample genotypes...]
             df = pd.read_csv(traw_path, sep='\t', low_memory=False)
-            
+
             # Rename columns for consistency
             if 'CHR' in df.columns:
                 df = df.rename(columns={'CHR': 'chromosome'})
@@ -140,13 +148,61 @@ class VariantExtractor:
                 df = df.rename(columns={'SNP': 'variant_id'})
             if 'POS' in df.columns:
                 df = df.rename(columns={'POS': 'position'})
-            
-            logger.info(f"Read {len(df)} variants from TRAW file {traw_path}")
+
+            # Normalize sample IDs from FID_IID to IID using psam file
+            if psam_path and os.path.exists(psam_path):
+                df = self._normalize_sample_ids_from_psam(df, psam_path)
+
+            logger.debug(f"Read {len(df)} variants from TRAW file {traw_path}")
             return df
-            
+
         except Exception as e:
             logger.error(f"Failed to read TRAW file {traw_path}: {e}")
             raise
+
+    def _normalize_sample_ids_from_psam(self, df: pd.DataFrame, psam_path: str) -> pd.DataFrame:
+        """Normalize sample column IDs from FID_IID format to IID only.
+
+        PLINK2 A-transpose export creates column names as FID_IID.
+        This reads the psam file to build exact FID_IID -> IID mapping.
+
+        Args:
+            df: DataFrame with sample columns in FID_IID format
+            psam_path: Path to psam file with FID and IID columns
+
+        Returns:
+            DataFrame with sample columns renamed to IID only
+        """
+        try:
+            # Read psam file (tab-separated, first line is header starting with #FID)
+            psam_df = pd.read_csv(psam_path, sep='\t')
+
+            # Handle header - psam files have #FID as first column name
+            if '#FID' in psam_df.columns:
+                psam_df = psam_df.rename(columns={'#FID': 'FID'})
+
+            if 'FID' not in psam_df.columns or 'IID' not in psam_df.columns:
+                logger.warning(f"PSAM file missing FID/IID columns: {psam_df.columns.tolist()}")
+                return df
+
+            # Build mapping: FID_IID -> IID
+            rename_map = {}
+            for _, row in psam_df.iterrows():
+                fid = str(row['FID'])
+                iid = str(row['IID'])
+                fid_iid = f"{fid}_{iid}"
+                if fid_iid in df.columns:
+                    rename_map[fid_iid] = iid
+
+            if rename_map:
+                logger.debug(f"Normalizing {len(rename_map)} sample IDs from FID_IID to IID format")
+                df = df.rename(columns=rename_map)
+
+            return df
+
+        except Exception as e:
+            logger.warning(f"Failed to normalize sample IDs from psam: {e}")
+            return df
     
     def _simulate_plink_extraction(
         self, 
@@ -225,11 +281,13 @@ class VariantExtractor:
             # Create temporary output prefix
             with tempfile.TemporaryDirectory() as temp_dir:
                 output_prefix = os.path.join(temp_dir, "extracted")
-                
+
                 traw_file = self._extract_with_plink2(pgen_base, pgen_variant_ids, output_prefix)
-                
+
                 if traw_file and os.path.exists(traw_file):
-                    return self._read_traw_file(traw_file)
+                    # Pass psam path for FID_IID -> IID normalization
+                    psam_path = f"{pgen_base}.psam"
+                    return self._read_traw_file(traw_file, psam_path=psam_path)
         
         # Fall back to simulation if PLINK not available
         logger.warning(f"Using simulated extraction for {pgen_path}")
@@ -271,7 +329,7 @@ class VariantExtractor:
         # Allow multiple SNP list variants to map to the same PGEN variant (many-to-one mapping)
         # This enables proper handling of cases like multiple probes at the same genomic position
         if harmonization_records['pgen_variant_id'].duplicated().any():
-            logger.info(f"Found {harmonization_records['pgen_variant_id'].duplicated().sum()} SNP list variants mapping to the same PGEN variant - preserving all mappings")
+            logger.debug(f"Found {harmonization_records['pgen_variant_id'].duplicated().sum()} SNP list variants mapping to the same PGEN variant - preserving all mappings")
         
         # Create a list-based lookup to handle multiple SNP list variants per PGEN variant
         harm_lookup = {}
@@ -430,7 +488,7 @@ class VariantExtractor:
                 row_copy['ALT'] = old_counted
                 row_copy['maf_corrected'] = True
 
-                logger.info(f"MAF correction applied to {row_copy.get('variant_id', 'unknown')}: "
+                logger.debug(f"MAF correction applied to {row_copy.get('variant_id', 'unknown')}: "
                            f"ALT AF={alt_af:.3f}, now counting {old_alt}")
             else:
                 row_copy['maf_corrected'] = False
@@ -457,7 +515,7 @@ class VariantExtractor:
         Returns:
             DataFrame with harmonized genotypes
         """
-        logger.info(f"Extracting {len(snp_list_ids)} variants from {pgen_path}")
+        logger.debug(f"Extracting {len(snp_list_ids)} variants from {pgen_path}")
         
         # Read PVAR file for this PLINK file
         try:
@@ -486,7 +544,7 @@ class VariantExtractor:
             return pd.DataFrame()
         
         # Use traditional raw extraction + harmonization
-        logger.info("Using real-time extraction with harmonization")
+        logger.debug("Using real-time extraction with harmonization")
         pgen_variant_ids = plan_df['pgen_variant_id'].tolist()
         raw_df = self._extract_raw_genotypes(pgen_path, pgen_variant_ids)
         
@@ -500,7 +558,7 @@ class VariantExtractor:
         # Apply MAF correction to ensure minor allele counting
         harmonized_df = self._apply_maf_correction(harmonized_df)
 
-        logger.info(f"Extracted and harmonized {len(harmonized_df)} variants from {pgen_path}")
+        logger.debug(f"Extracted and harmonized {len(harmonized_df)} variants from {pgen_path}")
         return harmonized_df
     
     def _reconstruct_snp_list_from_ids(self, snp_list_ids: List[str]) -> pd.DataFrame:
@@ -552,6 +610,6 @@ class VariantExtractor:
                 })
         
         plan_df = pd.DataFrame(plan_data)
-        logger.info(f"Created extraction plan for {len(plan_df)} variants")
+        logger.debug(f"Created extraction plan for {len(plan_df)} variants")
         return plan_df
     

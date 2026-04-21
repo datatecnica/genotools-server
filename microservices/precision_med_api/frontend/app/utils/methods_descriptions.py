@@ -53,7 +53,7 @@ stratified by genetic ancestry to identify population-specific carrier patterns.
      - **H&Y Stage**: Hoehn and Yahr disease severity (0-5 scale)
      - **MoCA Score**: Montreal Cognitive Assessment (0-30 scale)
      - **DAT Imaging**: Dopamine transporter SBR caudate mean
-     - **Disease Duration**: Age at baseline minus age at onset
+     - **Disease Duration**: `age_at_sample_collection` − `age_of_onset` (both from master key)
 
 4. **Statistics Calculation**
    - **Per-ancestry metrics**: Carrier counts, clinical data availability, phenotype distributions
@@ -63,7 +63,7 @@ stratified by genetic ancestry to identify population-specific carrier patterns.
 **Output Metrics:**
 - Total carriers identified (all ancestries)
 - Carriers with available clinical data
-- Clinical phenotype distributions (H&Y < 2, MoCA ≥ 24, disease duration ≤ 5/7 years)
+- Clinical phenotype distributions (H&Y < 2, MoCA ≥ 24, disease duration ≤3/≤5/≤7 years)
 - Ancestry-specific carrier frequencies
 - Variant-level genotype counts (heterozygous/homozygous)
 
@@ -190,11 +190,17 @@ accurate probe for carrier screening.
    - **Consensus Algorithm**:
      - Compare recommended probes from both methods
      - **Agreement**: If both methods select same probe → High confidence recommendation
-     - **Disagreement**: Flag for manual review with detailed metrics comparison
+     - **Disagreement**: Diagnostic method's choice is used as the default selection
      - Report agreement rate across all mutations
 
+   - **Disagreement Resolution**:
+     - When methods disagree, **diagnostic (sensitivity-based) selection wins**
+     - Rationale: For clinical screening, missing a true carrier (false negative) has worse consequences than a false positive
+     - A false positive leads to confirmatory testing; a false negative means a patient doesn't get appropriate monitoring
+     - Disagreements are flagged in output with lowered confidence scores for manual review if needed
+
    - **Interpretation**:
-     - High agreement rate (>90%): Methods are well-aligned
+     - High agreement rate (>90%): Methods are well-aligned, recommendations are robust
      - Low agreement: May indicate trade-offs between carrier detection vs genotyping accuracy
      - Disagreements typically occur when one probe has excellent carrier detection but poor dosage accuracy
 
@@ -357,6 +363,86 @@ phenotype data to enable genotype-phenotype association studies in Parkinson's d
 - Cross-method validation
 """
 
+    @staticmethod
+    def get_coverage_reports_methods() -> str:
+        """
+        Get methods description for coverage reports.
+
+        Returns:
+            Markdown-formatted methods text
+        """
+        return """
+### Coverage Profiling Analysis
+
+**Overview:**
+Coverage profiling analyzes which variants from the SNP list actually exist in each data type's
+source files (pvar files). This helps identify data availability issues before interpreting
+extraction results - variants cannot be extracted if they don't exist in the source data.
+
+**Data Sources:**
+1. **SNP List**: Curated list of pathogenic variants with hg38 coordinates (chr:pos:ref:alt)
+2. **Source pvar Files**: Variant metadata files for each data type:
+   - WGS: Per-chromosome, per-ancestry files
+   - IMPUTED: Per-chromosome, per-ancestry files
+   - NBA: Single file per ancestry (raw genotypes)
+   - EXOMES: Per-chromosome files
+
+**Analysis Steps:**
+
+1. **SNP List Normalization**
+   - Load pathogenic variant list with hg38 coordinates
+   - Normalize chromosome format (ensure 'chr' prefix)
+   - Create variant_id (chr:pos:ref:alt) and position key (chr:pos)
+
+2. **Source File Scanning**
+   - Scan pvar files for each data type (using EUR ancestry as reference)
+   - Extract variant positions and alleles from source files
+   - Process files in parallel for efficiency
+
+3. **Match Detection**
+
+   **Exact Matching:**
+   - Compare full variant ID: chr:pos:ref:alt
+   - Requires chromosome, position, AND alleles to match exactly
+   - Represents variants that can be extracted without harmonization issues
+
+   **Position Matching:**
+   - Compare position only: chr:pos
+   - Finds variants at same genomic position regardless of allele representation
+   - Indicates potential matches that may need allele harmonization
+   - Useful for detecting strand flips or indel normalization differences
+
+4. **Coverage Aggregation**
+   - **By Locus**: Sum exact/position matches per gene/locus
+   - **By Variant**: Boolean flags for presence in each data type
+   - **By Data Type**: Overall coverage percentage
+
+**Interpreting Results:**
+
+| Match Type | Meaning |
+|------------|---------|
+| Exact Match | Variant exists with same alleles - ready for extraction |
+| Position Match Only | Position exists but alleles differ - may need harmonization |
+| No Match | Variant not present in source data - cannot be extracted |
+
+**Why Coverage Varies by Data Type:**
+
+- **WGS**: Contains all variants detected by sequencing, best for rare variants
+- **IMPUTED**: Limited to variants that can be accurately imputed from array data
+- **NBA**: Contains only variants on the NeuroBooster Array design
+- **EXOMES**: Contains only coding region variants
+
+**Output Files:**
+- `coverage_by_locus.csv`: Per-gene coverage statistics
+- `coverage_by_variant.csv`: Per-variant presence flags
+- `coverage_summary.json`: Overall statistics
+
+**Performance:**
+- Parallelized scanning across chromosomes and data types
+- Uses only pvar metadata files (not full genotype data)
+- Typical runtime: ~5 minutes on 32-core machine
+"""
+
     @classmethod
     def get_all_methods(cls) -> dict:
         """
@@ -369,5 +455,6 @@ phenotype data to enable genotype-phenotype association studies in Parkinson's d
             'locus_reports': cls.get_locus_reports_methods(),
             'probe_validation': cls.get_probe_validation_methods(),
             'genotype_extraction': cls.get_genotype_extraction_methods(),
-            'pipeline_overview': cls.get_pipeline_overview_methods()
+            'pipeline_overview': cls.get_pipeline_overview_methods(),
+            'coverage_reports': cls.get_coverage_reports_methods()
         }

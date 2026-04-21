@@ -4,7 +4,7 @@ metadata:
   labels:
     app: genotools-api-pod
   name: genotools-api-pod
-  namespace: kns-gtserver
+  namespace: kns-pregenotools
 spec:
   replicas: 1
   selector:
@@ -21,7 +21,7 @@ spec:
         gke-gcsfuse/memory-limit: 8Gi
         gke-gcsfuse/ephemeral-storage-limit: 8Gi   
     spec:
-      serviceAccountName: ksa-bucket-access
+      serviceAccountName: ksa-bucket-pregenotools
       containers:
       - image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/server/microservices/genotools-api:latest
         name: genotools-api-cont

@@ -8,6 +8,7 @@
 # IDAT_PED_BED_MERGE_NODE_POOL=workflow-idat-ped-bed-nodepool
 export ZONE=europe-west4-a
 export PROJECT_ID=gp2-release-terra
+# export CLUSTER_NAME=test-gke-prod-cluster
 export CLUSTER_NAME=gke-prod-cluster
 export IDAT_PED_BED_MERGE_NODE_POOL=workflow-idat-ped-bed-nodepool
 export VM=e2-standard-8
@@ -25,4 +26,5 @@ echo Deleting node-pool: $IDAT_PED_BED_MERGE_NODE_POOL from $CLUSTER_NAME k8s cl
 
 gcloud container node-pools delete $IDAT_PED_BED_MERGE_NODE_POOL \
   --cluster=$CLUSTER_NAME \
-  --zone=$ZONE
+  --zone=$ZONE \
+  --quiet

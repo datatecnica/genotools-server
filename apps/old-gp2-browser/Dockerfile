@@ -14,6 +14,8 @@ COPY requirements.txt app/requirements.txt
 RUN pip install --upgrade pip
 RUN pip install -r app/requirements.txt
 
+# RUN git clone https://github.com/dvitale199/GenoTools && cd GenoTools && pip install .
+
 #Copy all files in current directory into app directory
 COPY . /app
 

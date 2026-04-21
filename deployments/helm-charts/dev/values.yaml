@@ -13,9 +13,11 @@ persistentVOLUMECLAIM: gtserver-pvc
 GCP_SA: gsa-gtserver
 #kubernetes resources
 ksaBucket: ksa-bucket-access
+ksaBucket_pregenotools: ksa-bucket-pregenotools
 
 
-namespace: kns-gtserver
+namespace: kns-apps
+namespace_pregenotools: kns-pregenotools
 # namespace: kns-test
 
 dnsName: genotoolsserver.com #genotoolsservers.com #genotools-server.com
@@ -34,7 +36,8 @@ argoRelated:
     workflowRoleBindingName: argo-workflow-role-binding
 gatewayAPI:
   gatewayName: gt-server-gwapi
-  certKey: gt-server-gateway
+  certKey: prod-dns-cert
+  certMap: prod-dns-cert-map
   globalIPName: gke-ingress #gt-test-ip
 #  routeName: genotools-routes
 

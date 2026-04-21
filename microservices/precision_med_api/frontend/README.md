@@ -35,7 +35,7 @@ The frontend automatically discovers releases in your results directory.
 **Custom path via environment variable:**
 ```bash
 export RESULTS_PATH=/path/to/your/results
-./run_frontend.sh
+./run_app.sh
 ```
 
 **Custom path via code:**
@@ -45,13 +45,13 @@ Edit `app/config.py` line 40 to change the default path.
 
 ```bash
 # Production mode (default port 8501)
-./run_frontend.sh
+./run_app.sh
 
 # Debug mode with job selection
-./run_frontend.sh --debug
+./run_app.sh --debug
 
 # Custom port
-./run_frontend.sh 8502
+./run_app.sh 8502
 ```
 
 ## Expected Data Files

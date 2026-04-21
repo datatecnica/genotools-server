@@ -1,7 +1,7 @@
 # generate_configs.py
 from jinja2 import Environment, FileSystemLoader
 
-def generate_idat_ped_job_files(batch_folder_path, exec_folder_path, study, k8s_namespace, pv_claim, service_account_name, gke_nodepools):#, user_email):
+def generate_idat_ped_job_files(batch_folder_path, exec_folder_path, study, k8s_namespace, pv_claim, pv_claim_idats, service_account_name, gke_nodepools):#, user_email):
 
     # Set up Jinja2 environment to load templates from the current directory
     env = Environment(loader=FileSystemLoader('.'))
@@ -23,6 +23,7 @@ def generate_idat_ped_job_files(batch_folder_path, exec_folder_path, study, k8s_
         params["batch_folder_path"] = batch_folder_path
         params["k8s_namespace"] = k8s_namespace
         params["pv_claim"] = pv_claim
+        params["pv_claim_idats"] = pv_claim_idats
         params["service_account_name"] = service_account_name
         params["gke_nodepools"] = gke_nodepools
         #params["user_email"] = user_email
@@ -36,7 +37,7 @@ def generate_idat_ped_job_files(batch_folder_path, exec_folder_path, study, k8s_
         print(f"Generated {output_filename}")
         counter+=1
 
-def generate_ped_bed_job_files(batch_folder_path, exec_folder_path, k8s_namespace, pv_claim, service_account_name, gke_nodepools):#, user_email):
+def generate_ped_bed_job_files(batch_folder_path, exec_folder_path, k8s_namespace, pv_claim, pv_claim_idats, service_account_name, gke_nodepools):#, user_email):
 
     # Set up Jinja2 environment to load templates from the current directory
     env = Environment(loader=FileSystemLoader('.'))
@@ -59,6 +60,7 @@ def generate_ped_bed_job_files(batch_folder_path, exec_folder_path, k8s_namespac
         params["batch_folder_path"] = batch_folder_path
         params["k8s_namespace"] = k8s_namespace
         params["pv_claim"] = pv_claim
+        params["pv_claim_idats"] = pv_claim_idats
         params["service_account_name"] = service_account_name
         params["gke_nodepools"] = gke_nodepools
         #params["user_email"] = user_email
@@ -71,7 +73,7 @@ def generate_ped_bed_job_files(batch_folder_path, exec_folder_path, k8s_namespac
         print(f"Generated {output_filename}")
         counter+=1                
 
-def generate_merge_beds_job_files(batch_folder_path, exec_folder_path, k8s_namespace, pv_claim, service_account_name, gke_nodepools): #, user_email):
+def generate_merge_beds_job_files(batch_folder_path, exec_folder_path, k8s_namespace, pv_claim, pv_claim_idats, service_account_name, gke_nodepools): #, user_email):
 
     # Set up Jinja2 environment to load templates from the current directory
     env = Environment(loader=FileSystemLoader('.'))
@@ -94,6 +96,7 @@ def generate_merge_beds_job_files(batch_folder_path, exec_folder_path, k8s_names
         params["batch_folder_path"] = batch_folder_path
         params["k8s_namespace"] = k8s_namespace
         params["pv_claim"] = pv_claim
+        params["pv_claim_idats"] = pv_claim_idats
         params["service_account_name"] = service_account_name
         params["gke_nodepools"] = gke_nodepools
         #params["user_email"] = user_email

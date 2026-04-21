@@ -1,7 +1,7 @@
 import streamlit as st
 import yaml
 import subprocess
-from . import K8S_NAMESPACE, GENOTOOLS_API_POD, IDAT_PED_BED_MERGE_WF, IDAT_PED_BED_MERGE_CHART
+from . import K8S_NAMESPACE, ARGO_NAMESPACE, GENOTOOLS_API_POD, IDAT_PED_BED_MERGE_WF, IDAT_PED_BED_MERGE_CHART
 
 def deployment_yaml(yaml_file):
     try:
@@ -53,7 +53,7 @@ def check_dep():
     st.subheader("Retrieving All Deployments, Services and Ingress")
     try:
         result = subprocess.run(
-            ["kubectl", "get", "all", "-n", K8S_NAMESPACE],
+            ["kubectl", "get", "pods", "-n", K8S_NAMESPACE],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
@@ -73,7 +73,7 @@ def check_dep():
 
     try:
         result = subprocess.run(
-            ["kubectl", "get", "gateway", "-n", K8S_NAMESPACE],
+            ["kubectl", "get", "gateway", "-n", ARGO_NAMESPACE],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True

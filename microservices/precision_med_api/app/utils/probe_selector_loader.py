@@ -42,7 +42,7 @@ class ProbeSelectionLoader:
             return
 
         try:
-            logger.info(f"Loading probe selection from: {self.probe_selection_path}")
+            logger.debug(f"Loading probe selection from: {self.probe_selection_path}")
             with open(path, 'r') as f:
                 data = json.load(f)
 
@@ -62,7 +62,7 @@ class ProbeSelectionLoader:
                     diagnostic_rec = comparison.get('diagnostic_recommendation', {})
                     recommended_probe = diagnostic_rec.get('recommended_probe')
                     if recommended_probe:
-                        logger.warning(
+                        logger.debug(
                             f"Methods disagree for {snp_list_id}, using diagnostic recommendation: {recommended_probe}"
                         )
 
@@ -75,7 +75,7 @@ class ProbeSelectionLoader:
                     if total_probes > 1:
                         self.probes_excluded += (total_probes - 1)
 
-            logger.info(
+            logger.debug(
                 f"Loaded probe selection: {len(self.selection_map)} mutations, "
                 f"{self.probes_excluded} inferior probes to exclude"
             )

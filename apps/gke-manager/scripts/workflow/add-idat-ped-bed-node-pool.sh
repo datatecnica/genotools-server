@@ -9,6 +9,7 @@
 
 export ZONE=europe-west4-a
 export PROJECT_ID=gp2-release-terra
+# export CLUSTER_NAME=test-gke-prod-cluster
 export CLUSTER_NAME=gke-prod-cluster
 export IDAT_PED_BED_MERGE_NODE_POOL=workflow-idat-ped-bed-nodepool
 export VM=e2-standard-8
@@ -23,7 +24,7 @@ echo retrieving Auth Credentials for the created Cluster: $CLUSTER_NAME, in zone
 gcloud container clusters get-credentials $CLUSTER_NAME --zone $ZONE --dns-endpoint
 
 
-echo Adding node-pool: $IDAT_PED_BED_MERGE_NODE_POOL to use with the gp2_browser app deployment on $CLUSTER_NAME k8s cluster in zone: $ZONE -  Please change machine type if needed
+echo Adding node-pool: $IDAT_PED_BED_MERGE_NODE_POOL to use with the pre-genotools idat-ped-bed-merge workflow deployment on $CLUSTER_NAME k8s cluster in zone: $ZONE -  Please change machine type if needed
 
 
 gcloud container node-pools create $IDAT_PED_BED_MERGE_NODE_POOL \
@@ -33,7 +34,8 @@ gcloud container node-pools create $IDAT_PED_BED_MERGE_NODE_POOL \
   --zone=$ZONE \
   --enable-autoscaling \
   --min-nodes=0 \
-  --max-nodes=5 
+  --max-nodes=50 \
+  --quiet
   # --num-nodes=1
 
 echo updating the autoscaling profile for the $IDAT_PED_BED_MERGE_NODE_POOL to optimize utilization

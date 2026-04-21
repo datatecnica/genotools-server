@@ -9,7 +9,7 @@ def process_nba_data(config: PipelineConfig):
     print("\n=== Preparing NBA Files ===")
     
     nba_out_dir = f'{config.browser_base_dir}/nba/release{config.release}'
-    os.makedirs(nba_out_dir, exist_ok=True) # can later replace with file manager functionality    
+    # os.makedirs(nba_out_dir, exist_ok=True) # can later replace with file manager functionality    
 
     payload = {
         "release_num": config.release, 
@@ -17,6 +17,7 @@ def process_nba_data(config: PipelineConfig):
         "gt_path": f'{config.gt_base_dir}/GP2_r{config.release}_final_post_genotools.json',
         "out_dir": nba_out_dir
     }
+    print(f"\n\nPosting NBA prep request to API with payload:\n{payload}")
 
     post_to_api(f"{config.api_base_url}/prep_browser", payload)
     
@@ -25,15 +26,23 @@ def process_nba_data(config: PipelineConfig):
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare all necessary files for the cohort browser.')
-    parser.add_argument('--mnt-dir', default='~/gcs_mounts', help='Mount directory path')
+    # parser.add_argument('--mnt-dir', default='~/gcs_mounts', help='Mount directory path')
+    # parser.add_argument('--mnt-dir', default='/app/data/cohort_browser/', help='Mount directory path')
+    # parser.add_argument('--release', default=10, help='Release version')
+    # parser.add_argument('--api-url', default='http://localhost:8000', help='API base URL')
+    parser.add_argument('--mnt-dir-input', default='/app/data/cohort_browser/', help='Mount directory path')
+    parser.add_argument('--mnt-dir-output', default='/app/data/cohort_browser/', help='Mount directory path')
     parser.add_argument('--release', default=10, help='Release version')
-    parser.add_argument('--api-url', default='http://localhost:8000', help='API base URL')
+    
+
+    parser.add_argument('--api-url', default='https://gp2-browser-api-776926281950.europe-west1.run.app/', help='API base URL')
 
     args = parser.parse_args()
     
     # Create configuration
     config = PipelineConfig(
-        mnt_dir=args.mnt_dir,
+        mnt_dir_input=args.mnt_dir_input,
+        mnt_dir_output=args.mnt_dir_output,
         release=args.release,
         api_base_url=args.api_url
     )
@@ -41,10 +50,11 @@ def main():
     # Check API health
     response = requests.get(f"{config.api_base_url}/health")
     print(f"Health check: {response.json()}")
-    
+    print(f"config: {config}")
     # Process NBA data
     results = {}
     results['nba'] = process_nba_data(config)
+    print(f"NBA files prepared at: {results['nba']}")
     
     # Print final summary
     print("\n=== All processing complete! ===")

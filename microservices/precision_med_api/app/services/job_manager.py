@@ -52,7 +52,7 @@ class JobManager:
                 "errors": []
             }
 
-        logger.info(f"Created job {job_id} ({job_name})")
+        logger.debug(f"Created job {job_id} ({job_name})")
         return job_id
 
     def start_job(self, job_id: str):
@@ -65,7 +65,7 @@ class JobManager:
             self._jobs[job_id]["started_at"] = datetime.utcnow()
             self._jobs[job_id]["progress"] = "Pipeline execution started"
 
-        logger.info(f"Started job {job_id}")
+        logger.debug(f"Started job {job_id}")
 
     def update_progress(self, job_id: str, progress: str):
         """Update job progress message."""
@@ -94,7 +94,7 @@ class JobManager:
                 delta = job["completed_at"] - job["started_at"]
                 job["execution_time_seconds"] = delta.total_seconds()
 
-        logger.info(f"Completed job {job_id}")
+        logger.debug(f"Completed job {job_id}")
 
     def fail_job(self, job_id: str, errors: list):
         """Mark job as failed with error messages."""

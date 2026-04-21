@@ -132,6 +132,12 @@ def create_parser() -> argparse.ArgumentParser:
         help='GCS PV claim name',
         default="gtserver-pvc"
     )
+    parser.add_argument(
+        '--pv-claim-idats',
+        type=str,
+        help='GCS PV claim name for IDATs',
+        default="gtserver-pvc-idats"
+    )
 
     parser.add_argument(
         '--gke-nodepools',
@@ -179,6 +185,7 @@ def main():
             service_account_name=args.service_account_name, #beds-merge
             k8s_namespace=args.k8s_namespace, #beds-merge
             pv_claim=args.pv_claim, #beds-merge
+            pv_claim_idats=args.pv_claim_idats, #beds-merge
             gke_nodepools=args.gke_nodepools, #beds-merge
             # user_email = args.user_email
         )        
@@ -223,7 +230,7 @@ def main():
                     logger.info(f"Done creating job script {job_files}")
                     print(f"Now generating YAML job files")
                     # generate_jobs.generate_idat_ped_job_files(args.batch_folder_path, index)
-                    generate_idat_ped_job_files(args.batch_folder_path, args.exec_folder_path, index, args.k8s_namespace, args.pv_claim, args.service_account_name, args.gke_nodepools)#, args.user_email)
+                    generate_idat_ped_job_files(args.batch_folder_path, args.exec_folder_path, index, args.k8s_namespace, args.pv_claim, args.pv_claim_idats, args.service_account_name, args.gke_nodepools)#, args.user_email)
                     print(f"Done generating YAML job files")
                     logger.info(f"Done generating YAML job files")
             else:
@@ -256,7 +263,7 @@ def main():
 
             print(f"Now generating YAML job files for PED->BED conversion")
             # generate_jobs.generate_ped_bed_job_files(args.batch_folder_path)
-            generate_ped_bed_job_files(args.batch_folder_path, args.exec_folder_path, args.k8s_namespace, args.pv_claim, args.service_account_name, args.gke_nodepools)#, args.user_email)
+            generate_ped_bed_job_files(args.batch_folder_path, args.exec_folder_path, args.k8s_namespace, args.pv_claim, args.pv_claim_idats, args.service_account_name, args.gke_nodepools)#, args.user_email)
             print(f"Done generating YAML job files")
             logger.info(f"Done generating YAML job files")
         else:
@@ -293,7 +300,7 @@ def main():
 
                 print(f"Now generating YAML job files for Merge BEDs")
                 # generate_jobs.generate_merge_beds_job_files(args.batch_folder_path)
-                generate_merge_beds_job_files(args.batch_folder_path, args.exec_folder_path, args.k8s_namespace, args.pv_claim, args.service_account_name, args.gke_nodepools)#, args.user_email)
+                generate_merge_beds_job_files(args.batch_folder_path, args.exec_folder_path, args.k8s_namespace, args.pv_claim, args.pv_claim_idats, args.service_account_name, args.gke_nodepools)#, args.user_email)
                 print(f"Done generating BEDS-MERGE YAML job files")
                 logger.info(f"Done generating BEDS-MERGE YAML job files")
             
