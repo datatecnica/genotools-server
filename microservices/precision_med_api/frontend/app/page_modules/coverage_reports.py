@@ -118,7 +118,7 @@ def render_locus_table(locus_df: pd.DataFrame):
     # Filter by search
     if search:
         display_df = display_df[
-            display_df['locus'].str.contains(search, case=False, na=False)
+            display_df['gene'].str.contains(search, case=False, na=False)
         ]
 
     # Format percentage columns for display
@@ -128,7 +128,7 @@ def render_locus_table(locus_df: pd.DataFrame):
 
     # Rename columns for clarity
     column_rename = {
-        'locus': 'Locus',
+        'gene': 'Locus',
         'chromosome': 'Chr',
         'total_variants': 'Total',
         'wgs_exact': 'WGS',
@@ -142,7 +142,7 @@ def render_locus_table(locus_df: pd.DataFrame):
     }
 
     # Select columns to display (exact matches only for cleaner view)
-    display_cols = ['locus', 'chromosome', 'total_variants',
+    display_cols = ['gene', 'chromosome', 'total_variants',
                     'wgs_exact', 'wgs_exact_pct',
                     'imputed_exact', 'imputed_exact_pct',
                     'nba_exact', 'nba_exact_pct',
@@ -168,7 +168,7 @@ def render_locus_table(locus_df: pd.DataFrame):
             "with different allele representations (strand flips, indel normalization)."
         )
 
-        pos_cols = ['locus', 'total_variants',
+        pos_cols = ['gene', 'total_variants',
                     'wgs_position', 'imputed_position', 'nba_position', 'exomes_position']
         pos_cols = [c for c in pos_cols if c in locus_df.columns]
 
@@ -187,7 +187,7 @@ def render_variant_table(variant_df: pd.DataFrame):
 
     with col1:
         # Locus filter
-        loci = ['All'] + sorted(variant_df['locus'].unique().tolist())
+        loci = ['All'] + sorted(variant_df['gene'].unique().tolist())
         selected_locus = st.selectbox("Filter by Locus:", loci, key="variant_locus_filter")
 
     with col2:
@@ -198,12 +198,12 @@ def render_variant_table(variant_df: pd.DataFrame):
     display_df = variant_df.copy()
 
     if selected_locus != 'All':
-        display_df = display_df[display_df['locus'] == selected_locus]
+        display_df = display_df[display_df['gene'] == selected_locus]
 
     if search:
         mask = (
             display_df['variant_id'].str.contains(search, case=False, na=False) |
-            display_df['snp_name'].str.contains(search, case=False, na=False) |
+            display_df['variant_name'].str.contains(search, case=False, na=False) |
             display_df['rsid'].astype(str).str.contains(search, case=False, na=False)
         )
         display_df = display_df[mask]
@@ -214,13 +214,13 @@ def render_variant_table(variant_df: pd.DataFrame):
         display_df[col] = display_df[col].apply(lambda x: '✓' if x else '✗')
 
     # Select and rename columns
-    display_cols = ['snp_name', 'locus', 'variant_id', 'rsid',
+    display_cols = ['variant_name', 'gene', 'variant_id', 'rsid',
                     'WGS_exact', 'IMPUTED_exact', 'NBA_exact', 'EXOMES_exact']
     display_cols = [c for c in display_cols if c in display_df.columns]
 
     column_rename = {
-        'snp_name': 'Mutation',
-        'locus': 'Locus',
+        'variant_name': 'Mutation',
+        'gene': 'Locus',
         'variant_id': 'Variant ID',
         'rsid': 'rsID',
         'WGS_exact': 'WGS',
@@ -243,7 +243,7 @@ def render_variant_table(variant_df: pd.DataFrame):
 
     # Position matches in expander
     with st.expander("📊 View Position Match Details", expanded=False):
-        pos_cols = ['snp_name', 'locus', 'variant_id',
+        pos_cols = ['variant_name', 'gene', 'variant_id',
                     'WGS_position', 'IMPUTED_position', 'NBA_position', 'EXOMES_position']
         pos_cols = [c for c in pos_cols if c in variant_df.columns]
 
@@ -251,11 +251,11 @@ def render_variant_table(variant_df: pd.DataFrame):
             # Apply same filters
             pos_df = variant_df.copy()
             if selected_locus != 'All':
-                pos_df = pos_df[pos_df['locus'] == selected_locus]
+                pos_df = pos_df[pos_df['gene'] == selected_locus]
             if search:
                 mask = (
                     pos_df['variant_id'].str.contains(search, case=False, na=False) |
-                    pos_df['snp_name'].str.contains(search, case=False, na=False) |
+                    pos_df['variant_name'].str.contains(search, case=False, na=False) |
                     pos_df['rsid'].astype(str).str.contains(search, case=False, na=False)
                 )
                 pos_df = pos_df[mask]

@@ -130,7 +130,7 @@ def render_loci_table(data: Dict[str, Any], variant_map: Dict[str, str] = None):
     # Create summary table
     summary_rows = []
     for locus_entry in loci_list:
-        gene_name = locus_entry.get('locus', 'Unknown')
+        gene_name = locus_entry.get('gene', 'Unknown')
         total_metrics = locus_entry.get('total_metrics', {})
         summary_rows.append({
             'Gene/Locus': gene_name,
@@ -146,7 +146,7 @@ def render_loci_table(data: Dict[str, Any], variant_map: Dict[str, str] = None):
         st.dataframe(df, width='stretch', hide_index=True)
 
         # Locus selector for detailed view
-        locus_names = [entry.get('locus', 'Unknown') for entry in loci_list]
+        locus_names = [entry.get('gene', 'Unknown') for entry in loci_list]
         selected_locus = st.selectbox(
             "Select locus for detailed ancestry breakdown:",
             locus_names
@@ -154,7 +154,7 @@ def render_loci_table(data: Dict[str, Any], variant_map: Dict[str, str] = None):
 
         if selected_locus:
             # Find the selected locus entry
-            locus_data = next((entry for entry in loci_list if entry.get('locus') == selected_locus), None)
+            locus_data = next((entry for entry in loci_list if entry.get('gene') == selected_locus), None)
             if locus_data:
                 render_locus_details(locus_data, selected_locus, variant_map)
 

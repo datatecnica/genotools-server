@@ -15,7 +15,6 @@ from .analysis import (
     AnalysisResult
 )
 from .key_model import KeyRecord
-from .snp_model import SNPRecord
 from .genotype import (
     GenotypeRecord,
     GenotypeData,
@@ -40,7 +39,6 @@ __all__ = [
     "AnalysisMetadata",
     "AnalysisResult",
     "KeyRecord",
-    "SNPRecord",
     "GenotypeRecord",
     "GenotypeData",
     "GenotypeCallFormat",

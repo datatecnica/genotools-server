@@ -80,6 +80,7 @@ SNP List: ~/gcs_mounts/genotools_server/precision_med/summary_data/precision_med
   3. `pd.merge()` across ancestries (different samples)
 - `combine_first()` handles any `_dup` columns from cross-ancestry overlap
 - See `DEBUGGING_IMPUTED_ISSUE.md` for full history and implementation details
+- Root cause: `_merge_ancestry_results()` was dropping duplicate columns without combining values, silently zeroing out entire variants. See git log around 2025-12-15 for details.
 
 ### Probe Selection Integration
 - Locus reports now filter to use only selected probes

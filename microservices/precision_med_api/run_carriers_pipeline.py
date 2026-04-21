@@ -108,6 +108,37 @@ def parse_args():
         help='Skip coverage profiling phase (default: False)'
     )
     parser.add_argument(
+        '--skip-variant-report',
+        action='store_true',
+        default=False,
+        help='Skip per-sample variant report generation (default: False)'
+    )
+    parser.add_argument(
+        '--nba-path',
+        type=str,
+        default=None,
+        help='Override base path for NBA files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/nba)'
+    )
+    parser.add_argument(
+        '--wgs-path',
+        type=str,
+        default=None,
+        help='Override base path for WGS files (e.g. ~/gcs_mounts/gp2_release12/variant_report_files/wgs/joint-calling/plink)'
+    )
+    parser.add_argument(
+        '--master-key',
+        type=str,
+        default=None,
+        metavar='PATH',
+        help='Override path for master key file (.csv or tab-separated .txt)'
+    )
+    parser.add_argument(
+        '--skip-preflight',
+        action='store_true',
+        default=False,
+        help='Skip preflight file existence checks before extraction (default: False)'
+    )
+    parser.add_argument(
         '--retry-failed',
         type=str,
         default=None,
@@ -132,6 +163,13 @@ def parse_args():
         default=1.5,
         help='Minimum dosage to call homozygous (default: 1.5 for soft calls, use 1.9 for hard calls)'
     )
+    parser.add_argument(
+        '--geno',
+        type=float,
+        default=None,
+        metavar='RATE',
+        help='Max per-variant missingness rate passed to PLINK --geno (e.g. 0.05 filters variants missing in >5%% of samples). Default: no filter.'
+    )
     return parser.parse_args()
 
 
@@ -147,6 +185,40 @@ def print_system_info():
     logger.debug(f"CPU cores: {cpu_count}")
     logger.debug(f"Total RAM: {memory_gb:.1f} GB")
     logger.debug(f"Available RAM: {psutil.virtual_memory().available / (1024**3):.1f} GB")
+
+def preflight_check(settings, data_types: List[str], enable_locus_reports: bool, enable_variant_report: bool) -> bool:
+    """Check all required input files exist before starting the pipeline."""
+    errors = []
+
+    if not os.path.exists(settings.snp_list_path):
+        errors.append(f"SNP list not found: {settings.snp_list_path}")
+
+    if enable_locus_reports or enable_variant_report:
+        clinical = settings.get_clinical_paths()
+        if not os.path.exists(clinical['master_key']):
+            errors.append(f"Master key not found: {clinical['master_key']}")
+        if enable_locus_reports and not os.path.exists(clinical['data_dictionary']):
+            errors.append(f"Data dictionary not found: {clinical['data_dictionary']}")
+
+    if 'NBA' in data_types:
+        nba_base = settings.nba_base_path or settings.release_path
+        if not os.path.exists(nba_base):
+            errors.append(f"NBA base path not found: {nba_base}")
+
+    if 'WGS' in data_types:
+        wgs_base = settings.wgs_base_path or settings.release_path
+        if not os.path.exists(wgs_base):
+            errors.append(f"WGS base path not found: {wgs_base}")
+
+    if errors:
+        print("\nPREFLIGHT FAILED — missing required files:")
+        for e in errors:
+            print(f"  x {e}")
+        print("\nFix the above before running the pipeline.\n")
+        return False
+
+    return True
+
 
 def check_extraction_results_exist(output_dir: str, job_name: str, data_types: List[str]) -> bool:
     """Check if extraction results already exist for all requested data types."""
@@ -231,15 +303,27 @@ def main():
             'dosage_het_max': args.dosage_het_max,
             'dosage_hom_min': args.dosage_hom_min,
         }
+        if args.geno is not None:
+            dosage_overrides['geno_filter'] = args.geno
+        path_overrides = {}
+        if args.nba_path:
+            path_overrides['nba_base_path'] = args.nba_path
+        if args.wgs_path:
+            path_overrides['wgs_base_path'] = args.wgs_path
+        if args.master_key:
+            path_overrides['master_key_path'] = os.path.expanduser(args.master_key)
+
         if args.optimize:
             logger.debug("Using auto-optimized performance settings")
-            settings = Settings.create_optimized(release=args.release, **dosage_overrides)
+            settings = Settings.create_optimized(release=args.release, **dosage_overrides, **path_overrides)
         else:
             logger.debug("Using default settings")
-            settings = Settings(release=args.release, **dosage_overrides)
-        
+            settings = Settings(release=args.release, **dosage_overrides, **path_overrides)
+
         logger.debug(f"Performance settings: {settings.max_workers} workers, {settings.chunk_size} chunk_size, {settings.process_cap} process_cap")
         logger.debug(f"Dosage thresholds: het=[{settings.dosage_het_min}, {settings.dosage_het_max}), hom>={settings.dosage_hom_min}")
+        if settings.geno_filter is not None:
+            logger.debug(f"PLINK QC filter: --geno {settings.geno_filter} (variants missing in >{settings.geno_filter*100:.0f}% of samples will be excluded)")
 
         # Initialize components
         extractor = VariantExtractor(settings)
@@ -278,6 +362,9 @@ def main():
         # Handle coverage profiling logic - enabled by default unless skipped
         enable_coverage_profiling = not args.skip_coverage_profiling
 
+        # Handle variant report logic - enabled by default unless skipped
+        enable_variant_report = not args.skip_variant_report
+
         # Console: Show minimal config summary
         progress.info(f"Release {args.release} | {', '.join(args.data_types)} | {len(args.ancestries)} ancestries")
         progress.info(f"Output: {output_dir}")
@@ -297,7 +384,16 @@ def main():
         logger.debug(f"Probe selection: {enable_probe_selection}")
         logger.debug(f"Locus reports: {enable_locus_reports}")
         logger.debug(f"Coverage profiling: {enable_coverage_profiling}")
+        logger.debug(f"Variant report: {enable_variant_report}")
+        logger.debug(f"NBA path override: {args.nba_path or 'None (using default)'}")
+        logger.debug(f"WGS path override: {args.wgs_path or 'None (using default)'}")
+        logger.debug(f"Master key override: {args.master_key or 'None (using default)'}")
         logger.debug(f"Retry failed: {args.retry_failed or 'No'}")
+
+        # Preflight: verify required files exist before starting expensive extraction
+        if not args.skip_preflight:
+            if not preflight_check(settings, args.data_types, enable_locus_reports, enable_variant_report):
+                return 1
 
         # Check if we should retry failed extractions
         if args.retry_failed:
@@ -362,6 +458,17 @@ def main():
                     if coverage_results:
                         output_files.update(coverage_results)
 
+                # Run variant report on existing results if enabled
+                if enable_variant_report:
+                    progress.info("  Running variant report...")
+                    variant_report_results = coordinator.run_variant_report_postprocessing(
+                        output_dir=output_dir,
+                        output_name=custom_name,
+                        data_types=data_type_enums
+                    )
+                    if variant_report_results:
+                        output_files.update(variant_report_results)
+
                 results = {
                     'success': True,
                     'job_id': custom_name,
@@ -384,7 +491,8 @@ def main():
                     output_name=custom_name,
                     enable_probe_selection=enable_probe_selection,
                     enable_locus_reports=enable_locus_reports,
-                    enable_coverage_profiling=enable_coverage_profiling
+                    enable_coverage_profiling=enable_coverage_profiling,
+                    enable_variant_report=enable_variant_report
                 )
         else:
             # Normal pipeline execution (will overwrite existing results)
@@ -400,7 +508,8 @@ def main():
                 output_name=custom_name,
                 enable_probe_selection=enable_probe_selection,
                 enable_locus_reports=enable_locus_reports,
-                enable_coverage_profiling=enable_coverage_profiling
+                enable_coverage_profiling=enable_coverage_profiling,
+                enable_variant_report=enable_variant_report
             )
 
         # Calculate timing only if extraction was run

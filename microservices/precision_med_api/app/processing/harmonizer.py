@@ -127,7 +127,10 @@ class HarmonizationEngine:
         """
         # Prepare data for merge
         pvar_merge = pvar_df[['CHROM', 'POS', 'ID', 'REF', 'ALT']].copy()
-        snp_merge = snp_list[['chromosome', 'position', 'variant_id', 'ref', 'alt', 'snp_name']].copy()
+        snp_cols = ['chromosome', 'position', 'variant_id', 'ref', 'alt', 'variant_name']
+        if 'aa_change' in snp_list.columns:
+            snp_cols.append('aa_change')
+        snp_merge = snp_list[snp_cols].copy()
         
         # Rename columns for consistent merge keys
         pvar_merge = pvar_merge.rename(columns={'CHROM': 'chromosome', 'POS': 'position'})
@@ -248,7 +251,7 @@ class HarmonizationEngine:
             
             # Create harmonization record
             record = HarmonizationRecord(
-                snp_list_id=str(row['snp_name']),
+                snp_list_id=str(row['variant_name']),
                 pgen_variant_id=str(row['ID']),
                 chromosome=str(row['chromosome']),
                 position=int(row['position']),
