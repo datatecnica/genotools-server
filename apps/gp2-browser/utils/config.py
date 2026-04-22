@@ -6,8 +6,10 @@ class AppConfig(BaseSettings):
     Centralized configuration using Pydantic for validation and defaults.
     """
 
-    GCP_PROJECT: str = "gp2-release-terra"
-    FRONTEND_BUCKET_NAME: str = "genotools-server"
+    # GCP_PROJECT: str = "gp2-release-terra"
+    # FRONTEND_BUCKET_NAME: str = "genotools-server"
+    FRONTEND_BUCKET_NAME: str = "/app/data/"
+
 
     SEX_MAP: Dict[int, str] = {
         1: "Male",

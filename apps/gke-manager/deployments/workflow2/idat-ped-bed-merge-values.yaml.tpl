@@ -1,0 +1,33 @@
+job:
+  flag_idat_ped: '1'
+  flag_ped_bed: '2'
+  flag_merge_bed: '3'
+  base_path: /app/input/workflows/idat_ped_bed_merge/
+  output_folder: syed-res
+  key_name: GP2_master_key_DECEMBER_2025.txt
+  idat_path: /app/input
+  num_threads: '6'
+  barcodes_per_job: '8'
+  codes_per_job: '80'
+study_id: MAYO, KGPAR
+image:
+  repository: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/server/wf/idat-ped-bed-merge:latest
+user_email: syed@datatecnica.com    
+gcpSecretManager:
+  kubernetesSecretName: gtserver-secrets
+  patKey:
+    name: genotools-api-sec
+    key: EMAIL_PAT 
+namespace: kns-pregenotools
+serviceAccountName: ksa-bucket-pregenotools
+persistentVOLUME: pv-pregenotools
+persistentVOLUMECLAIM: pvc-pregenotools
+persistentVOLUME_IDATS: pv-idats
+persistentVOLUMECLAIM_IDATS: pvc-idats
+gkeNodePools: workflow-idat-ped-bed-nodepool
+email_notification:
+  idat_ped_step: null
+  start_message_idat_ped: Workflow step IDAT -> PED has started.
+  success_message_idat_ped: Workflow step IDAT -> PED has completed successfully.
+    Please check logs to verify.
+  failure_message: IDAT to PED to BED merge workflow has failed.

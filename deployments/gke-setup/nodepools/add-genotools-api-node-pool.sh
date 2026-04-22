@@ -1,15 +1,14 @@
-export ZONE=europe-west4-a
-# export PROJECT_ID=gp2-release-terra
-export PROJECT_ID=gp2-code-test-env
-export CLUSTER_NAME=gtserver-eu-west4
-export GENOTOOLS_API_NODE=genotools-api-node
-export VM=c4-highmem-32
+ZONE=europe-west4-a
+PROJECT_ID=gp2-release-terra
+CLUSTER_NAME=gke-prod-cluster
+GENOTOOLS_API_NODE=genotools-api-node
+VM=c4-highmem-32
 
 echo setting gcp project: $PROJECT_ID
 
 gcloud config set project $PROJECT_ID
 
-echo retrieving Auth Credentials for the created Cluster: $CLUSTER_NAME, in zone: $ZONE
+echo retrieving Auth Credentials for the created Cluster: $CLUSTER_NAME, in zone: $ZONE --dns-endpoint
 
 gcloud container clusters get-credentials $CLUSTER_NAME --zone $ZONE
 

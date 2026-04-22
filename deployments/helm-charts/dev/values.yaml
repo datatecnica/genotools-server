@@ -1,30 +1,61 @@
 #global resources for Genotools Server
 ZONE: europe-west4-a
-CLUSTER_NAME: gtserver-eu-west4
-PROJECT_ID: gp2-code-test-env
+CLUSTER_NAME: gke-prod-cluster #gke-test-cluster
+PROJECT_ID: gp2-release-terra
 nodePools:
-  appsNodePool: apps-node-pool
+  appsNodePool: apps-node
   genotoolsApiNodePool: genotools-api-node
   gtPrecheckApiNodePool: gtprecheck-api-node
+  snpMatrixAPINodePool: snp-matrix-node-pool
 
 persistentVOLUME: gtserver-pv
 persistentVOLUMECLAIM: gtserver-pvc
 GCP_SA: gsa-gtserver
 #kubernetes resources
 ksaBucket: ksa-bucket-access
+ksaBucket_pregenotools: ksa-bucket-pregenotools
 
 
-namespace: kns-gtserver
+namespace: kns-apps
+namespace_pregenotools: kns-pregenotools
+# namespace: kns-test
 
-dnsName: genotools-server.com
-ingressName: gtserver-ingress
-globalIPName: gke-ingress
+dnsName: genotoolsserver.com #genotoolsservers.com #genotools-server.com
+# ingressName: gtserver-ingress
+# globalIPName: gke-ingress
+
+argoRelated:
+  argoRoles:
+    roleName: argo-workflow-role
+    bindingName: argo-workflow-role-binding
+  argoWF:
+    routeName: argo-route
+    namespace: argo
+    hostname: workflows.genotoolsserver.com
+    serviceAccountName: argo-ksa
+    workflowRoleBindingName: argo-workflow-role-binding
+gatewayAPI:
+  gatewayName: gt-server-gwapi
+  certKey: prod-dns-cert
+  certMap: prod-dns-cert-map
+  globalIPName: gke-ingress #gt-test-ip
+#  routeName: genotools-routes
 
 gcpSecretManager:
   ksaExternalSecret: ksa-external-secrets
   secretStoreName: gcp-secrets-store
   externalSecretName: gcp-external-secret
   kubernetesSecretName: gtserver-secrets
+  iapRelated:
+    apps:
+      externalSecretName: apps-iap-secrets
+      kubernetesSecretName: apps-iap-k8s-secret
+      gcpSecretName: iap-related
+    # genotrackerApp:
+    #   externalSecretName: genotracker-app-iap-secret
+    #   kubernetesSecretName: genotracker-app-iap-k8s-secret
+    #   gcpSecretName: iap-related
+
 
 
 pgSQL:
@@ -40,33 +71,85 @@ sslRelated:
   sec: gtserver-ssl
 
 appservices:
-  gp2browserApp:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/apps/gp2-browser-app:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/apps/gp2-browser/gp2-browser:latest
-    svcName: gp2-browser-app-svc
-    iapBackend: gp2-browser-iap-backend
-    iapSec: gp2-browser-iap-sec
-    podName: gp2-browser-app-pod
+  precisionMedApp:
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/dev/apps/precision-med-app:13615f5
+    containerName: precisionmed-app-cont
+    svcName: precisionmed-app-svc
+    iapPolicyBackend: precisionmed-app-iap-backend
+    containerPort: 8080
+    servicePort: 8000
+    hostname: precision-med.genotoolsserver.com
+    routeName: precisionmed-app-route
+    podName: precisionmed-app-pod
+    volume: precisionmed-app-vol
     mountPath: /app/data
+    iapValues:
+      ClientID: precisionmed_app_id
+      ClientSecret: precisionmed_app_secret
 
   genotrackerApp:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/apps/genotracker-app:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/apps/genotracker-app:latest
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/dev/apps/genotracker-app:13615f5
+    containerName: genotracker-app-cont
     svcName: genotracker-app-svc
-    iapBackend: genotracker-app-iap-backend
-    iapSec: genotracker-app-iap-sec
+    iapPolicyBackend: genotracker-app-iap-backend
+    containerPort: 8080
+    servicePort: 8000
+    hostname: genotracker-app.genotoolsserver.com
+    routeName: genotracker-app-route
     podName: genotracker-app-pod
-    ksaPGSQL: ksa-postgresql
+    volume: genotracker-app-vol
+    mountPath: /app/data
+    iapValues:
+      ClientID: genotracker_app_id
+      ClientSecret: genotracker_app_secret
+
+    # ksaPGSQL: ksa-postgresql
+    # iapBackend: genotracker-app-iap-backend
+    # iapSec: genotracker-app-iap-sec
+
+  gp2browserApp:
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/dev/apps/gp2-browser:13615f5
+    containerName: gp2browser-app-cont
+    svcName: gp2browser-app-svc
+    iapPolicyBackend: gp2browser-iap-backend
+    containerPort: 8080
+    servicePort: 8000
+    hostname: gp2browser-app.genotoolsserver.com
+    routeName: gp2browser-app-route
+    podName: gp2browser-app-pod
+    volume: gp2browser-app-vol
+    mountPath: /app/data
+    iapValues:
+      ClientID: gp2browser_id
+      ClientSecret: gp2browser_secret
+
+
 microservices:
   genotrackerApi:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/genotracker-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotracker-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/api/genotracker-fastapi:latest
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/dev/microservices/genotracker-api:13615f5
+    containerName: genotracker-api-cont
     svcName: genotracker-api-svc
+    containerPort: 8080
+    servicePort: 8000
+    hostname: genotracker-api.genotoolsserver.com
+    routeName: genotracker-api-route
     podName: genotracker-api-pod
+    volume: genotracker-api-vol
+    mountPath: /app/data
     apiKey:
       name: genotracker-secret
       key: GENOTRACKER_API_KEY
   genotoolsApi:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/genotools-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/genotools-api:latest
+    image: europe-west4-docker.pkg.dev/gp2-release-terra/genotools-server/dev/microservices/genotools-api:13615f5
+    containerName: genotools-api-cont
     svcName: genotools-api-svc
+    containerPort: 8080
+    servicePort: 8000
+    # hostname: genotools-api.genotoolsserver.com
+    hostname: genotools-api.genotoolsserver.com
+    routeName: genotools-api-route
     podName: genotools-api-pod
+    volume: genotools-api-vol
     mountPath: /app/genotools_api/data
     apiKey:
       name: genotools-api-sec
@@ -74,10 +157,3 @@ microservices:
     patKey:
       name: genotools-api-sec
       key: EMAIL_PAT #genotools-api-key
-
-  gtPrecheckAPI:
-    image: us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/testing/genotools-server/microservices/gtprecheck-api:latest #us-east1-docker.pkg.dev/gp2-code-test-env/syed-test/genotools-server/microservices/gt_precheck:latest
-    svcName: gt-precheck-api-svc
-    podName: gt-precheck-api-pod
-    mountPath: /app/data
-

@@ -21,6 +21,17 @@ RUN poetry config virtualenvs.create false \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+RUN apt update && apt install -y wget
+# for KING
+RUN wget https://www.kingrelatedness.com/Linux-king.tar.gz -O /tmp/Linux-king.tar.gz
+
+# Create a directory for KING and extract the executable
+RUN mkdir -p /root/.genotools/misc/executables /opt/king && \
+    tar -xzvf /tmp/Linux-king.tar.gz -C /root/.genotools/misc/executables
+
+# Add KING to the system's PATH
+ENV PATH="/root/.genotools/misc/executables:${PATH}"
+
 COPY . /app
 EXPOSE 8080
 

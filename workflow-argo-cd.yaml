@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: test-gt-server-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/datatecnica/genotools-server/  #https://github.com/your-org/your-repo.git 
+    targetRevision: argo_test_branch
+    path: apps/gke-manager/deployments/workflow/dep
+  destination:
+    server: https://kubernetes.default.svc 
+    namespace: kns-gtserver
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true # Automatically creates the destination namespace if it doesn't exist
+#kubectl apply -f argo-dev.yaml

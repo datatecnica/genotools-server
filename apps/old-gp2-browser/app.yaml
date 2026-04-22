@@ -1,0 +1,9 @@
+service: gp2-cohort-browser
+runtime: custom
+env: flex
+resources:
+ cpu: 2
+ memory_gb: 12
+ disk_size_gb: 24
+network:
+  session_affinity: true

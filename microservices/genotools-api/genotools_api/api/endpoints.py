@@ -34,14 +34,17 @@ body_submitted = 'You genotools-api job has been submitted. You will receive an 
 body_completed = 'You genotools-api job has been completed, Please check logs for details.'
 sender_email = "si11080772@gmail.com"
 
-pat_KEY = os.environ.get("PAT_TOKEN")
-pat_KEY = "qgetcdycqfkqpiaq"
+
+
 
 # import asyncio
 
 
 load_dotenv()
 
+#Using this method for now, will get from secret manager later.
+API_KEY = os.environ.get("API_TOKEN")
+pat_KEY = os.environ.get("PAT_TOKEN")
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -69,8 +72,6 @@ def send_email(subject, body, sender_email, pat_KEY, recipient_email):
 
 # API_KEY = access_secret_version()
 
-#Using this method for now, will get from secret manager later.
-API_KEY = os.environ.get("API_TOKEN")
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -109,6 +110,7 @@ async def root():
 @router.post("/run-genotools/")
 # def run_genotools(params: GenoToolsParams, api_key: APIKey = Depends(get_api_key)):
 async def run_genotools(params: GenoToolsParams, background_tasks: BackgroundTasks, api_key: APIKey = Depends(get_api_key)):#, api_key: APIKey = Depends(get_api_key)):    
+# async def run_genotools(params: GenoToolsParams, background_tasks: BackgroundTasks):#, api_key: APIKey = Depends(get_api_key)):        
     logger.debug(f"Received payload: {params}")
     recipient = params.email
 

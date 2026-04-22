@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.appservices.precisionMedApp.podName }} 
+  name: {{ .Values.appservices.precisionMedApp.podName }} 
+  namespace: {{ .Values.namespace }} 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.appservices.precisionMedApp.podName }} 
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.appservices.precisionMedApp.podName }} 
+      annotations:
+        gke-gcsfuse/volumes: "true" 
+    spec:
+      serviceAccountName: {{ .Values.ksaBucket }} 
+      containers:
+      - image: {{ .Values.appservices.precisionMedApp.image }}
+        name: {{ .Values.appservices.precisionMedApp.containerName }} #containerName gp2-browser-container
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "125m"
+            memory: "1Gi"
+          limits:
+            cpu: "250m"
+            memory: "2Gi"        
+        ports:
+        - containerPort: {{ .Values.appservices.precisionMedApp.containerPort | int  }} #8080
+        volumeMounts:
+        - name: {{ .Values.appservices.precisionMedApp.volume }} #gcs-volume
+          mountPath: {{ .Values.appservices.precisionMedApp.mountPath }} 
+      volumes:
+      - name: {{ .Values.appservices.precisionMedApp.volume }} #gcs-volume
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVOLUMECLAIM }}
+      # Ensure pods are scheduled on nodes with the specified GCP VM type
+      nodeSelector:
+        cloud.google.com/gke-nodepool: {{ .Values.nodePools.appsNodePool }} 
+        iam.gke.io/gke-metadata-server-enabled: "true"        

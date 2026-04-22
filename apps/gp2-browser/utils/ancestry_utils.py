@@ -321,16 +321,20 @@ def render_tab_admix(pca_folder, gp2_data_bucket):
     Pulls admixture data from a known GCS location and displays
     the reference panel admixture table and plots.
     """
-    frontend_bucket_name = 'genotools-server'
-    frontend_bucket = get_gcloud_bucket(frontend_bucket_name)
+    # frontend_bucket_name = 'genotools-server'
+    # frontend_bucket = get_gcloud_bucket(frontend_bucket_name)
+    frontend_bucket = config.FRONTEND_BUCKET_NAME+"/"
 
     st.markdown('## **Reference Panel Admixture Populations**')
     with st.expander("Description"):
         st.write(config.DESCRIPTIONS['admixture'])
 
     ref_admix = blob_as_csv(frontend_bucket, 'cohort_browser/frontend/ref_panel_admixture.txt')
-    admix_plot_blob = frontend_bucket.get_blob('cohort_browser/frontend/refpanel_admix.png')
-    admix_plot = admix_plot_blob.download_as_bytes()
+    # admix_plot_blob = frontend_bucket.get_blob('cohort_browser/frontend/refpanel_admix.png')
+    # admix_plot = admix_plot_blob.download_as_bytes()
+    admix_plot_blob = frontend_bucket+'cohort_browser/frontend/refpanel_admix.png' #.get_blob('refpanel_admix.png')
+    admix_plot = admix_plot_blob #admix_plot_blob.download_as_bytes()
+
     st.image(admix_plot)
 
     proj_labels = blob_as_csv(

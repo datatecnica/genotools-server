@@ -1,5 +1,5 @@
 from genotools.utils import shell_do
-from google.cloud import storage
+# from google.cloud import storage
 import os
 from genotools_api.models.models import GenoToolsParams
 
@@ -46,8 +46,18 @@ def construct_command(params: GenoToolsParams) -> str:
         "--maf": params.maf,
         "--ref_panel": params.ref_panel,
         "--ref_labels": params.ref_labels,
+        "--pca": params.pca,
+        "--geno": params.geno,
+        "--case_control": params.case_control,
+        "--haplotype": params.haplotype,
+        "--hwe": params.hwe,
+        "--build": params.build,
+        "--covars": params.covars,
+        "--covar_names": params.covar_names,
+        "--min_samples": params.min_samples,
         "--model": params.model
     }
+
 
     flags = [
         ("--full_output", params.full_output),
@@ -60,6 +70,12 @@ def construct_command(params: GenoToolsParams) -> str:
         ("--het", params.het),
         ("--all_sample", params.all_sample),
         ("--all_variant", params.all_variant),
+        ("--gwas", params.gwas),
+        ("--amr_het", params.amr_het),
+        ("--kinship_check", params.kinship_check),
+        ("--filter_controls", params.filter_controls),
+        ("--maf_lambdas", params.maf_lambdas),
+        ("--subset_ancestry", params.subset_ancestry),
         ("--ancestry", params.ancestry)
     ]
 
@@ -68,8 +84,8 @@ def construct_command(params: GenoToolsParams) -> str:
             command += f" {option} {value}"
     
     for flag, value in flags:
-        if value:
-            command += f" {flag}"
+        if value is not None:
+            command += f" {flag} {value}"
 
     if params.pfile:
         command += f" --pfile {expand_path(params.pfile)}"

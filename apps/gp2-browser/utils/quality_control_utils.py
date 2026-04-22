@@ -13,8 +13,12 @@ def load_qc_data():
 
     qc_metrics_path = f"cohort_browser/nba/release{st.session_state['release_choice']}"
     related_df = blob_as_csv(gp2_data_bucket, f'{qc_metrics_path}/related_plot.csv', sep=',')
-    funnel_plot =  blob_as_html(gp2_data_bucket, f'{qc_metrics_path}/funnel_plot.html')
-    variant_plot =  blob_as_html(gp2_data_bucket, f'{qc_metrics_path}/variant_plot.html')
+    # funnel_plot =  blob_as_html(gp2_data_bucket, f'{qc_metrics_path}/funnel_plot.html')
+    # variant_plot =  blob_as_html(gp2_data_bucket, f'{qc_metrics_path}/variant_plot.html')
+    with open(gp2_data_bucket+f'{qc_metrics_path}/funnel_plot.html', "r") as file:
+        funnel_plot = file.read()
+    with open(gp2_data_bucket+f'{qc_metrics_path}/variant_plot.html', "r") as file:
+        variant_plot = file.read()
  
     return funnel_plot, related_df, variant_plot
 

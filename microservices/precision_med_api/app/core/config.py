@@ -62,7 +62,7 @@ class Settings(BaseModel):
         default=None,
         description="Max per-variant missingness rate (PLINK --geno). E.g. 0.05 excludes variants missing in >5% of samples. None = no filter."
     )
-    
+
     @field_validator('release')
     @classmethod
     def validate_release(cls, v: str) -> str:

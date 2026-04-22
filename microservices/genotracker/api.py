@@ -7,6 +7,7 @@ from functools import lru_cache
 from utils import init_db
 import os
 import json
+import pandas as pd
 
 import logging
 # from google.cloud import secretmanager #, storage
@@ -39,11 +40,13 @@ def get_api_key(api_key: str = Depends(api_key_header)):
     return api_key
 
 # @st.cache_resource(show_spinner=False)
-@lru_cache()
-def init_db_connection():
-    return init_db()
-# Initialize the database connection and read data
-df = init_db_connection()
+# @lru_cache()
+# def init_db_connection():
+#     return init_db()
+# # Initialize the database connection and read data
+# df = init_db_connection()
+
+df = pd.read_csv('/app/data/apps-data/genotracker/data/genotracker_clean.csv')
 
 
 

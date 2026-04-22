@@ -319,7 +319,7 @@ def main():
         else:
             logger.debug("Using default settings")
             settings = Settings(release=args.release, **dosage_overrides, **path_overrides)
-        
+
         logger.debug(f"Performance settings: {settings.max_workers} workers, {settings.chunk_size} chunk_size, {settings.process_cap} process_cap")
         logger.debug(f"Dosage thresholds: het=[{settings.dosage_het_min}, {settings.dosage_het_max}), hom>={settings.dosage_hom_min}")
         if settings.geno_filter is not None:
@@ -508,7 +508,8 @@ def main():
                 output_name=custom_name,
                 enable_probe_selection=enable_probe_selection,
                 enable_locus_reports=enable_locus_reports,
-                enable_coverage_profiling=enable_coverage_profiling
+                enable_coverage_profiling=enable_coverage_profiling,
+                enable_variant_report=enable_variant_report
             )
 
         # Calculate timing only if extraction was run

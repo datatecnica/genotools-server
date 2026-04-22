@@ -1,0 +1,5 @@
+service: gba1-browser
+runtime: custom
+env: flex
+network:
+  session_affinity: true
