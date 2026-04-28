@@ -166,7 +166,7 @@ class VCFMergePipeline:
             "bcftools", "merge",
             "--threads", str(self.merge_config.cpu),
             "-r", region,
-            "-Ou",  # Uncompressed BCF output
+            "-Ob",  # Compressed BCF output (BGZF)
             "-o", str(output_file)
         ] + self.params.vcf_files
         
